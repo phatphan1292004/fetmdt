@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { buildRoomRouteFromPropertyId } from "../../room/servers";
 import type { PropertyCardData } from "../servers/get-home-data";
 
 type PropertyCardProps = {
@@ -5,8 +7,16 @@ type PropertyCardProps = {
 };
 
 export function PropertyCard({ property }: PropertyCardProps) {
+  const roomDetailHref = buildRoomRouteFromPropertyId(property.id);
+
   return (
-    <article className="overflow-hidden rounded-[26px] bg-[#f8f8f8] shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+    <article className="relative overflow-hidden rounded-[26px] bg-[#f8f8f8] shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+      <Link
+        href={roomDetailHref}
+        className="absolute inset-0 z-10 rounded-[26px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b7ea9]"
+        aria-label={`Xem chi tiet ${property.title}`}
+      />
+
       <div className="relative h-60">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${property.imageUrl})` }} />
         <div className="absolute inset-0 bg-linear-to-t from-black/25 to-transparent" />
@@ -18,7 +28,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
         <button
           type="button"
-          className="absolute bottom-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-slate-500"
+          className="relative z-20 absolute bottom-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-slate-500"
           aria-label="Lưu phòng"
         >
           ❤
