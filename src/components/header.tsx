@@ -98,8 +98,8 @@ export function Header({ hotline }: HeaderProps) {
 					>
 						Ký gửi phòng
 					</button>
-					<button
-						type="button"
+					<Link
+						href="/register"
 						className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-[#28c3c8] px-4 py-2 font-semibold text-[#18b9be] whitespace-nowrap transition hover:bg-[#ecfdfe]"
 					>
 						<span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#28c3c8] text-white">
@@ -115,18 +115,18 @@ export function Header({ hotline }: HeaderProps) {
 							</svg>
 						</span>
 						Đăng ký
-					</button>
-					<button type="button" className="shrink-0 font-semibold text-slate-700 underline underline-offset-2">
+					</Link>
+					<Link href="/login" className="shrink-0 font-semibold text-slate-700 underline underline-offset-2">
 						Đăng nhập
-					</button>
+					</Link>
 				</div>
 
-				<button
-					type="button"
+				<Link
+					href="/register"
 					className="rounded-xl border border-[#22c2c7] px-4 py-2 text-sm font-semibold text-[#1ab7bc] lg:hidden"
 				>
 					Đăng ký
-				</button>
+				</Link>
 			</div>
 		</header>
 	);
