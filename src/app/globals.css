@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f3f5f7;
+  --foreground: #2c3a4b;
+  --brand-900: #045a84;
+  --brand-700: #0b7ea9;
+  --brand-500: #25c3c8;
+  --brand-200: #bff3f5;
+  --danger-500: #f2483a;
+  --page: #f3f5f7;
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-sora), var(--font-be-vietnam), "Segoe UI", sans-serif;
+  }
+
+  .hero-noise {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+    background-size: 14px 14px;
+  }
+}
+
+button {
+  cursor: pointer;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-be-vietnam), "Segoe UI", sans-serif;
+}
+
