@@ -8,15 +8,15 @@ const NAV_ITEMS = ["Hồ Chí Minh", "Hà Nội", "Căn hộ mini", "Cẩm nang"
 
 export function Header({ hotline }: HeaderProps) {
 	return (
-		<header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-			<div className="mx-auto flex w-full max-w-310 items-center justify-between px-4 py-4 lg:px-8">
-				<div className="flex items-center gap-6">
+		<header className="sticky top-0 z-40 border-b border-slate-200/90 bg-white">
+			<div className="mx-auto flex h-23 w-full max-w-500 items-center justify-between px-4 lg:px-8">
+				<div className="flex items-center gap-7 xl:gap-9">
 					<Link
 						href="/"
-						className="inline-flex items-center gap-2 text-[#045a84]"
+						className="inline-flex shrink-0 items-center gap-2.5 text-[#045a84]"
 						aria-label="PhòngTốt"
 					>
-						<span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#22c2c7] text-white">
+						<span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#22c2c7] text-white shadow-[0_8px_18px_rgba(34,194,199,0.28)]">
 							<svg
 								className="h-5 w-5"
 								viewBox="0 0 24 24"
@@ -39,18 +39,18 @@ export function Header({ hotline }: HeaderProps) {
 								/>
 							</svg>
 						</span>
-						<span className="text-[40px] font-black leading-none tracking-tight font-display">
-							  <span className="text-[#045a84]">Phòng</span>
+						<span className="font-display text-[34px] font-black leading-none tracking-tight">
+							<span className="text-[#045a84]">Phòng</span>
 							<span className="text-[#0a6e97]">tốt</span>
 						</span>
-					  </Link>
+					</Link>
 
-					<nav className="hidden items-center gap-2 lg:flex">
+					<nav className="hidden items-center gap-0.5 lg:flex xl:gap-1">
 						{NAV_ITEMS.map((item) => (
 							<button
 								key={item}
 								type="button"
-								className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[21px] font-semibold text-slate-700 transition hover:bg-slate-100"
+								className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-[17px] font-semibold text-slate-700 whitespace-nowrap transition hover:bg-slate-100"
 							>
 								{item}
 								<svg
@@ -73,13 +73,13 @@ export function Header({ hotline }: HeaderProps) {
 					</nav>
 				</div>
 
-				<div className="hidden items-center gap-5 text-[15px] text-slate-600 xl:flex">
-					<p>
+				<div className="hidden items-center gap-5 text-[15px] text-slate-600 lg:flex">
+					<p className="whitespace-nowrap">
 						Hotline: <span className="font-semibold text-slate-900">{hotline}</span>
 					</p>
 					<button
 						type="button"
-						className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-slate-100"
+						className="inline-flex shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-slate-500 whitespace-nowrap transition hover:bg-slate-100"
 					>
 						<svg
 							className="h-4 w-4 text-[#20bfc4]"
@@ -94,13 +94,13 @@ export function Header({ hotline }: HeaderProps) {
 					</button>
 					<button
 						type="button"
-						className="font-semibold text-slate-700 underline decoration-slate-400 decoration-1 underline-offset-2"
+						className="shrink-0 font-semibold text-slate-700 underline decoration-slate-400 decoration-1 underline-offset-2"
 					>
 						Ký gửi phòng
 					</button>
 					<button
 						type="button"
-						className="inline-flex items-center gap-2 rounded-2xl border border-[#28c3c8] px-4 py-2 font-semibold text-[#18b9be] transition hover:bg-[#ecfdfe]"
+						className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-[#28c3c8] px-4 py-2 font-semibold text-[#18b9be] whitespace-nowrap transition hover:bg-[#ecfdfe]"
 					>
 						<span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#28c3c8] text-white">
 							<svg
@@ -116,14 +116,14 @@ export function Header({ hotline }: HeaderProps) {
 						</span>
 						Đăng ký
 					</button>
-					<button type="button" className="font-semibold text-slate-700 underline underline-offset-2">
+					<button type="button" className="shrink-0 font-semibold text-slate-700 underline underline-offset-2">
 						Đăng nhập
 					</button>
 				</div>
 
 				<button
 					type="button"
-					className="rounded-xl border border-[#22c2c7] px-4 py-2 text-sm font-semibold text-[#1ab7bc] xl:hidden"
+					className="rounded-xl border border-[#22c2c7] px-4 py-2 text-sm font-semibold text-[#1ab7bc] lg:hidden"
 				>
 					Đăng ký
 				</button>

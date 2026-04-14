@@ -1,16 +1,15 @@
-import { Footer, Header } from "../../../components";
-import { getPropertyLandingData } from "../servers/get-home-data";
-import { FeaturedPropertiesSection } from "./featured-properties-section";
-import { FloatingContactButtons } from "./floating-contact-buttons";
+import { FeaturedPostsSection } from "../../post/components";
+import { getFeaturedPostsData } from "../../post/servers";
+import { FeaturedPropertiesSection } from "../../property";
+import { getPropertyLandingData } from "../../property/servers";
 import { HeroSection } from "./hero-section";
 
 export function PropertyHomePage() {
   const landingData = getPropertyLandingData();
+  const featuredPosts = getFeaturedPostsData();
 
   return (
-    <div className="min-h-screen bg-[#f3f5f7] text-slate-700">
-      <Header hotline={landingData.hotline} />
-
+    <>
       <main>
         <HeroSection
           heroImageUrl={landingData.heroImageUrl}
@@ -19,12 +18,9 @@ export function PropertyHomePage() {
           areaOptions={landingData.areaOptions}
           roomTypeOptions={landingData.roomTypeOptions}
         />
-
         <FeaturedPropertiesSection properties={landingData.properties} />
+        <FeaturedPostsSection posts={featuredPosts} />
       </main>
-
-      <Footer hotline={landingData.hotline} />
-      <FloatingContactButtons />
-    </div>
+    </>
   );
 }

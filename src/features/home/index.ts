@@ -1,0 +1,1 @@
+export { PropertyHomePage } from "./components";

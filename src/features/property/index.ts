@@ -1,1 +1,1 @@
-export { PropertyHomePage } from "./components/property-home-page";
+export { FeaturedPropertiesSection, PropertyCard } from "./components";

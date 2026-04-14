@@ -1,16 +1,16 @@
-import type { PropertyCardData } from "../servers/get-home-data";
-import { PropertyCard } from "./property-card";
+import type { PostCardData } from "../servers/get-home-data";
+import { PostCard } from "./post-card";
 
-type FeaturedPropertiesSectionProps = {
-  properties: readonly PropertyCardData[];
+type FeaturedPostsSectionProps = {
+  posts: readonly PostCardData[];
 };
 
-export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSectionProps) {
+export function FeaturedPostsSection({ posts }: FeaturedPostsSectionProps) {
   return (
     <section className="bg-[#f3f5f7] py-20">
       <div className="mx-auto w-full max-w-400 px-4 lg:px-8">
         <div className="mb-8 flex items-center justify-between">
-          <h2 className="text-[30px] font-extrabold text-[#045a84] md:text-[36px]">Tòa nhà có phòng bán chạy</h2>
+          <h2 className="text-[30px] font-extrabold text-[#045a84] md:text-[36px]">Bài đăng nổi bật</h2>
           <button type="button" className="hidden items-center gap-2 text-[18px] font-semibold text-[#0a6d97] md:inline-flex">
             Xem tất cả
             <span aria-hidden>›</span>
@@ -27,8 +27,8 @@ export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSect
           </button>
 
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {properties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
             ))}
           </div>
 

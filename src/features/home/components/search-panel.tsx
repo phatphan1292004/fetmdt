@@ -123,6 +123,7 @@ export function SearchPanel({
     onChange: (next: string[]) => void,
     minLabel: string,
     maxLabel: string,
+    allOptionLabel: string,
   ) {
     return (
       <div className="w-[min(92vw,370px)] rounded-2xl bg-white p-4 shadow-2xl">
@@ -142,7 +143,7 @@ export function SearchPanel({
 
         <div className="mt-4 space-y-3 text-[16px] text-slate-700">
           <label className="flex items-center justify-between gap-2">
-            <span>Tất cả mức {title.toLowerCase().replace(" ", "")}</span>
+            <span>{allOptionLabel}</span>
             <input
               type="checkbox"
               className={BASE_CHECKBOX_CLASS}
@@ -213,11 +214,27 @@ export function SearchPanel({
     }
 
     if (menu === "price") {
-      return renderRangeMenu("Giá phòng", priceOptions, selectedPrices, setSelectedPrices, "0đ", "20.000.000đ");
+      return renderRangeMenu(
+        "Giá phòng",
+        priceOptions,
+        selectedPrices,
+        setSelectedPrices,
+        "0đ",
+        "20.000.000đ",
+        "Tất cả mức giá",
+      );
     }
 
     if (menu === "area") {
-      return renderRangeMenu("Diện tích", areaOptions, selectedAreas, setSelectedAreas, "0m2", "100m2");
+      return renderRangeMenu(
+        "Diện tích",
+        areaOptions,
+        selectedAreas,
+        setSelectedAreas,
+        "0m2",
+        "100m2",
+        "Tất cả diện tích",
+      );
     }
 
     return renderRoomTypeMenu();
@@ -239,7 +256,7 @@ export function SearchPanel({
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               placeholder={searchPlaceholder}
-              className="h-12 w-full rounded-2xl border-0 bg-white px-5 pr-14 text-[18px] text-slate-700 outline-none placeholder:text-slate-400"
+              className="h-12 w-full rounded-2xl border-0 bg-white px-5 pr-14 text-[16px] text-slate-700 outline-none placeholder:text-slate-400"
             />
             <button
               type="button"
@@ -255,7 +272,7 @@ export function SearchPanel({
 
           <button
             type="button"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#005b8a] px-6 text-[24px] font-semibold text-white"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#005b8a] px-6 text-[16px] font-semibold text-white"
           >
             <svg className="h-5 w-5" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
               <path d="M2 4L6.5 2V16L2 14V4Z" fill="currentColor" />
@@ -276,7 +293,7 @@ export function SearchPanel({
                   <button
                     type="button"
                     onClick={() => setActiveMenu(isOpen ? null : filter.key)}
-                    className={`flex h-12 w-full items-center justify-between rounded-xl px-4 text-left text-[18px] font-medium text-slate-700 transition hover:bg-slate-100 ${
+                    className={`flex h-12 w-full items-center justify-between rounded-xl px-4 text-left text-[16px] font-medium text-slate-700 transition hover:bg-slate-100 ${
                       index > 0 ? "md:border-l md:border-slate-200" : ""
                     } ${isOpen ? "bg-slate-100" : ""}`}
                   >
@@ -293,7 +310,7 @@ export function SearchPanel({
           <button
             type="button"
             onClick={resetFilters}
-            className="self-start text-[20px] font-semibold text-white underline decoration-white/80 underline-offset-2 transition hover:text-[#e7fdff]"
+            className="self-start text-[17px] font-semibold text-white underline decoration-white/80 underline-offset-2 transition hover:text-[#e7fdff]"
           >
             Đặt lại
           </button>

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Sora } from "next/font/google";
+import { Footer, Header } from "../components";
+import { getPropertyLandingData } from "../features/property/servers";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -19,6 +21,8 @@ export const metadata: Metadata = {
   description: "Nền tảng tìm phòng nhanh, tiện và tối ưu trải nghiệm trên mọi thiết bị.",
 };
 
+const landingData = getPropertyLandingData();
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +33,11 @@ export default function RootLayout({
       lang="vi"
       className={`${beVietnamPro.variable} ${sora.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#f3f5f7] text-slate-700">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#f3f5f7] text-slate-700">
+        <Header hotline={landingData.hotline} />
+        {children}
+        <Footer hotline={landingData.hotline} />
+      </body>
     </html>
   );
 }

@@ -49,12 +49,12 @@ type FooterProps = {
 export function Footer({ hotline }: FooterProps) {
 	return (
 		<footer className="border-t border-slate-200 bg-[#eceef1] py-14 text-slate-700">
-			<div className="mx-auto w-full max-w-310 px-4 lg:px-8">
+			<div className="mx-auto w-full max-w-400 px-4 lg:px-8">
 				<div className="grid gap-8 border-b border-slate-300 pb-10 md:grid-cols-2 xl:grid-cols-4">
 					{FOOTER_COLUMNS.map((column) => (
 						<div key={column.title}>
-							<h2 className="mb-4 text-[28px] font-bold text-[#075c86]">{column.title}</h2>
-							<ul className="space-y-2 text-[22px]">
+							<h2 className="mb-4 text-[30px] font-bold text-[#075c86]">{column.title}</h2>
+							<ul className="space-y-2 text-[20px]">
 								{column.links.map((link) => (
 									<li key={link}>
 										<button type="button" className="text-left transition hover:text-[#087cb2]">
@@ -67,7 +67,7 @@ export function Footer({ hotline }: FooterProps) {
 					))}
 
 					<div>
-						<h2 className="mb-3 text-[28px] font-bold text-[#075c86]">Kết nối với chúng tôi</h2>
+						<h2 className="mb-3 text-[30px] font-bold text-[#075c86]">Kết nối với chúng tôi</h2>
 						<div className="mb-4 flex items-center gap-3 text-slate-500">
 							{[
 								{ label: "f", value: "Facebook" },
@@ -86,7 +86,7 @@ export function Footer({ hotline }: FooterProps) {
 							))}
 						</div>
 
-						<h3 className="mb-3 text-[24px] font-semibold text-[#075c86]">Tải ứng dụng cho điện thoại</h3>
+						<h3 className="mb-3 text-[22px] font-semibold text-[#075c86]">Tải ứng dụng cho điện thoại</h3>
 						<div className="flex flex-wrap gap-3 text-sm">
 							<button
 								type="button"
@@ -114,7 +114,7 @@ export function Footer({ hotline }: FooterProps) {
 
 							<div className="grid gap-6 md:grid-cols-2">
 								{officeGroup.items.map((office) => (
-									<article key={office.title} className="space-y-2 text-[21px]">
+									<article key={office.title} className="space-y-2 text-[20px]">
 										<h4 className="font-semibold text-[#087cb2]">{office.title}</h4>
 										<p>{office.address}</p>
 										<p>Điện thoại: {hotline}</p>
@@ -125,7 +125,7 @@ export function Footer({ hotline }: FooterProps) {
 					))}
 				</div>
 
-				<p className="mt-8 text-[18px] text-slate-500">
+				<p className="mt-8 text-[16px] text-slate-500">
 					© 2023-2025. Bản quyền của Phòng tốt - Địa chỉ: Tòa nhà Imperia Garden, 143 Nguyễn Tuân, Quận
 					Thanh Xuân, TP Hà Nội. - Điện thoại: {hotline}.
 				</p>
