@@ -92,12 +92,12 @@ export function Header({ hotline }: HeaderProps) {
 						</svg>
 						Phòng đã lưu
 					</button>
-					<button
-						type="button"
+					<Link
+            href="/post"
 						className="shrink-0 font-semibold text-slate-700 underline decoration-slate-400 decoration-1 underline-offset-2"
 					>
-						Ký gửi phòng
-					</button>
+						Đăng tin 
+					</Link>
 					<Link
 						href="/register"
 						className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-[#28c3c8] px-4 py-2 font-semibold text-[#18b9be] whitespace-nowrap transition hover:bg-[#ecfdfe]"
