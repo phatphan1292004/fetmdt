@@ -104,14 +104,14 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
         <header className="mb-6 rounded-3xl bg-white p-5 shadow-[0_14px_35px_rgba(15,23,42,0.08)] md:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-4xl">
-              <h1 className="text-[30px] font-extrabold leading-tight text-[#0b5f89] md:text-[48px]">{room.title}</h1>
+              <h1 className="text-[24px] font-extrabold leading-tight text-[#0b5f89] md:text-[42px]">{room.title}</h1>
 
-              <div className="mt-4 flex items-center gap-3 text-[20px] text-slate-700 md:text-[35px]">
+              <div className="mt-3.5 flex items-center gap-3 text-[18px] text-slate-700 md:text-[30px]">
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#25c3c8] text-white">•</span>
-                <p className="text-[20px] leading-7 md:text-[20px]">{room.address}, {room.city}</p>
+                <p className="text-[17px] leading-6 md:text-[18px]">{room.address}, {room.city}</p>
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[18px] text-slate-700 md:text-[25px]">
+              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-[16px] text-slate-700 md:text-[22px]">
                 <p>
                   Diện tích <span className="font-semibold text-[#25c3c8]">{room.areaLabel}</span>
                 </p>
@@ -124,7 +124,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-[18px] text-slate-500 md:text-[26px]">
+            <div className="flex items-center gap-3 text-[16px] text-slate-500 md:text-[22px]">
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium transition hover:border-[#8cd7db] hover:text-[#0b7ea9]"
@@ -149,10 +149,10 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
           </div>
 
           <div className="mt-6 border-t border-slate-200 pt-5 text-slate-700">
-            <p className="text-[19px] leading-8 md:text-[29px]">{room.description}</p>
+            <p className="text-[17px] leading-7 md:text-[25px]">{room.description}</p>
 
-            <h2 className="mt-4 text-[24px] font-extrabold text-slate-800 md:text-[30px]">Vị trí - Trung tâm dễ dàng kết nối</h2>
-            <ul className="mt-3 space-y-2 text-[18px] leading-8 text-slate-700 md:text-[29px]">
+            <h2 className="mt-4 text-[21px] font-extrabold text-slate-800 md:text-[28px]">Vị trí - Trung tâm dễ dàng kết nối</h2>
+            <ul className="mt-3 space-y-2 text-[16px] leading-7 text-slate-700 md:text-[25px]">
               {room.location.nearbyPlaces.map((place) => (
                 <li key={place} className="flex items-start gap-3">
                   <span className="mt-3 inline-block h-2.5 w-2.5 rounded-full bg-slate-500" aria-hidden />
@@ -161,7 +161,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
               ))}
             </ul>
 
-            <button type="button" className="mt-4 text-[20px] font-semibold text-[#1ab9be] underline underline-offset-4 md:text-[32px]">
+            <button type="button" className="mt-4 text-[17px] font-semibold text-[#1ab9be] underline underline-offset-4 md:text-[27px]">
               Xem thêm
             </button>
           </div>
