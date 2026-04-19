@@ -30,34 +30,6 @@ export const getApiDocs = () => {
             bearerFormat: "JWT",
           },
         },
-
-        // SCHEMAS
-        schemas: {
-          ApiResponse: {
-            type: "object",
-            properties: {
-              success: { type: "boolean" },
-              message: { type: "string" },
-              data: { type: "object" },
-            },
-          },
-
-          User: {
-            type: "object",
-            required: ["email", "password"],
-            properties: {
-              email: {
-                type: "string",
-                format: "email",
-                example: "test@gmail.com",
-              },
-              password: {
-                type: "string",
-                example: "test@123",
-              },
-            },
-          },
-        },
       },
 
       security: [
