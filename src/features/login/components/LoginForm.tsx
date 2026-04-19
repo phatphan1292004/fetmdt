@@ -50,7 +50,7 @@ export function LoginForm() {
             });
 
             if (data.success) {
-                localStorage.setItem("user", JSON.stringify(data.data!.user));
+                localStorage.setItem("user", JSON.stringify(data.data!));
 
                 showToast("success", "Đăng nhập thành công");
 
