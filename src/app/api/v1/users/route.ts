@@ -19,10 +19,6 @@ export function getToken(req: Request) {
  *     responses:
  *       200:
  *         description: OK
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
  */
 
 export async function GET(req: Request) {
