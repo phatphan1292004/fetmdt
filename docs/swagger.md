@@ -16,17 +16,17 @@ Dự án đang dùng:
 Luồng hoạt động:
 
 1. Các route đặt comment `@openapi` hoặc `@swagger`.
-2. Endpoint `GET /api/v1/docs` trả về JSON OpenAPI.
-3. Trang `/api-docs/v1` render Swagger UI từ endpoint trên.
+2. Endpoint [GET /api/v1/docs](http://localhost:3000/api/v1/docs) trả về JSON OpenAPI.
+3. Trang [/api-docs/v1](http://localhost:3000/api-docs/v1) render Swagger UI từ endpoint trên.
 
 ---
 
 ## 2. Vị trí file quan trọng
 
-- `src/lib/swagger.ts`: cấu hình OpenAPI gốc (info, servers, schemas, security).
-- `src/app/api/v1/docs/route.ts`: endpoint xuất OpenAPI JSON.
-- `src/app/api-docs/v1/page.tsx`: Swagger UI page.
-- `src/app/api/v1/**/route.ts`: nơi khai báo API và viết annotation.
+- [src/lib/swagger.ts](/src/lib/swagger.ts): cấu hình OpenAPI gốc (info, servers, schemas, security).
+- [src/app/api/v1/docs/route.ts](/src/app/api/v1/docs/route.ts): endpoint xuất OpenAPI JSON.
+- [src/app/api-docs/v1/page.tsx](/src/app/api-docs/v1/page.tsx): Swagger UI page.
+- [src/app/api/v1/**/route.ts](/src/app/api/v1/): nơi khai báo API và viết annotation.
 
 ---
 
