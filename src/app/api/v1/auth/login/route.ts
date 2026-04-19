@@ -6,43 +6,11 @@ import User from "@/src/models/User";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
-/**
- * @openapi
- * /api/v1/auth/login:
- *   post:
- *     summary: Đăng nhập tài khoản
- *     tags:
- *       - Auth
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - account
- *               - password
- *             properties:
- *               account:
- *                 type: string
- *                 description: Email hoặc số điện thoại
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login success
- *       400:
- *         description: Invalid credentials
- *       500:
- *         description: Server error
- */
-
 export async function POST(req: Request) {
     try {
         await connectDB();
 
-        const body = await req.json();
-        const { account, password } = body;
+        const { account, password } = await req.json();
 
         // 1. Validate input
         if (!account || !password) {
@@ -72,6 +40,17 @@ export async function POST(req: Request) {
             );
         }
 
+        if (!user.isVerified || user.status == "pending") {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "Tài khoản chưa xác thực",
+                    data: null,
+                },
+                { status: 400 }
+            );
+        }
+
         // 3. Check password
         const isMatch = await bcrypt.compare(password, user.passwordHash);
 
@@ -86,7 +65,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // 4. Generate JWT token
+        // 4. Generate JWT
         const token = jwt.sign(
             {
                 userId: user._id,
@@ -97,26 +76,36 @@ export async function POST(req: Request) {
             { expiresIn: "7d" }
         );
 
-        // 5. Response success
-        return NextResponse.json(
+        // 5. Create response
+        const response = NextResponse.json(
             {
                 success: true,
                 message: "Đăng nhập thành công",
                 data: {
-                    token,
-                    user: {
-                        id: user._id,
-                        fullName: user.fullName,
-                        email: user.email,
-                        phone: user.phone,
-                        role: user.role,
-                        isVerified: user.isVerified,
-                        status: user.status,
-                    },
+                    id: user._id,
+                    fullName: user.fullName,
+                    email: user.email,
+                    phone: user.phone,
+                    role: user.role,
+                    isVerified: user.isVerified,
+                    status: user.status,
                 },
             },
             { status: 200 }
         );
+
+        // 6. Set HttpOnly Cookie
+        response.cookies.set({
+            name: "token",
+            value: token,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 7, // 7 ngày
+        });
+
+        return response;
     } catch (error: any) {
         return NextResponse.json(
             {
