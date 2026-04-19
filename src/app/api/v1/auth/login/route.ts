@@ -6,6 +6,48 @@ import User from "@/src/models/User";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
+/**
+* @openapi
+* /api/v1/auth/login:
+*   post:
+*     summary: Đăng nhập tài khoản
+*     tags:
+*       - Auth
+*     description: |
+*       Đăng nhập bằng email hoặc số điện thoại.
+*       Nếu thành công sẽ trả về user info và set HttpOnly cookie chứa JWT token.
+*     requestBody:
+*       required: true
+*       content:
+*         application/json:
+*           schema:
+*             type: object
+*             required:
+*               - account
+*               - password
+*             properties:
+*               account:
+*                 type: string
+*                 example: "user@email.com hoặc 09xxxxxxxx"
+*                 description: Email hoặc số điện thoại đăng nhập
+*               password:
+*                 type: string
+*                 example: "12345678"
+*                 description: Mật khẩu người dùng
+*     responses:
+*       200:
+*         description: Đăng nhập thành công
+*         headers:
+*           Set-Cookie:
+*             description: JWT token lưu trong HttpOnly cookie
+*             schema:
+*               type: string
+*               example: token=jwt_token_here; Path=/; HttpOnly; SameSite=Lax
+*       400:
+*         description: Sai thông tin đăng nhập hoặc tài khoản chưa xác thực
+*       500:
+*         description: Lỗi server
+*/
 export async function POST(req: Request) {
     try {
         await connectDB();
