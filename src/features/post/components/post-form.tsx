@@ -9,19 +9,281 @@ const PROPERTY_TYPES = [
 	{ value: "phong_tro", label: "Phòng trọ" },
 ] as const;
 
-const BASIC_FIELDS = [
-	{ name: "area", label: "Diện tích đất", placeholder: "Diện tích đất (m2)", type: "number" },
-	{ name: "bedrooms", label: "Số phòng ngủ", placeholder: "Số phòng ngủ", type: "number" },
-	{ name: "bathrooms", label: "Số phòng vệ sinh", placeholder: "Số phòng vệ sinh", type: "number" },
-	{ name: "width", label: "Chiều ngang", placeholder: "Chiều ngang (m)", type: "number" },
-	{ name: "length", label: "Chiều dài", placeholder: "Chiều dài (m)", type: "number" },
-	{ name: "floors", label: "Tổng số tầng", placeholder: "Tổng số tầng", type: "number" },
-	{ name: "usableArea", label: "Diện tích sử dụng", placeholder: "Diện tích sử dụng (m2)", type: "number" },
-	{ name: "interiorStatus", label: "Tình trạng nội thất", placeholder: "Ví dụ: Đầy đủ nội thất", type: "text" },
-] as const;
-
 type PropertyType = (typeof PROPERTY_TYPES)[number]["value"];
 type OwnerType = "ca_nhan" | "moi_gioi";
+type FieldName =
+	| "usableArea"
+	| "area"
+	| "maxOccupants"
+	| "bedrooms"
+	| "bathrooms"
+	| "floors"
+	| "frontage"
+	| "alleyWidth"
+	| "houseDirection"
+	| "legalStatus"
+	| "apartmentFloor"
+	| "buildingFloors"
+	| "hasBalcony"
+	| "balconyDirection"
+	| "managementFee"
+	| "hasLoft"
+	| "hasPrivateWc"
+	| "curfewFree"
+	| "hasAirConditioner"
+	| "hasFridge"
+	| "hasWashingMachine"
+	| "utilityPricing"
+	| "hasParking"
+	| "interiorStatus";
+
+type FieldType = "number" | "text" | "boolean";
+
+type FieldConfig = {
+	name: FieldName;
+	label: string;
+	placeholder?: string;
+	type: FieldType;
+	step?: string;
+	required?: boolean;
+	helperText?: string;
+};
+
+type RequiredField = {
+	name: FieldName;
+	label: string;
+	type: FieldType;
+};
+
+const FIELD_CONFIGS: Record<FieldName, FieldConfig> = {
+	area: {
+		name: "area",
+		label: "Diện tích",
+		placeholder: "Diện tích (m2)",
+		type: "number",
+		step: "any",
+		required: true,
+	},
+	maxOccupants: {
+		name: "maxOccupants",
+		label: "Số người tối đa",
+		placeholder: "Ví dụ: 2",
+		type: "number",
+		step: "1",
+		required: true,
+	},
+	usableArea: {
+		name: "usableArea",
+		label: "Diện tích sử dụng",
+		placeholder: "Diện tích sử dụng (m2)",
+		type: "number",
+		step: "any",
+		required: true,
+	},
+	bedrooms: {
+		name: "bedrooms",
+		label: "Số phòng ngủ",
+		placeholder: "Số phòng ngủ",
+		type: "number",
+		step: "1",
+		required: true,
+	},
+	bathrooms: {
+		name: "bathrooms",
+		label: "Số phòng vệ sinh",
+		placeholder: "Số phòng vệ sinh",
+		type: "number",
+		step: "1",
+		required: true,
+	},
+	floors: {
+		name: "floors",
+		label: "Số tầng",
+		placeholder: "Số tầng",
+		type: "number",
+		step: "1",
+		required: true,
+	},
+	frontage: {
+		name: "frontage",
+		label: "Mặt tiền",
+		placeholder: "Mặt tiền (m)",
+		type: "number",
+		step: "any",
+		required: true,
+	},
+	alleyWidth: {
+		name: "alleyWidth",
+		label: "Đường vào",
+		placeholder: "Độ rộng đường vào (m)",
+		type: "number",
+		step: "any",
+		required: true,
+	},
+	houseDirection: {
+		name: "houseDirection",
+		label: "Hướng nhà",
+		placeholder: "Ví dụ: Đông Nam",
+		type: "text",
+		required: true,
+	},
+	legalStatus: {
+		name: "legalStatus",
+		label: "Pháp lý",
+		placeholder: "Ví dụ: Sổ hồng riêng",
+		type: "text",
+	},
+	apartmentFloor: {
+		name: "apartmentFloor",
+		label: "Tầng căn hộ",
+		placeholder: "Ví dụ: 12",
+		type: "number",
+		step: "1",
+		required: true,
+	},
+	buildingFloors: {
+		name: "buildingFloors",
+		label: "Tổng số tầng của tòa",
+		placeholder: "Ví dụ: 35",
+		type: "number",
+		step: "1",
+		required: true,
+	},
+	hasBalcony: {
+		name: "hasBalcony",
+		label: "Ban công",
+		type: "boolean",
+		required: true,
+	},
+	balconyDirection: {
+		name: "balconyDirection",
+		label: "Hướng ban công",
+		placeholder: "Ví dụ: Tây Bắc",
+		type: "text",
+		helperText: "Bắt buộc khi căn hộ có ban công",
+	},
+	managementFee: {
+		name: "managementFee",
+		label: "Phí quản lý",
+		placeholder: "Ví dụ: 15000 (đ/m2)",
+		type: "number",
+		step: "1000",
+	},
+	hasLoft: {
+		name: "hasLoft",
+		label: "Có gác",
+		type: "boolean",
+		required: true,
+	},
+	hasPrivateWc: {
+		name: "hasPrivateWc",
+		label: "Có WC riêng",
+		type: "boolean",
+		required: true,
+	},
+	curfewFree: {
+		name: "curfewFree",
+		label: "Giờ giấc tự do",
+		type: "boolean",
+		required: true,
+	},
+	hasAirConditioner: {
+		name: "hasAirConditioner",
+		label: "Có máy lạnh",
+		type: "boolean",
+		required: true,
+	},
+	hasFridge: {
+		name: "hasFridge",
+		label: "Có tủ lạnh",
+		type: "boolean",
+		required: true,
+	},
+	hasWashingMachine: {
+		name: "hasWashingMachine",
+		label: "Có máy giặt",
+		type: "boolean",
+		required: true,
+	},
+	utilityPricing: {
+		name: "utilityPricing",
+		label: "Điện nước tính thế nào",
+		placeholder: "Ví dụ: Điện 3.5k/số, nước 100k/người",
+		type: "text",
+		required: true,
+	},
+	hasParking: {
+		name: "hasParking",
+		label: "Có chỗ để xe",
+		type: "boolean",
+		required: true,
+	},
+	interiorStatus: {
+		name: "interiorStatus",
+		label: "Tình trạng nội thất",
+		placeholder: "Ví dụ: Đầy đủ nội thất",
+		type: "text",
+	},
+};
+
+const FIELDS_BY_PROPERTY: Record<PropertyType, readonly FieldName[]> = {
+	nha_o: ["usableArea", "area", "bedrooms", "bathrooms", "floors", "frontage", "alleyWidth", "houseDirection", "interiorStatus", "legalStatus"],
+	can_ho_chung_cu: ["usableArea", "bedrooms", "bathrooms", "apartmentFloor", "buildingFloors", "hasBalcony", "balconyDirection", "interiorStatus", "managementFee"],
+	phong_tro: [
+		"area",
+		"maxOccupants",
+		"hasLoft",
+		"hasPrivateWc",
+		"curfewFree",
+		"hasAirConditioner",
+		"hasFridge",
+		"hasWashingMachine",
+		"utilityPricing",
+		"hasParking",
+	],
+};
+
+const REQUIRED_FIELDS_BY_PROPERTY: Record<PropertyType, readonly RequiredField[]> = {
+	nha_o: FIELDS_BY_PROPERTY.nha_o
+		.map((name) => FIELD_CONFIGS[name])
+		.filter((field) => field.required)
+		.map((field) => ({ name: field.name, label: field.label, type: field.type })),
+	can_ho_chung_cu: FIELDS_BY_PROPERTY.can_ho_chung_cu
+		.map((name) => FIELD_CONFIGS[name])
+		.filter((field) => field.required)
+		.map((field) => ({ name: field.name, label: field.label, type: field.type })),
+	phong_tro: FIELDS_BY_PROPERTY.phong_tro
+		.map((name) => FIELD_CONFIGS[name])
+		.filter((field) => field.required)
+		.map((field) => ({ name: field.name, label: field.label, type: field.type })),
+};
+
+const FEATURE_OPTIONS_BY_PROPERTY: Record<PropertyType, readonly { value: string; label: string }[]> = {
+	nha_o: [
+		{ value: "nha-mat-tien", label: "Nhà mặt tiền" },
+		{ value: "hem-rong", label: "Hẻm rộng" },
+		{ value: "gan-truong-cho", label: "Gần trường/chợ" },
+		{ value: "phu-hop-gia-dinh", label: "Phù hợp gia đình" },
+	],
+	can_ho_chung_cu: [
+		{ value: "ban-cong", label: "Có ban công" },
+		{ value: "view-dep", label: "View thoáng" },
+		{ value: "an-ninh-24-7", label: "An ninh 24/7" },
+		{ value: "gan-thang-may", label: "Gần thang máy" },
+	],
+	phong_tro: [
+		{ value: "co-gac", label: "Có gác" },
+		{ value: "wc-rieng", label: "WC riêng" },
+		{ value: "gio-giac-tu-do", label: "Giờ giấc tự do" },
+		{ value: "gan-trung-tam", label: "Gần trung tâm" },
+	],
+};
+
+const PROPERTY_HINT_BY_TYPE: Record<PropertyType, string> = {
+	nha_o: "Nhà ở: tập trung vào đất, kết cấu và yếu tố ngoài công trình.",
+	can_ho_chung_cu: "Căn hộ/chung cư: tập trung vào thông số tòa nhà và tiện ích căn hộ.",
+	phong_tro: "Phòng trọ: tập trung vào tiện ích và chi phí sinh hoạt.",
+};
 
 type Feedback = {
 	type: "success" | "error";
@@ -61,10 +323,19 @@ export function PostForm() {
 	const [selectedImageNames, setSelectedImageNames] = useState<string[]>([]);
 	const [submitting, setSubmitting] = useState(false);
 	const [feedback, setFeedback] = useState<Feedback | null>(null);
+	const currentPropertyLabel =
+		PROPERTY_TYPES.find((type) => type.value === propertyType)?.label ?? "Bất động sản";
+	const detailFields = FIELDS_BY_PROPERTY[propertyType].map((fieldName) => FIELD_CONFIGS[fieldName]);
+	const featureOptions = FEATURE_OPTIONS_BY_PROPERTY[propertyType];
 
 	const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
 		const files = Array.from(event.target.files ?? []);
 		setSelectedImageNames(files.map((file) => file.name));
+	};
+
+	const handlePropertyTypeChange = (type: PropertyType) => {
+		setPropertyType(type);
+		setFeedback(null);
 	};
 
 	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -99,6 +370,42 @@ export function PostForm() {
 		if (price === undefined || price <= 0) {
 			setFeedback({ type: "error", message: "Giá thuê phải lớn hơn 0." });
 			return;
+		}
+
+		for (const field of REQUIRED_FIELDS_BY_PROPERTY[propertyType]) {
+			if (field.type === "number") {
+				const value = getOptionalNumber(formData, field.name);
+				if (value === undefined || value <= 0) {
+					setFeedback({ type: "error", message: `Vui lòng nhập ${field.label.toLowerCase()} hợp lệ.` });
+					return;
+				}
+				continue;
+			}
+
+			if (field.type === "boolean") {
+				const value = getOptionalString(formData, field.name);
+				if (value !== "true" && value !== "false") {
+					setFeedback({ type: "error", message: `Vui lòng chọn ${field.label.toLowerCase()}.` });
+					return;
+				}
+				continue;
+			}
+
+			const value = getOptionalString(formData, field.name);
+			if (!value) {
+				setFeedback({ type: "error", message: `Vui lòng nhập ${field.label.toLowerCase()}.` });
+				return;
+			}
+		}
+
+		if (propertyType === "can_ho_chung_cu") {
+			const hasBalcony = getOptionalString(formData, "hasBalcony");
+			const balconyDirection = getOptionalString(formData, "balconyDirection");
+
+			if (hasBalcony === "true" && !balconyDirection) {
+				setFeedback({ type: "error", message: "Vui lòng nhập hướng ban công." });
+				return;
+			}
 		}
 
 		if (imageFiles.length === 0) {
@@ -155,7 +462,7 @@ export function PostForm() {
 			<form onSubmit={handleSubmit} noValidate>
 				<div className="mx-auto w-full max-w-6xl px-3 pb-8 sm:px-4 lg:px-8">
 					<section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)] sm:p-5">
-						<h1 className="font-display text-2xl font-black text-slate-900 sm:text-3xl">Đăng tin cho thuê trọ</h1>
+						<h1 className="font-display text-2xl font-black text-slate-900 sm:text-3xl">Đăng tin cho thuê {currentPropertyLabel.toLowerCase()}</h1>
 						<p className="mt-1 text-sm text-slate-600 sm:text-base">
 							Điền đầy đủ thông tin để tin đăng được duyệt nhanh và tiếp cận đúng khách thuê.
 						</p>
@@ -169,7 +476,7 @@ export function PostForm() {
 									<button
 										key={type.value}
 										type="button"
-										onClick={() => setPropertyType(type.value)}
+										onClick={() => handlePropertyTypeChange(type.value)}
 										className={`inline-flex items-center rounded-full border px-4 py-2 text-[17px] font-semibold transition ${
 											propertyType === type.value
 												? "border-slate-900 bg-slate-900 text-white"
@@ -238,22 +545,48 @@ export function PostForm() {
 						</article>
 
 						<article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] sm:p-5">
-							<h2 className="mb-4 text-lg font-bold text-slate-900">Đặc điểm bất động sản</h2>
+							<h2 className="mb-1 text-lg font-bold text-slate-900">Thông tin {currentPropertyLabel.toLowerCase()}</h2>
+							<p className="mb-4 text-sm text-slate-600">{PROPERTY_HINT_BY_TYPE[propertyType]}</p>
 							<div className="grid gap-3 sm:grid-cols-2">
-								{BASIC_FIELDS.map((field) => (
+								{detailFields.map((field) => (
 									<div key={field.name}>
 										<label htmlFor={field.name} className="mb-1.5 block text-[15px] font-semibold text-slate-700">
 											{field.label}
+											{field.required ? " *" : ""}
 										</label>
-										<input
-											id={field.name}
-											name={field.name}
-											type={field.type}
-											placeholder={field.placeholder}
-											min={field.type === "number" ? 0 : undefined}
-											step={field.type === "number" ? "any" : undefined}
-											className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
-										/>
+										{field.type === "boolean" ? (
+											<div className="relative">
+												<select
+													id={field.name}
+													name={field.name}
+													defaultValue=""
+													className="h-12 w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-[17px] text-slate-700 outline-none transition focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
+												>
+													<option value="" disabled>
+														Chọn
+													</option>
+													<option value="true">Có</option>
+													<option value="false">Không</option>
+												</select>
+												<span className="pointer-events-none absolute inset-y-0 right-4 inline-flex items-center text-slate-500">
+													<svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+														<path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+													</svg>
+												</span>
+											</div>
+										) : (
+											<input
+												id={field.name}
+												name={field.name}
+												type={field.type}
+												placeholder={field.placeholder}
+												required={field.required}
+												min={field.type === "number" ? 0 : undefined}
+												step={field.type === "number" ? field.step || "any" : undefined}
+												className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
+											/>
+										)}
+										{field.helperText ? <p className="mt-1 text-xs text-slate-500">{field.helperText}</p> : null}
 									</div>
 								))}
 
@@ -269,11 +602,13 @@ export function PostForm() {
 											className="h-12 w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-[17px] text-slate-500 outline-none transition focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
 										>
 											<option value="" disabled>
-												Chọn đặc điểm
+												Chọn đặc điểm phù hợp
 											</option>
-											<option value="near-school">Gần trường học</option>
-											<option value="near-market">Gần chợ/bệnh viện</option>
-											<option value="quiet">Khu vực yên tĩnh</option>
+											{featureOptions.map((option) => (
+												<option key={option.value} value={option.value}>
+													{option.label}
+												</option>
+											))}
 										</select>
 										<span className="pointer-events-none absolute inset-y-0 right-4 inline-flex items-center text-slate-500">
 											<svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>

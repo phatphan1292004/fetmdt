@@ -27,6 +27,7 @@ export type PostDocument = {
   legalStatus?: string;
   interiorStatus?: string;
   feature?: string;
+  details?: Record<string, unknown>;
   ownerType: OwnerType;
   mediaUrls: string[];
   status: PostStatus;
@@ -130,6 +131,10 @@ const PostSchema = new Schema<PostDocument>(
     feature: {
       type: String,
       trim: true,
+    },
+    details: {
+      type: Schema.Types.Mixed,
+      default: {},
     },
     ownerType: {
       type: String,
