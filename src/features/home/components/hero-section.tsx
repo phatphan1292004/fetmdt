@@ -16,7 +16,7 @@ export function HeroSection({
   roomTypeOptions,
 }: HeroSectionProps) {
   return (
-    <section className="relative isolate overflow-hidden">
+    <section className="relative isolate overflow-visible">
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
@@ -32,7 +32,7 @@ export function HeroSection({
           chốn về <span className="text-[#2ecad0]">“cực xinh”</span>.
         </h1>
 
-        <div className="mt-8 w-full max-w-280">
+        <div className="relative z-30 mt-8 w-full max-w-280">
           <SearchPanel
             searchPlaceholder={searchPlaceholder}
             priceOptions={priceOptions}
