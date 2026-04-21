@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { CurrentUser, UserMenu } from "./UserMenu";
 
 type HeaderProps = {
 	hotline: string;
+	currentUser?: CurrentUser | null;
 };
 
 const NAV_ITEMS = ["Hồ Chí Minh", "Hà Nội", "Căn hộ mini", "Cẩm nang"];
 
-export function Header({ hotline }: HeaderProps) {
+export function Header({ hotline, currentUser }: HeaderProps) {
 	return (
 		<header className="sticky top-0 z-40 border-b border-slate-200/90 bg-white">
 			<div className="mx-auto flex h-23 w-full max-w-500 items-center justify-between px-4 lg:px-8">
@@ -93,40 +95,50 @@ export function Header({ hotline }: HeaderProps) {
 						Phòng đã lưu
 					</button>
 					<Link
-            href="/post"
+						href="/post"
 						className="shrink-0 font-semibold text-slate-700 underline decoration-slate-400 decoration-1 underline-offset-2"
 					>
-						Đăng tin 
+						Đăng tin
 					</Link>
-					<Link
-						href="/register"
-						className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-[#28c3c8] px-4 py-2 font-semibold text-[#18b9be] whitespace-nowrap transition hover:bg-[#ecfdfe]"
-					>
-						<span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#28c3c8] text-white">
-							<svg
-								className="h-4 w-4"
-								viewBox="0 0 24 24"
-								fill="none"
-								xmlns="http://www.w3.org/2000/svg"
-								aria-hidden
+					{currentUser ? (
+						<UserMenu currentUser={currentUser} />
+					) : (
+						<>
+							<Link
+								href="/register"
+								className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-[#28c3c8] px-4 py-2 font-semibold text-[#18b9be] whitespace-nowrap transition hover:bg-[#ecfdfe]"
 							>
-								<circle cx="12" cy="8" r="4" fill="currentColor" />
-								<path d="M5 19C5 15.686 8.134 13 12 13C15.866 13 19 15.686 19 19" fill="currentColor" />
-							</svg>
-						</span>
-						Đăng ký
-					</Link>
-					<Link href="/login" className="shrink-0 font-semibold text-slate-700 underline underline-offset-2">
-						Đăng nhập
-					</Link>
+								<span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#28c3c8] text-white">
+									<svg
+										className="h-4 w-4"
+										viewBox="0 0 24 24"
+										fill="none"
+										xmlns="http://www.w3.org/2000/svg"
+										aria-hidden
+									>
+										<circle cx="12" cy="8" r="4" fill="currentColor" />
+										<path d="M5 19C5 15.686 8.134 13 12 13C15.866 13 19 15.686 19 19" fill="currentColor" />
+									</svg>
+								</span>
+								Đăng ký
+							</Link>
+							<Link href="/login" className="shrink-0 font-semibold text-slate-700 underline underline-offset-2">
+								Đăng nhập
+							</Link>
+						</>
+					)}
 				</div>
 
-				<Link
-					href="/register"
-					className="rounded-xl border border-[#22c2c7] px-4 py-2 text-sm font-semibold text-[#1ab7bc] lg:hidden"
-				>
-					Đăng ký
-				</Link>
+				{!currentUser ? (
+					<Link
+						href="/register"
+						className="rounded-xl border border-[#22c2c7] px-4 py-2 text-sm font-semibold text-[#1ab7bc] lg:hidden"
+					>
+						Đăng ký
+					</Link>
+				) : (
+					<UserMenu currentUser={currentUser} variant="mobile" />
+				)}
 			</div>
 		</header>
 	);
