@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 export type CurrentUser = {
@@ -88,6 +89,29 @@ export function UserMenu({ currentUser, variant = "desktop" }: UserMenuProps) {
                 </button>
                 {isMenuOpen ? (
                     <div className="absolute top-12 right-0 z-50 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_35px_rgba(15,23,42,0.14)]">
+                        <Link
+                            href="/profile"
+                            onClick={() => setIsMenuOpen(false)}
+                            className="mb-1 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#0b7ea9] transition hover:bg-[#effaff]"
+                        >
+                            <span>Thông tin cá nhân</span>
+                            <svg
+                                className="h-4 w-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden
+                            >
+                                <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+                                <path
+                                    d="M5 19C5 15.686 8.134 13 12 13C15.866 13 19 15.686 19 19"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                        </Link>
+
                         <button
                             type="button"
                             onClick={handleLogout}
@@ -137,6 +161,29 @@ export function UserMenu({ currentUser, variant = "desktop" }: UserMenuProps) {
 
             {isMenuOpen ? (
                 <div className="absolute top-14 right-0 z-50 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_35px_rgba(15,23,42,0.14)]">
+                    <Link
+                        href="/profile"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="mb-1 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#0b7ea9] transition hover:bg-[#effaff]"
+                    >
+                        <span>Thông tin cá nhân</span>
+                        <svg
+                            className="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden
+                        >
+                            <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+                            <path
+                                d="M5 19C5 15.686 8.134 13 12 13C15.866 13 19 15.686 19 19"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                            />
+                        </svg>
+                    </Link>
+
                     <button
                         type="button"
                         onClick={handleLogout}

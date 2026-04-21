@@ -1,14 +1,27 @@
 import Link from "next/link";
 import { CurrentUser, UserMenu } from "./UserMenu";
 
+type HeaderLocation = {
+	city: string;
+	districts: string[];
+};
+
 type HeaderProps = {
 	hotline: string;
 	currentUser?: CurrentUser | null;
+	locations?: HeaderLocation[];
 };
 
-const NAV_ITEMS = ["Hồ Chí Minh", "Hà Nội", "Căn hộ mini", "Cẩm nang"];
+const FALLBACK_CITY_NAV_ITEMS: readonly HeaderLocation[] = [
+	{ city: "Hồ Chí Minh", districts: [] },
+	{ city: "Hà Nội", districts: [] },
+];
 
-export function Header({ hotline, currentUser }: HeaderProps) {
+const STATIC_NAV_ITEMS = ["Căn hộ mini", "Cẩm nang"] as const;
+
+export function Header({ hotline, currentUser, locations = [] }: HeaderProps) {
+	const cityNavItems = locations.length ? locations : FALLBACK_CITY_NAV_ITEMS;
+
 	return (
 		<header className="sticky top-0 z-40 border-b border-slate-200/90 bg-white">
 			<div className="mx-auto flex h-23 w-full max-w-500 items-center justify-between px-4 lg:px-8">
@@ -48,7 +61,57 @@ export function Header({ hotline, currentUser }: HeaderProps) {
 					</Link>
 
 					<nav className="hidden items-center gap-0.5 lg:flex xl:gap-1">
-						{NAV_ITEMS.map((item) => (
+						{cityNavItems.map((cityItem) => (
+							<div key={cityItem.city} className="group relative">
+								<button
+									type="button"
+									className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-[17px] font-semibold text-slate-700 whitespace-nowrap transition hover:bg-slate-100"
+								>
+									{cityItem.city}
+									<svg
+										className="h-3.5 w-3.5 text-slate-500"
+										viewBox="0 0 16 16"
+										fill="none"
+										xmlns="http://www.w3.org/2000/svg"
+										aria-hidden
+									>
+										<path
+											d="M4 6L8 10L12 6"
+											stroke="currentColor"
+											strokeWidth="1.6"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+										/>
+									</svg>
+								</button>
+
+								<div className="invisible absolute top-full left-0 z-50 w-64 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+									<div className="rounded-xl border border-slate-200 bg-white p-2 shadow-[0_14px_32px_rgba(15,23,42,0.14)]">
+										<p className="px-2 pb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+											{cityItem.city}
+										</p>
+										{cityItem.districts.length ? (
+											<ul className="max-h-[60vh] space-y-1 overflow-y-auto pr-1">
+												{cityItem.districts.map((district) => (
+													<li key={`${cityItem.city}-${district}`}>
+														<button
+															type="button"
+															className="block w-full rounded-lg px-2 py-1.5 text-left text-[15px] font-medium text-slate-700 transition hover:bg-slate-100"
+														>
+															{district}
+														</button>
+													</li>
+												))}
+											</ul>
+										) : (
+											<p className="px-2 py-2 text-sm text-slate-500">Chưa có dữ liệu khu vực</p>
+										)}
+									</div>
+								</div>
+							</div>
+						))}
+
+						{STATIC_NAV_ITEMS.map((item) => (
 							<button
 								key={item}
 								type="button"

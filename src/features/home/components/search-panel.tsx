@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type SearchPanelProps = {
   searchPlaceholder: string;
@@ -28,18 +29,50 @@ export function SearchPanel({
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [selectedRoomType, setSelectedRoomType] = useState(roomTypeOptions[0] ?? "Tất cả");
 
-  useEffect(() => {
-    function handleClickOutside(event: PointerEvent) {
-      if (!panelRef.current?.contains(event.target as Node)) {
-        setActiveMenu(null);
+    useEffect(() => {
+      function handleClickOutside(event: PointerEvent) {
+        if (!panelRef.current?.contains(event.target as Node)) {
+          setActiveMenu(null);
+        }
       }
-    }
 
-    document.addEventListener("pointerdown", handleClickOutside);
-    return () => {
-      document.removeEventListener("pointerdown", handleClickOutside);
-    };
-  }, []);
+      document.addEventListener("pointerdown", handleClickOutside);
+      return () => {
+        document.removeEventListener("pointerdown", handleClickOutside);
+      };
+    }, []);
+
+    // refs for each filter button so we can position the floating menu in a portal
+    const buttonRefs = useRef<Record<MenuKey, HTMLButtonElement | null>>({});
+    const [menuStyle, setMenuStyle] = useState<null | { left: number; top: number; width: number }>(null);
+
+    useEffect(() => {
+      function updatePosition() {
+        if (!activeMenu) {
+          setMenuStyle(null);
+          return;
+        }
+
+        const btn = buttonRefs.current[activeMenu];
+        if (!btn) return setMenuStyle(null);
+
+        const rect = btn.getBoundingClientRect();
+        const left = rect.left + window.scrollX;
+        const top = rect.bottom + window.scrollY + 8; // small gap
+        const width = Math.min(Math.max(rect.width, 200), 420);
+
+        setMenuStyle({ left, top, width });
+      }
+
+      updatePosition();
+      window.addEventListener("resize", updatePosition);
+      window.addEventListener("scroll", updatePosition, true);
+
+      return () => {
+        window.removeEventListener("resize", updatePosition);
+        window.removeEventListener("scroll", updatePosition, true);
+      };
+    }, [activeMenu]);
 
   const priceLabel = useMemo(
     () => (selectedPrices.length ? `${selectedPrices.length} mức giá` : "Giá phòng"),
@@ -248,7 +281,10 @@ export function SearchPanel({
   ];
 
   return (
-    <div ref={panelRef} className="rounded-[28px] bg-[#25c3c8] p-3 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-4">
+    <div
+      ref={panelRef}
+      className="relative z-30 rounded-[28px] bg-[#25c3c8] p-3 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-4"
+    >
       <div className="space-y-3">
         <div className="flex flex-col gap-3 md:flex-row">
           <div className="relative flex-1">
@@ -290,18 +326,19 @@ export function SearchPanel({
 
               return (
                 <div key={filter.key} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setActiveMenu(isOpen ? null : filter.key)}
-                    className={`flex h-12 w-full items-center justify-between rounded-xl px-4 text-left text-[16px] font-medium text-slate-700 transition hover:bg-slate-100 ${
-                      index > 0 ? "md:border-l md:border-slate-200" : ""
-                    } ${isOpen ? "bg-slate-100" : ""}`}
-                  >
-                    <span className="truncate">{filter.label}</span>
-                    <span className="text-slate-400">▾</span>
-                  </button>
+                      <button
+                        ref={(el) => (buttonRefs.current[filter.key] = el)}
+                        type="button"
+                        onClick={() => setActiveMenu(isOpen ? null : filter.key)}
+                        className={`flex h-12 w-full items-center justify-between rounded-xl px-4 text-left text-[16px] font-medium text-slate-700 transition hover:bg-slate-100 ${
+                          index > 0 ? "md:border-l md:border-slate-200" : ""
+                        } ${isOpen ? "bg-slate-100" : ""}`}
+                      >
+                        <span className="truncate">{filter.label}</span>
+                        <span className="text-slate-400">▾</span>
+                      </button>
 
-                  {isOpen ? <div className="absolute left-0 top-full z-40 mt-2">{renderMenu(filter.key)}</div> : null}
+                  {/* menu is rendered in portal to avoid stacking context overlap */}
                 </div>
               );
             })}
@@ -316,6 +353,18 @@ export function SearchPanel({
           </button>
         </div>
       </div>
+
+      {activeMenu && menuStyle
+        ? createPortal(
+            <div
+              style={{ left: menuStyle.left, top: menuStyle.top, width: menuStyle.width }}
+              className="absolute z-60 mt-2 rounded-2xl"
+            >
+              {renderMenu(activeMenu)}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
