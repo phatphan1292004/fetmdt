@@ -1,1 +1,7 @@
-export { buildRoomRouteFromPropertyId, getRelatedRooms, getRoomDetailByRoute } from "./get-room-detail";
+export {
+	buildRoomRouteFromPropertyId,
+	getDistrictLabelFromSlug,
+	getRelatedRooms,
+	getRoomDetailByRoute,
+	getRoomsByDistrict,
+} from "./get-room-detail";

@@ -186,8 +186,15 @@ const ROOM_DETAILS: readonly RoomDetailData[] = [
   },
 ];
 
-function buildRouteKey(district: string, slug: string): string {
-  return `${district.trim().toLowerCase()}/${slug.trim().toLowerCase()}`;
+function normalizeRouteSegment(value: string | null | undefined): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function buildRouteKey(district: string | null | undefined, slug: string | null | undefined): string {
+  const normalizedDistrict = normalizeRouteSegment(district);
+  const normalizedSlug = normalizeRouteSegment(slug);
+
+  return `${normalizedDistrict}/${normalizedSlug}`;
 }
 
 function slugify(value: string): string {
@@ -208,7 +215,11 @@ export function buildRoomRouteFromPropertyId(propertyId: string): string {
   return `/cho-thue-phong-tro-hn/quan-ha-noi/${slugify(propertyId)}`;
 }
 
-export function getRoomDetailByRoute(district: string, slug: string): RoomDetailData | null {
+export function getRoomDetailByRoute(district: string | null | undefined, slug: string | null | undefined): RoomDetailData | null {
+  if (!normalizeRouteSegment(district) || !normalizeRouteSegment(slug)) {
+    return null;
+  }
+
   const key = buildRouteKey(district, slug);
 
   return ROOM_DETAILS.find((room) => buildRouteKey(room.districtSlug, room.slug) === key) ?? null;
@@ -216,4 +227,24 @@ export function getRoomDetailByRoute(district: string, slug: string): RoomDetail
 
 export function getRelatedRooms(currentRoomId: string, limit = 3): readonly RoomDetailData[] {
   return ROOM_DETAILS.filter((room) => room.id !== currentRoomId).slice(0, limit);
+}
+
+export function getRoomsByDistrict(district: string): readonly RoomDetailData[] {
+  const normalizedDistrict = district.trim().toLowerCase();
+
+  return ROOM_DETAILS.filter((room) => room.districtSlug === normalizedDistrict);
+}
+
+export function getDistrictLabelFromSlug(district: string): string {
+  const rooms = getRoomsByDistrict(district);
+
+  if (rooms.length === 0) {
+    return district
+      .split("-")
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+
+  return rooms[0].location.districtLabel;
 }

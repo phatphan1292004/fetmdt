@@ -21,6 +21,10 @@ export function PropertyCard({ property }: PropertyCardProps) {
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${property.imageUrl})` }} />
         <div className="absolute inset-0 bg-linear-to-t from-black/25 to-transparent" />
 
+        <span className="absolute left-4 top-4 z-20 rounded-full bg-[#0b7ea9]/95 px-3 py-1 text-[12px] font-bold text-white">
+          {property.category}
+        </span>
+
         <div className="absolute bottom-4 left-4 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[13px] font-bold text-[#f5a225]">
           <span aria-hidden>★</span>
           {property.rating.toFixed(1)}

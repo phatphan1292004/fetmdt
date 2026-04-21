@@ -3,6 +3,7 @@ export type PropertyCardData = {
   title: string;
   address: string;
   city: string;
+  category: "Phòng trọ" | "Căn hộ mini" | "Studio";
   priceLabel: string;
   availableLabel: string;
   rating: number;
@@ -34,6 +35,7 @@ const LANDING_DATA: PropertyLandingData = {
       title: "DreamHouse 2 Mỹ Đình",
       address: "đường Mỹ Đình, Quận Nam Từ Liêm",
       city: "Hà Nội",
+      category: "Phòng trọ",
       priceLabel: "4.500.000đ",
       availableLabel: "Chỉ còn 1 phòng trống",
       rating: 9.9,
@@ -46,6 +48,7 @@ const LANDING_DATA: PropertyLandingData = {
       title: "DreamHouse 1 Mỹ Đình",
       address: "đường Mỹ Đình, Quận Nam Từ Liêm",
       city: "Hà Nội",
+      category: "Căn hộ mini",
       priceLabel: "4.000.000đ",
       availableLabel: "Chỉ còn 7 phòng trống",
       rating: 9.9,
@@ -58,6 +61,7 @@ const LANDING_DATA: PropertyLandingData = {
       title: "DreamHouse Hoàng Quốc",
       address: "đường Hoàng Quốc Việt, Quận Cầu Giấy",
       city: "Hà Nội",
+      category: "Studio",
       priceLabel: "4.300.000đ",
       availableLabel: "Chỉ còn 3 phòng trống",
       rating: 9.9,
@@ -70,6 +74,7 @@ const LANDING_DATA: PropertyLandingData = {
       title: "DreamHouse Yên Hòa - Cầu",
       address: "đường Yên Hòa, Quận Cầu Giấy",
       city: "Hà Nội",
+      category: "Phòng trọ",
       priceLabel: "4.500.000đ",
       availableLabel: "Chỉ còn 5 phòng trống",
       rating: 9.9,
