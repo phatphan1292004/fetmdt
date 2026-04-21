@@ -29,14 +29,30 @@ type CreatePostPayload = {
   price?: number | string;
   deposit?: number | string;
   area?: number | string;
+  maxOccupants?: number | string;
   bedrooms?: number | string;
   bathrooms?: number | string;
   width?: number | string;
   length?: number | string;
   floors?: number | string;
   usableArea?: number | string;
-  mainDirection?: string;
+  frontage?: number | string;
+  alleyWidth?: number | string;
+  houseDirection?: string;
   legalStatus?: string;
+  apartmentFloor?: number | string;
+  buildingFloors?: number | string;
+  hasBalcony?: boolean | string;
+  balconyDirection?: string;
+  managementFee?: number | string;
+  hasLoft?: boolean | string;
+  hasPrivateWc?: boolean | string;
+  curfewFree?: boolean | string;
+  hasAirConditioner?: boolean | string;
+  hasFridge?: boolean | string;
+  hasWashingMachine?: boolean | string;
+  utilityPricing?: string;
+  hasParking?: boolean | string;
   interiorStatus?: string;
   feature?: string;
   ownerType?: string;
@@ -176,14 +192,30 @@ async function parsePostBody(req: Request): Promise<ParsedPostBody> {
         price: getFormString(formData, "price"),
         deposit: getFormString(formData, "deposit"),
         area: getFormString(formData, "area"),
+        maxOccupants: getFormString(formData, "maxOccupants"),
         bedrooms: getFormString(formData, "bedrooms"),
         bathrooms: getFormString(formData, "bathrooms"),
         width: getFormString(formData, "width"),
         length: getFormString(formData, "length"),
         floors: getFormString(formData, "floors"),
         usableArea: getFormString(formData, "usableArea"),
-        mainDirection: getFormString(formData, "mainDirection"),
+        frontage: getFormString(formData, "frontage"),
+        alleyWidth: getFormString(formData, "alleyWidth"),
+        houseDirection: getFormString(formData, "houseDirection"),
         legalStatus: getFormString(formData, "legalStatus"),
+        apartmentFloor: getFormString(formData, "apartmentFloor"),
+        buildingFloors: getFormString(formData, "buildingFloors"),
+        hasBalcony: getFormString(formData, "hasBalcony"),
+        balconyDirection: getFormString(formData, "balconyDirection"),
+        managementFee: getFormString(formData, "managementFee"),
+        hasLoft: getFormString(formData, "hasLoft"),
+        hasPrivateWc: getFormString(formData, "hasPrivateWc"),
+        curfewFree: getFormString(formData, "curfewFree"),
+        hasAirConditioner: getFormString(formData, "hasAirConditioner"),
+        hasFridge: getFormString(formData, "hasFridge"),
+        hasWashingMachine: getFormString(formData, "hasWashingMachine"),
+        utilityPricing: getFormString(formData, "utilityPricing"),
+        hasParking: getFormString(formData, "hasParking"),
         interiorStatus: getFormString(formData, "interiorStatus"),
         feature: getFormString(formData, "feature"),
         ownerType: getFormString(formData, "ownerType"),
@@ -208,6 +240,231 @@ function isListingType(value: string): value is ListingType {
 
 function isOwnerType(value: string): value is OwnerType {
   return OWNER_TYPES.includes(value as OwnerType);
+}
+
+type BuildDetailsResult = {
+  details: Record<string, unknown>;
+  normalized: {
+    area?: number;
+    usableArea?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    floors?: number;
+    mainDirection?: string;
+    legalStatus?: string;
+    interiorStatus?: string;
+  };
+};
+
+function requirePositiveNumber(value: unknown, message: string): number {
+  const parsed = toOptionalNumber(value);
+
+  if (parsed === undefined || parsed <= 0) {
+    throw new RequestValidationError(message);
+  }
+
+  return parsed;
+}
+
+function requireString(value: unknown, message: string): string {
+  const parsed = toOptionalString(value);
+
+  if (!parsed) {
+    throw new RequestValidationError(message);
+  }
+
+  return parsed;
+}
+
+function requireBooleanChoice(value: unknown, message: string): boolean {
+  const normalized = toTrimmedString(value).toLowerCase();
+
+  if (!["true", "false", "1", "0", "on", "off"].includes(normalized)) {
+    throw new RequestValidationError(message);
+  }
+
+  return toBoolean(value);
+}
+
+function buildDetailsByPropertyType(
+  propertyType: PropertyType,
+  body: CreatePostPayload
+): BuildDetailsResult {
+  if (propertyType === "nha_o") {
+    const landArea = requirePositiveNumber(
+      body.area,
+      "Vui lòng nhập diện tích đất cho nhà ở"
+    );
+    const usableArea = requirePositiveNumber(
+      body.usableArea,
+      "Vui lòng nhập diện tích sử dụng cho nhà ở"
+    );
+    const bedrooms = requirePositiveNumber(
+      body.bedrooms,
+      "Vui lòng nhập số phòng ngủ cho nhà ở"
+    );
+    const bathrooms = requirePositiveNumber(
+      body.bathrooms,
+      "Vui lòng nhập số phòng vệ sinh cho nhà ở"
+    );
+    const floors = requirePositiveNumber(
+      body.floors,
+      "Vui lòng nhập số tầng cho nhà ở"
+    );
+    const frontage = requirePositiveNumber(
+      body.frontage,
+      "Vui lòng nhập mặt tiền của nhà"
+    );
+    const alleyWidth = requirePositiveNumber(
+      body.alleyWidth,
+      "Vui lòng nhập độ rộng đường vào"
+    );
+    const houseDirection = requireString(
+      body.houseDirection,
+      "Vui lòng nhập hướng nhà"
+    );
+    const interiorStatus = toOptionalString(body.interiorStatus);
+    const legalStatus = toOptionalString(body.legalStatus);
+
+    return {
+      details: {
+        landArea,
+        usableArea,
+        bedrooms,
+        bathrooms,
+        floors,
+        frontage,
+        alleyWidth,
+        houseDirection,
+        interiorStatus: interiorStatus ?? null,
+        legalStatus: legalStatus ?? null,
+      },
+      normalized: {
+        area: landArea,
+        usableArea,
+        bedrooms,
+        bathrooms,
+        floors,
+        mainDirection: houseDirection,
+        legalStatus,
+        interiorStatus,
+      },
+    };
+  }
+
+  if (propertyType === "can_ho_chung_cu") {
+    const usableArea = requirePositiveNumber(
+      body.usableArea,
+      "Vui lòng nhập diện tích sử dụng của căn hộ"
+    );
+    const bedrooms = requirePositiveNumber(
+      body.bedrooms,
+      "Vui lòng nhập số phòng ngủ của căn hộ"
+    );
+    const bathrooms = requirePositiveNumber(
+      body.bathrooms,
+      "Vui lòng nhập số phòng vệ sinh của căn hộ"
+    );
+    const apartmentFloor = requirePositiveNumber(
+      body.apartmentFloor,
+      "Vui lòng nhập tầng của căn hộ"
+    );
+    const buildingFloors = requirePositiveNumber(
+      body.buildingFloors,
+      "Vui lòng nhập tổng số tầng của tòa"
+    );
+    const hasBalcony = requireBooleanChoice(
+      body.hasBalcony,
+      "Vui lòng chọn thông tin ban công"
+    );
+    const balconyDirection = hasBalcony
+      ? requireString(body.balconyDirection, "Vui lòng nhập hướng ban công")
+      : toOptionalString(body.balconyDirection);
+    const interiorStatus = toOptionalString(body.interiorStatus);
+    const managementFee = toOptionalNumber(body.managementFee);
+
+    return {
+      details: {
+        usableArea,
+        bedrooms,
+        bathrooms,
+        apartmentFloor,
+        buildingFloors,
+        hasBalcony,
+        balconyDirection: balconyDirection ?? null,
+        interiorStatus: interiorStatus ?? null,
+        managementFee: managementFee ?? null,
+      },
+      normalized: {
+        area: usableArea,
+        usableArea,
+        bedrooms,
+        bathrooms,
+        floors: apartmentFloor,
+        mainDirection: balconyDirection,
+        interiorStatus,
+      },
+    };
+  }
+
+  const roomArea = requirePositiveNumber(
+    body.area,
+    "Vui lòng nhập diện tích phòng trọ"
+  );
+  const maxOccupants = requirePositiveNumber(
+    body.maxOccupants,
+    "Vui lòng nhập số người tối đa"
+  );
+  const hasLoft = requireBooleanChoice(body.hasLoft, "Vui lòng chọn thông tin gác");
+  const hasPrivateWc = requireBooleanChoice(
+    body.hasPrivateWc,
+    "Vui lòng chọn thông tin WC riêng"
+  );
+  const curfewFree = requireBooleanChoice(
+    body.curfewFree,
+    "Vui lòng chọn thông tin giờ giấc"
+  );
+  const hasAirConditioner = requireBooleanChoice(
+    body.hasAirConditioner,
+    "Vui lòng chọn thông tin máy lạnh"
+  );
+  const hasFridge = requireBooleanChoice(
+    body.hasFridge,
+    "Vui lòng chọn thông tin tủ lạnh"
+  );
+  const hasWashingMachine = requireBooleanChoice(
+    body.hasWashingMachine,
+    "Vui lòng chọn thông tin máy giặt"
+  );
+  const utilityPricing = requireString(
+    body.utilityPricing,
+    "Vui lòng nhập cách tính điện nước"
+  );
+  const hasParking = requireBooleanChoice(
+    body.hasParking,
+    "Vui lòng chọn thông tin chỗ để xe"
+  );
+
+  return {
+    details: {
+      area: roomArea,
+      maxOccupants,
+      hasLoft,
+      hasPrivateWc,
+      curfewFree,
+      hasAirConditioner,
+      hasFridge,
+      hasWashingMachine,
+      utilityPricing,
+      hasParking,
+    },
+    normalized: {
+      area: roomArea,
+      usableArea: roomArea,
+      bathrooms: hasPrivateWc ? 1 : 0,
+      interiorStatus: toOptionalString(body.interiorStatus),
+    },
+  };
 }
 
 /**
@@ -521,6 +778,8 @@ export async function POST(req: Request) {
       );
     }
 
+    const detailData = buildDetailsByPropertyType(propertyTypeInput, body);
+
     const newPost = new Post({
       ownerId: user._id,
       propertyType: propertyTypeInput,
@@ -532,15 +791,22 @@ export async function POST(req: Request) {
       description,
       price,
       deposit: toOptionalNumber(body.deposit),
-      area: toOptionalNumber(body.area),
-      bedrooms: toOptionalNumber(body.bedrooms),
-      bathrooms: toOptionalNumber(body.bathrooms),
+      area: detailData.normalized.area ?? toOptionalNumber(body.area),
+      bedrooms: detailData.normalized.bedrooms ?? toOptionalNumber(body.bedrooms),
+      bathrooms: detailData.normalized.bathrooms ?? toOptionalNumber(body.bathrooms),
       width: toOptionalNumber(body.width),
       length: toOptionalNumber(body.length),
-      floors: toOptionalNumber(body.floors),
-      usableArea: toOptionalNumber(body.usableArea),
-      interiorStatus: toOptionalString(body.interiorStatus),
+      floors: detailData.normalized.floors ?? toOptionalNumber(body.floors),
+      usableArea:
+        detailData.normalized.usableArea ??
+        toOptionalNumber(body.usableArea) ??
+        toOptionalNumber(body.area),
+      mainDirection: detailData.normalized.mainDirection,
+      legalStatus: detailData.normalized.legalStatus,
+      interiorStatus:
+        detailData.normalized.interiorStatus ?? toOptionalString(body.interiorStatus),
       feature: toOptionalString(body.feature),
+      details: detailData.details,
       ownerType: ownerTypeInput,
       mediaUrls,
       status: "pending",
