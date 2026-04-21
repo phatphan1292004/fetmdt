@@ -1,22 +1,21 @@
-import { RoomDetailPage, getRelatedRooms, getRoomDetailByRoute } from "@/src/features/room";
+import { RoomListingPage, getDistrictLabelFromSlug, getRoomsByDistrict } from "@/src/features/room";
 import { notFound } from "next/navigation";
 
-type RoomDetailRoutePageProps = {
+type RoomListingRoutePageProps = {
   params: Promise<{
     district: string;
-    slug: string;
   }>;
 };
 
-export default async function RoomDetailRoutePage({ params }: RoomDetailRoutePageProps) {
-  const { district, slug } = await params;
-  const room = getRoomDetailByRoute(district, slug);
+export default async function RoomListingRoutePage({ params }: RoomListingRoutePageProps) {
+  const { district } = await params;
+  const rooms = getRoomsByDistrict(district);
 
-  if (!room) {
+  if (rooms.length === 0) {
     notFound();
   }
 
-  const relatedRooms = getRelatedRooms(room.id, 4);
+  const districtLabel = getDistrictLabelFromSlug(district);
 
-  return <RoomDetailPage room={room} relatedRooms={relatedRooms} />;
+  return <RoomListingPage districtLabel={districtLabel} rooms={rooms} />;
 }

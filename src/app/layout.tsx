@@ -28,6 +28,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
+      suppressHydrationWarning
       className={`${beVietnamPro.variable} ${sora.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-[#f3f5f7] text-slate-700">

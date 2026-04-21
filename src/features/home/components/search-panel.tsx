@@ -43,7 +43,7 @@ export function SearchPanel({
     }, []);
 
     // refs for each filter button so we can position the floating menu in a portal
-    const buttonRefs = useRef<Record<MenuKey, HTMLButtonElement | null>>({});
+    const buttonRefs = useRef<Partial<Record<MenuKey, HTMLButtonElement | null>>>({});
     const [menuStyle, setMenuStyle] = useState<null | { left: number; top: number; width: number }>(null);
 
     useEffect(() => {
@@ -327,7 +327,9 @@ export function SearchPanel({
               return (
                 <div key={filter.key} className="relative">
                       <button
-                        ref={(el) => (buttonRefs.current[filter.key] = el)}
+                        ref={(el) => {
+                          buttonRefs.current[filter.key] = el;
+                        }}
                         type="button"
                         onClick={() => setActiveMenu(isOpen ? null : filter.key)}
                         className={`flex h-12 w-full items-center justify-between rounded-xl px-4 text-left text-[16px] font-medium text-slate-700 transition hover:bg-slate-100 ${
