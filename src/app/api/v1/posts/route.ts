@@ -2,6 +2,7 @@ import { connectDB } from "@/src/lib/mongoose";
 import Post from "@/src/models/Post";
 import User from "@/src/models/User";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { Types } from "mongoose";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -11,8 +12,11 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 const PROPERTY_TYPES = ["nha_o", "can_ho_chung_cu", "phong_tro"] as const;
 const LISTING_TYPES = ["cho_thue"] as const;
 const OWNER_TYPES = ["ca_nhan", "moi_gioi"] as const;
+const PUBLIC_POST_STATUSES = ["pending", "published"] as const;
 const MAX_IMAGE_COUNT = 10;
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const DEFAULT_NEWEST_POST_LIMIT = 6;
+const MAX_NEWEST_POST_LIMIT = 20;
 
 type PropertyType = (typeof PROPERTY_TYPES)[number];
 type ListingType = (typeof LISTING_TYPES)[number];
@@ -63,6 +67,50 @@ type ParsedPostBody = {
   payload: CreatePostPayload;
   uploadedImageDataUrls: string[];
 };
+
+type PopulatedOwner = {
+  _id: Types.ObjectId;
+  fullName?: string;
+};
+
+type PublicPostDocument = {
+  _id: Types.ObjectId;
+  ownerId: Types.ObjectId | PopulatedOwner;
+  propertyType?: string;
+  listingType?: string;
+  projectName?: string;
+  showRoomCode?: boolean;
+  title?: string;
+  description?: string;
+  address?: string;
+  price?: number;
+  deposit?: number;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  width?: number;
+  length?: number;
+  floors?: number;
+  usableArea?: number;
+  mainDirection?: string;
+  legalStatus?: string;
+  interiorStatus?: string;
+  feature?: string;
+  details?: Record<string, unknown>;
+  ownerType?: string;
+  mediaUrls?: string[];
+  status?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+type PublicPostApiData = {
+  _id: string;
+  id: string;
+  ownerId: string | { _id: string; fullName?: string };
+  ownerName: string;
+  ownerPostCount: number;
+} & Omit<PublicPostDocument, "_id" | "ownerId">;
 
 class RequestValidationError extends Error {
   status: number;
@@ -466,6 +514,177 @@ function buildDetailsByPropertyType(
     },
   };
 }
+
+function normalizeNewestLimit(rawLimit: string | null): number {
+  const parsed = Number(rawLimit);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_NEWEST_POST_LIMIT;
+  }
+
+  return Math.min(Math.floor(parsed), MAX_NEWEST_POST_LIMIT);
+}
+
+function isPopulatedOwner(
+  owner: PublicPostDocument["ownerId"]
+): owner is PopulatedOwner {
+  return (
+    typeof owner === "object" &&
+    owner !== null &&
+    "fullName" in owner
+  );
+}
+
+function getPublicOwnerInfo(owner: PublicPostDocument["ownerId"]): {
+  ownerId: string;
+  ownerName: string;
+} {
+  if (isPopulatedOwner(owner)) {
+    return {
+      ownerId: String(owner._id),
+      ownerName: owner.fullName?.trim() || "Chủ trọ",
+    };
+  }
+
+  return {
+    ownerId: String(owner),
+    ownerName: "Chủ trọ",
+  };
+}
+
+function mapPublicPostForResponse(
+  post: PublicPostDocument,
+  ownerPostCountMap: Map<string, number>
+): PublicPostApiData {
+  const { ownerId, ownerName } = getPublicOwnerInfo(post.ownerId);
+  const postCount = ownerPostCountMap.get(ownerId) ?? 1;
+
+  const serializedOwnerId = isPopulatedOwner(post.ownerId)
+    ? {
+        _id: String(post.ownerId._id),
+        fullName: post.ownerId.fullName,
+      }
+    : String(post.ownerId);
+
+  return {
+    ...post,
+    _id: String(post._id),
+    ownerId: serializedOwnerId,
+    id: String(post._id),
+    ownerName,
+    ownerPostCount: postCount,
+  };
+}
+
+async function getNewestPublicPosts(
+  limit: number
+): Promise<PublicPostApiData[]> {
+  await connectDB();
+
+  const posts = await Post.find({
+    status: { $in: PUBLIC_POST_STATUSES },
+  })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .populate("ownerId", "fullName")
+    .lean<PublicPostDocument[]>();
+
+  if (!posts.length) {
+    return [];
+  }
+
+  const ownerObjectIds = [...new Set(posts.map((post) => getPublicOwnerInfo(post.ownerId).ownerId))]
+    .filter((ownerId) => Types.ObjectId.isValid(ownerId))
+    .map((ownerId) => new Types.ObjectId(ownerId));
+
+  const ownerPostCounts = ownerObjectIds.length
+    ? await Post.aggregate<{ _id: Types.ObjectId; count: number }>([
+        {
+          $match: {
+            ownerId: { $in: ownerObjectIds },
+            status: { $in: PUBLIC_POST_STATUSES },
+          },
+        },
+        {
+          $group: {
+            _id: "$ownerId",
+            count: { $sum: 1 },
+          },
+        },
+      ])
+    : [];
+
+  const ownerPostCountMap = new Map<string, number>(
+    ownerPostCounts.map((item) => [String(item._id), item.count])
+  );
+
+  return posts.map((post) => mapPublicPostForResponse(post, ownerPostCountMap));
+}
+
+/**
+ * @openapi
+ * /api/v1/posts:
+ *   get:
+ *     summary: Lấy danh sách bài đăng mới nhất
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: query
+ *         name: section
+ *         schema:
+ *           type: string
+ *           enum: [newest]
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *           minimum: 1
+ *           maximum: 20
+ *     responses:
+ *       200:
+ *         description: Lấy dữ liệu thành công
+ *       400:
+ *         description: Query không hợp lệ
+ *       500:
+ *         description: Lỗi server
+ */
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const section = toTrimmedString(searchParams.get("section") ?? "newest").toLowerCase();
+
+    if (section !== "newest") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Section không hợp lệ",
+          data: [],
+        },
+        { status: 400 }
+      );
+    }
+
+    const limit = normalizeNewestLimit(searchParams.get("limit"));
+    const newestPosts = await getNewestPublicPosts(limit);
+
+    return NextResponse.json({
+      success: true,
+      message: "Lấy danh sách bài đăng mới nhất thành công",
+      data: newestPosts,
+    });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Lỗi server",
+        data: [],
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 
 /**
  * @openapi

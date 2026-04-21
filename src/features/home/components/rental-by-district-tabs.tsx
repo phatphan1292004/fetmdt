@@ -255,7 +255,7 @@ export function RentalByDistrictTabs() {
 
   return (
     <section className="bg-[#f3f5f7] py-14">
-      <div className="mx-auto w-full max-w-400 px-4 lg:px-8">
+      <div className="mx-auto w-full max-w-350 px-4 lg:px-8">
         <div className="inline-flex items-center gap-3" role="tablist" aria-label="Chon thanh pho">
           {CITY_TABS.map((cityTab) => {
             const isActive = activeCityId === cityTab.id;

@@ -1,13 +1,14 @@
-import { FeaturedPostsSection } from "../../post/components";
-import { getFeaturedPostsData } from "../../post/servers";
+import { FeaturedPostsSection, NewPostsSection } from "../../post/components";
+import { getFeaturedPostsData, getNewestPostsData } from "../../post/servers";
 import { FeaturedPropertiesSection } from "../../property";
 import { getPropertyLandingData } from "../../property/servers";
 import { RentalByDistrictTabs } from "@/src/features/home/components/rental-by-district-tabs";
 import { HeroSection } from "./hero-section";
 
-export function PropertyHomePage() {
+export async function PropertyHomePage() {
   const landingData = getPropertyLandingData();
   const featuredPosts = getFeaturedPostsData();
+  const newestPosts = await getNewestPostsData();
 
   return (
     <>
@@ -21,6 +22,7 @@ export function PropertyHomePage() {
         />
         <FeaturedPropertiesSection properties={landingData.properties} />
         <FeaturedPostsSection posts={featuredPosts} />
+        <NewPostsSection posts={newestPosts} />
         <RentalByDistrictTabs />
       </main>
     </>

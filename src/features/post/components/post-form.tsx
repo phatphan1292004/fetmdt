@@ -462,7 +462,7 @@ export function PostForm() {
 			<form onSubmit={handleSubmit} noValidate>
 				<div className="mx-auto w-full max-w-6xl px-3 pb-8 sm:px-4 lg:px-8">
 					<section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)] sm:p-5">
-						<h1 className="font-display text-2xl font-black text-slate-900 sm:text-3xl">Đăng tin cho thuê {currentPropertyLabel.toLowerCase()}</h1>
+						<h1 className="font-display text-2xl font-black text-slate-900 sm:text-3xl">ĐĂNG TIN CHO THUÊ {currentPropertyLabel.toUpperCase()}</h1>
 						<p className="mt-1 text-sm text-slate-600 sm:text-base">
 							Điền đầy đủ thông tin để tin đăng được duyệt nhanh và tiếp cận đúng khách thuê.
 						</p>
