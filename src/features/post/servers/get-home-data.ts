@@ -15,6 +15,47 @@ type PostMetaData = {
 
 export type PostCardData = PropertyCardData & PostMetaData;
 
+type PopulatedPostOwner = {
+  _id: string;
+  fullName?: string;
+};
+
+export type RawNewestPostData = {
+  _id: string;
+  id?: string;
+  ownerId?: string | PopulatedPostOwner;
+  ownerName?: string;
+  ownerPostCount?: number;
+  propertyType?: string;
+  listingType?: string;
+  projectName?: string;
+  address?: string;
+  showRoomCode?: boolean;
+  title?: string;
+  description?: string;
+  price?: number;
+  deposit?: number;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  width?: number;
+  length?: number;
+  floors?: number;
+  usableArea?: number;
+  mainDirection?: string;
+  legalStatus?: string;
+  interiorStatus?: string;
+  feature?: string;
+  details?: Record<string, unknown>;
+  ownerType?: string;
+  mediaUrls?: string[];
+  status?: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+};
+
+export type PostListingData = PostCardData | RawNewestPostData;
+
 function buildGallery(imageUrl: string): readonly string[] {
   return [
     imageUrl,
