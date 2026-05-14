@@ -23,6 +23,7 @@ type PopulatedPostOwner = {
 export type RawNewestPostData = {
   _id: string;
   id?: string;
+  slug?: string;
   ownerId?: string | PopulatedPostOwner;
   ownerName?: string;
   ownerPostCount?: number;

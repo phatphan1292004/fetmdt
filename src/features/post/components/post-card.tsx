@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { CiLocationOn } from "react-icons/ci";
+import { buildRoomRouteFromSlug } from "@/src/features/room/servers";
 import type { PostCardData, PostListingData, RawNewestPostData } from "../servers/get-home-data";
 
 type PostCardProps = {
@@ -260,6 +262,8 @@ export function PostCard({ post }: PostCardProps) {
   const { images, mediaCount, extraImageCount } = getGalleryImages(post);
   const cardData = resolveCardData(post);
   const galleryImages = [...images];
+  const postSlug = asTrimmedString("slug" in post ? post.slug : undefined) ?? ("id" in post ? post.id : "");
+  const detailHref = buildRoomRouteFromSlug(postSlug);
 
   while (galleryImages.length < 5) {
     galleryImages.push(galleryImages[0]);
@@ -267,7 +271,11 @@ export function PostCard({ post }: PostCardProps) {
 
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200/90 bg-linear-to-b from-white to-slate-50 p-3 shadow-[0_14px_34px_rgba(15,23,42,0.1)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.14)] md:p-4">
-      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-200">
+      <Link
+        href={detailHref}
+        className="block overflow-hidden rounded-2xl border border-slate-100 bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b7ea9]"
+        aria-label={`Xem chi tiết ${cardData.title}`}
+      >
         <div className="grid h-58 grid-cols-[1.2fr_1fr_0.9fr] gap-0.5 md:h-72">
           <GalleryCell imageUrl={galleryImages[0]}>
             <div className="absolute inset-0 bg-linear-to-t from-black/40 via-black/10 to-transparent" />
@@ -297,11 +305,16 @@ export function PostCard({ post }: PostCardProps) {
             </div>
           </div>
         </div>
-      </div>
+      </Link>
 
       <div className="px-1 pb-1 pt-4 md:px-2">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h3 className="text-[22px] font-extrabold leading-tight text-slate-800 md:text-[30px]">{cardData.title}</h3>
+          <Link
+            href={detailHref}
+            className="text-[22px] font-extrabold leading-tight text-slate-800 hover:text-[#0b7ea9] md:text-[30px]"
+          >
+            {cardData.title}
+          </Link>
         </div>
 
         <p className="mt-1 text-[14px] text-slate-600 md:text-[18px]">{cardData.subtitle}</p>

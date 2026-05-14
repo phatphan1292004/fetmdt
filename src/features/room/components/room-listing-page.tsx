@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { buildRoomRouteFromSlug } from "../servers";
 import type { RoomDetailData } from "../types";
 
 type RentalCategory = "Cho thuê" | "Phòng trọ";
@@ -465,7 +466,7 @@ export function RoomListingPage({ districtLabel, rooms }: RoomListingPageProps) 
                     />
                     <div className="p-4">
                       <Link
-                        href={`/cho-thue-phong-tro-hn/${room.districtSlug}/${room.slug}`}
+                        href={buildRoomRouteFromSlug(room.slug)}
                         className="text-[22px] font-extrabold text-[#0b5f89] hover:text-[#08719f] md:text-[24px]"
                       >
                         {room.title}

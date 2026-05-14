@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buildRoomRouteFromPropertyId } from "../../room/servers";
+import { buildRoomRouteFromSlug } from "../../room/servers";
 import type { PropertyCardData } from "../servers/get-home-data";
 
 type PropertyCardProps = {
@@ -7,7 +7,7 @@ type PropertyCardProps = {
 };
 
 export function PropertyCard({ property }: PropertyCardProps) {
-  const roomDetailHref = buildRoomRouteFromPropertyId(property.id);
+  const roomDetailHref = buildRoomRouteFromSlug(property.id);
 
   return (
     <article className="relative overflow-hidden rounded-[26px] bg-[#f8f8f8] shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
