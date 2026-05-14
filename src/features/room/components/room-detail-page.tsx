@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { AmenityData, AmenitySlug, RoomDetailData } from "../types";
+import { buildRoomRouteFromSlug } from "../servers";
 import { AMENITY_MAP } from "../constants/amenity-icons";
 
 type RoomDetailPageProps = {
@@ -82,7 +83,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
             </li>
             <li aria-hidden>/</li>
             <li>
-              <span>Cho thue phong tro Ha Noi</span>
+              <span>Phòng trọ</span>
             </li>
             <li aria-hidden>/</li>
             <li>
@@ -375,7 +376,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                 {relatedRooms.map((item) => (
                   <Link
                     key={item.id}
-                    href={`/cho-thue-phong-tro-hn/${item.districtSlug}/${item.slug}`}
+                    href={buildRoomRouteFromSlug(item.slug)}
                     className="group block rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-[#7ed9dd] hover:bg-white hover:shadow-md"
                   >
                     <p className="font-semibold text-slate-900 transition group-hover:text-[#0b7ea9]">{item.title}</p>

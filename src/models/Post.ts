@@ -9,6 +9,7 @@ export type PostDocument = {
   ownerId: Types.ObjectId;
   propertyType: PropertyType;
   listingType: ListingType;
+  slug: string;
   projectName?: string;
   address: string;
   showRoomCode: boolean;
@@ -84,6 +85,13 @@ const PostSchema = new Schema<PostDocument>(
       required: true,
       min: 0,
     },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
     deposit: {
       type: Number,
       min: 0,
@@ -157,7 +165,7 @@ const PostSchema = new Schema<PostDocument>(
   {
     timestamps: true,
     collection: "posts",
-  }
+  },
 );
 
 const PostModel =
