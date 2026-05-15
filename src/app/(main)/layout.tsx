@@ -85,7 +85,7 @@ async function getHeaderLocations(): Promise<HeaderLocation[]> {
 
     const cookieHeader = headerStore.get("cookie") ?? "";
 
-    const res = await fetch(`${protocol}://${host}/api/v1/auth/locations`, {
+    const res = await fetch(`${protocol}://${host}/api/v1/locations`, {
       method: "GET",
       headers: {
         cookie: cookieHeader,
