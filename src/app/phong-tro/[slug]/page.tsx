@@ -1,9 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { Footer, Header } from "@/src/components";
 import { RoomDetailPage } from "@/src/features/room";
-import { getPropertyLandingData } from "@/src/features/property/servers";
 import type { RoomDetailData } from "@/src/features/room";
 
 type RoomDetailRoutePageProps = {
@@ -24,7 +22,6 @@ export default function RoomDetailRoutePage({
   const { slug } = use(params);
   const [room, setRoom] = useState<RoomDetailData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { hotline } = getPropertyLandingData();
 
   useEffect(() => {
     if (!slug?.trim()) {
@@ -67,25 +64,25 @@ export default function RoomDetailRoutePage({
     };
   }, [slug]);
 
-  return (
-    <>
-      <Header hotline={hotline} currentUser={null} />
-      {errorMessage ? (
-        <main className="flex-1 bg-[#f5f7f9]">
-          <div className="mx-auto w-full max-w-400 px-4 py-12 text-center text-slate-600">
-            {errorMessage}
-          </div>
-        </main>
-      ) : room ? (
-        <RoomDetailPage room={room} relatedRooms={[]} />
-      ) : (
-        <main className="flex-1 bg-[#f5f7f9]">
-          <div className="mx-auto w-full max-w-400 px-4 py-12 text-center text-slate-600">
-            Đang tải dữ liệu...
-          </div>
-        </main>
-      )}
-      <Footer hotline={hotline} />
-    </>
-  );
+  if (errorMessage) {
+    return (
+      <main className="flex-1 bg-[#f5f7f9]">
+        <div className="mx-auto w-full max-w-400 px-4 py-12 text-center text-slate-600">
+          {errorMessage}
+        </div>
+      </main>
+    );
+  }
+
+  if (!room) {
+    return (
+      <main className="flex-1 bg-[#f5f7f9]">
+        <div className="mx-auto w-full max-w-400 px-4 py-12 text-center text-slate-600">
+          Đang tải dữ liệu...
+        </div>
+      </main>
+    );
+  }
+
+  return <RoomDetailPage room={room} relatedRooms={[]} />;
 }
