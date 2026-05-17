@@ -3,7 +3,6 @@ import "server-only";
 import { headers } from "next/headers";
 
 import type { PostListingData } from "./get-home-data";
-import { getFeaturedPostsData } from "./get-home-data";
 
 type NewestPostsResponse = {
   success: boolean;
@@ -44,7 +43,7 @@ export async function getNewestPostsData(limit = 6): Promise<readonly PostListin
     const apiContext = await resolveApiBaseUrl();
 
     if (!apiContext) {
-      return getFeaturedPostsData();
+      return [];
     }
 
     const safeLimit = normalizeLimit(limit);
@@ -60,18 +59,18 @@ export async function getNewestPostsData(limit = 6): Promise<readonly PostListin
     );
 
     if (!response.ok) {
-      return getFeaturedPostsData();
+      return [];
     }
 
     const payload = (await response.json()) as NewestPostsResponse;
 
     if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) {
-      return getFeaturedPostsData();
+      return [];
     }
 
     return payload.data;
   } catch (error) {
     console.error("[getNewestPostsData] Failed to load newest posts", error);
-    return getFeaturedPostsData();
+    return [];
   }
 }
