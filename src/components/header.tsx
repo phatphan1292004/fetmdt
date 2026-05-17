@@ -86,12 +86,12 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
                   </button>
                   <div className="absolute left-0 top-full pt-2 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
                     <div className="min-w-55 rounded-2xl border border-slate-200 bg-white shadow-xl">
-                      <div className="flex flex-col gap-1 p-2">
+                      <div className="flex max-h-150 flex-col gap-1 overflow-y-auto p-2">
                         {location.districts.length ? (
                           location.districts.map((district) => (
                             <Link
                               key={district}
-                              href="#"
+                              href={`/category?city=${encodeURIComponent(location.city)}&district=${encodeURIComponent(district)}`}
                               className="rounded-xl px-3 py-2 text-[16px] font-medium text-slate-700 transition hover:bg-slate-50"
                             >
                               {district}
