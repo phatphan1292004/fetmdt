@@ -7,26 +7,28 @@ import {
   LuBell,
   LuChartNoAxesColumn,
   LuCircleUserRound,
+  LuFolder,
   LuHouse,
   LuLayoutDashboard,
   LuMessageCircleMore,
   LuNotebookPen,
-  LuPackage,
   LuSearch,
+  LuSettings,
+  LuShieldAlert,
   LuStar,
   LuUsers,
+  LuWallet,
 } from "react-icons/lu";
 
+// Đã chuẩn hóa ngôn ngữ và bổ sung các module quan trọng
 const sidebarItems = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LuLayoutDashboard },
-  { label: "Post", href: "/admin/post", icon: LuNotebookPen },
-  { label: "User", href: "/admin/user", icon: LuUsers },
-  { label: "Review", href: "/admin/review", icon: LuStar },
-  {
-    label: "Goi tang tuong tac",
-    href: "/admin/goi-tang-tuong-tac",
-    icon: LuPackage,
-  },
+  { label: "Tổng quan", href: "/admin/dashboard", icon: LuLayoutDashboard },
+  { label: "Quản lý tin đăng", href: "/admin/posts", icon: LuNotebookPen },
+  { label: "Quản lý người dùng", href: "/admin/users", icon: LuUsers },
+  { label: "Gói & Giao dịch", href: "/admin/transactions", icon: LuWallet },
+  { label: "Báo cáo & Đánh giá", href: "/admin/reviews", icon: LuStar },
+  { label: "Danh mục hệ thống", href: "/admin/categories", icon: LuFolder },
+  { label: "Cài đặt hệ thống", href: "/admin/settings", icon: LuSettings },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -35,6 +37,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[#dfe7ee]">
       <div className="flex min-h-screen w-full overflow-hidden bg-[#f8fafc]">
+        {/* Sidebar */}
         <aside className="flex w-[340px] flex-col border-r border-slate-200/80 bg-[#fdfdfd] px-5 py-6">
           <div className="mb-8 flex items-center gap-3 px-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white">
@@ -42,14 +45,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </div>
             <div>
               <p className="text-[15px] font-semibold text-slate-800">SyncRows</p>
-              <p className="text-xs text-slate-400">Admin Workspace</p>
+              <p className="text-xs text-slate-400">Không gian quản trị</p>
             </div>
           </div>
 
           <nav className="space-y-1">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = pathname.startsWith(item.href); // Dùng startsWith để active cả các trang con
               return (
                 <Link
                   key={item.href}
@@ -70,31 +73,34 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <div className="mt-auto space-y-2 border-t border-slate-200 pt-5">
             <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-800">
               <LuChartNoAxesColumn size={17} />
-              Analytics
+              Báo cáo doanh thu
             </button>
             <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-800">
               <LuMessageCircleMore size={17} />
-              Messages
+              Hỗ trợ & Tin nhắn
             </button>
           </div>
         </aside>
 
+        {/* Main Content */}
         <section className="flex min-w-0 flex-1 flex-col bg-[#f9fafb]">
           <header className="flex h-20 items-center justify-between border-b border-slate-200/90 px-6 lg:px-8">
             <label className="flex w-[360px] max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
               <LuSearch size={16} className="text-slate-400" />
               <input
                 type="text"
-                placeholder="Search here"
+                placeholder="Tìm kiếm người dùng, mã tin đăng..."
                 className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
               />
             </label>
 
             <div className="flex items-center gap-4">
-              <button className="rounded-full p-2 text-slate-500 hover:bg-slate-200">
+              <button className="rounded-full p-2 text-slate-500 hover:bg-slate-200 relative">
                 <LuBell size={18} />
+                {/* Dấu chấm đỏ thông báo (ví dụ) */}
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500"></span>
               </button>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-slate-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-slate-600 cursor-pointer hover:bg-slate-300 transition">
                 <LuCircleUserRound size={18} />
               </div>
             </div>
