@@ -1,4 +1,4 @@
-import { Footer, Header } from "@/src/components";
+import { Footer, Header, ChatWidget } from "@/src/components";
 import { getPropertyLandingData } from "@/src/features/property/servers";
 import { headers } from "next/headers";
 
@@ -128,6 +128,7 @@ export default async function MainLayout({
       />
       {children}
       <Footer hotline={landingData.hotline} />
+      <ChatWidget />
     </>
   );
 }

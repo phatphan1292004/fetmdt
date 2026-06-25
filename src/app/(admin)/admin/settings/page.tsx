@@ -7,6 +7,7 @@ import {
   LuFileText, 
   LuSave 
 } from "react-icons/lu";
+import { IoCheckmarkCircle } from "react-icons/io5";
 
 export default function SettingsPage() {
   // Tab hiện tại
@@ -43,7 +44,7 @@ export default function SettingsPage() {
       {/* --- TOAST NOTIFICATION (Thông báo nổi) --- */}
       {showToast && (
         <div className="fixed top-24 right-8 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-lg animate-in fade-in slide-in-from-top-4 duration-300">
-          <LuCheckCircle className="text-emerald-400" size={18} />
+          <IoCheckmarkCircle className="text-emerald-400" size={18} />
           <span>Cấu hình hệ thống đã được lưu thành công!</span>
         </div>
       )}

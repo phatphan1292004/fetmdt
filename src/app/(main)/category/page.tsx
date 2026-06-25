@@ -1,4 +1,5 @@
 ﻿import { headers } from "next/headers";
+import { PriceRangeFilter } from "@/src/features/category/components/price-range-filter";
 import { PostCard } from "@/src/features/post/components/post-card";
 import type { RawNewestPostData } from "@/src/features/post/servers/get-home-data";
 
@@ -50,18 +51,18 @@ function FilterSection({
   checkFirst?: boolean;
 }) {
   return (
-    <article className="border-t border-slate-200/80 pt-6 first:border-t-0 first:pt-0">
-      <h3 className="text-[35px] font-extrabold leading-none text-[#045a84]">{title}</h3>
-      <div className="mt-4 space-y-2.5">
+    <article className="border-t border-slate-200/80 pt-5 first:border-t-0 first:pt-0">
+      <h3 className="text-[26px] font-extrabold leading-none text-[#045a84]">{title}</h3>
+      <div className="mt-3 space-y-1.5">
         {items.map((item, index) => (
           <label
             key={item}
-            className="group flex cursor-pointer items-center gap-3 rounded-xl px-2 py-1.5 text-[18px] text-slate-800 transition hover:bg-slate-50"
+            className="group flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[15px] text-slate-700 transition hover:bg-slate-50"
           >
             <input
               type="checkbox"
               defaultChecked={index === 0 && checkFirst}
-              className="h-[18px] w-[18px] rounded-[4px] border-slate-400 accent-[#22c2c7]"
+              className="h-4 w-4 rounded-[4px] border-slate-400 accent-[#22c2c7]"
             />
             <span className="leading-snug">{item}</span>
           </label>
@@ -140,65 +141,54 @@ export default async function CategoryPage({ searchParams }: CategoryPageProps) 
         <div className="mt-6 grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
           <aside className="xl:sticky xl:top-26">
             <div className="h-[calc(100vh-9.5rem)] overflow-y-auto rounded-[28px] border border-[#c8d8e3] bg-white/95 p-5 shadow-[0_18px_40px_rgba(4,90,132,0.12)] backdrop-blur-sm">
-            <section>
-              <h3 className="text-[35px] font-extrabold leading-none text-[#045a84]">Khoảng giá</h3>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[16px] text-slate-700">Từ</p>
-                  <div className="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[20px] font-semibold text-slate-700">0đ</div>
-                </div>
-                <div>
-                  <p className="text-[16px] text-slate-700">Đến</p>
-                  <div className="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[20px] font-semibold text-slate-700">20.000.000đ</div>
-                </div>
-              </div>
-              <div className="mt-4 h-2 rounded-full bg-[#22c2c7]/20">
-                <div className="h-2 rounded-full bg-[linear-gradient(90deg,#22c2c7_0%,#13b6c0_100%)] shadow-[0_2px_8px_rgba(34,194,199,0.45)]" />
-              </div>
-              <div className="mt-4 space-y-2.5">
-                {[
-                  "Tất cả mức giá",
-                  "Dưới 3 triệu",
-                  "3 - 5 triệu",
-                  "5 - 7 triệu",
-                  "7 - 10 triệu",
-                  "10 - 15 triệu",
-                  "Trên 15 triệu",
-                ].map((label, index) => (
-                  <label
-                    key={label}
-                    className="group flex cursor-pointer items-center gap-3 rounded-xl px-2 py-1.5 text-[18px] text-slate-800 transition hover:bg-slate-50"
-                  >
-                    <input
-                      type="checkbox"
-                      defaultChecked={index === 0}
-                      className="h-[18px] w-[18px] rounded-[4px] border-slate-400 accent-[#22c2c7]"
-                    />
-                    <span className="leading-snug">{label}</span>
-                  </label>
-                ))}
-              </div>
-            </section>
+              <section>
+                <h3 className="text-[26px] font-extrabold leading-none text-[#045a84]">Khoảng giá</h3>
+                <PriceRangeFilter />
 
-            <div className="mt-6 space-y-6">
-              <FilterSection title="Khu vực" items={["TP Hồ Chí Minh", "Hà Nội"]} checkFirst />
-              <FilterSection title="Loại phòng" items={["Loại phòng", "1 phòng ngủ", "2 phòng ngủ", "3 phòng ngủ", "Studio", "Duplex"]} />
-              <FilterSection title="Chính sách" items={["Nuôi thú cưng", "Giờ giấc tự do", "Thời gian thuê tối thiểu 3 tháng", "Chủ nhà không ở cùng"]} />
-              <FilterSection
-                title="Tiện ích chung"
-                items={[
-                  "Khu cầu thang chung (*)",
-                  "Khu để xe (*)",
-                  "Phòng (*)",
-                  "Ô tô đỗ cửa",
-                  "Camera an ninh",
-                  "Khóa cổng thông minh",
-                  "Bảo vệ 24/7",
-                ]}
-              />
-              <FilterSection title="Nội thất" items={["Kệ tivi", "Giá giày dép", "Bàn làm việc", "Sofa", "Bàn ăn", "Tủ bếp trên", "Tủ bếp dưới"]} />
-              <FilterSection title="Tiện nghi" items={["Ban công", "Cửa sổ", "Gác lửng", "Khóa phòng thông minh", "Báo cháy phòng", "Dọn vệ sinh phòng", "Tivi"]} />
-            </div>
+                <div className="mt-3 space-y-1.5">
+                  {[
+                    "Tất cả mức giá",
+                    "Dưới 3 triệu",
+                    "3 - 5 triệu",
+                    "5 - 7 triệu",
+                    "7 - 10 triệu",
+                    "10 - 15 triệu",
+                    "Trên 15 triệu",
+                  ].map((label, index) => (
+                    <label
+                      key={label}
+                      className="group flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[15px] text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <input
+                        type="checkbox"
+                        defaultChecked={index === 0}
+                        className="h-4 w-4 rounded-[4px] border-slate-400 accent-[#22c2c7]"
+                      />
+                      <span className="leading-snug">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+
+              <div className="mt-6 space-y-6">
+                <FilterSection title="Khu vực" items={["TP Hồ Chí Minh", "Hà Nội"]} checkFirst />
+                <FilterSection title="Loại phòng" items={["Loại phòng", "1 phòng ngủ", "2 phòng ngủ", "3 phòng ngủ", "Studio", "Duplex"]} />
+                <FilterSection title="Chính sách" items={["Nuôi thú cưng", "Giờ giấc tự do", "Thời gian thuê tối thiểu 3 tháng", "Chủ nhà không ở cùng"]} />
+                <FilterSection
+                  title="Tiện ích chung"
+                  items={[
+                    "Khu cầu thang chung (*)",
+                    "Khu để xe (*)",
+                    "Phòng (*)",
+                    "Ô tô đỗ cửa",
+                    "Camera an ninh",
+                    "Khóa cổng thông minh",
+                    "Bảo vệ 24/7",
+                  ]}
+                />
+                <FilterSection title="Nội thất" items={["Kệ tivi", "Giá giày dép", "Bàn làm việc", "Sofa", "Bàn ăn", "Tủ bếp trên", "Tủ bếp dưới"]} />
+                <FilterSection title="Tiện nghi" items={["Ban công", "Cửa sổ", "Gác lửng", "Khóa phòng thông minh", "Báo cháy phòng", "Dọn vệ sinh phòng", "Tivi"]} />
+              </div>
             </div>
           </aside>
 
