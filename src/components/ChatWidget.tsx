@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { IoChatbubblesSharp, IoCloseOutline, IoSendSharp, IoTrashOutline } from "react-icons/io5";
+import { io, Socket } from "socket.io-client";
 
 type Message = {
   id: string;
@@ -23,52 +24,100 @@ export function ChatWidget() {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
+  const [roomId, setRoomId] = useState<string>("");
+  const [currentUser, setCurrentUser] = useState<{ fullName?: string; phone?: string } | null>(null);
+  
+  const socketRef = useRef<Socket | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load chat messages from localStorage on mount
+  // Fetch logged in user info if any
   useEffect(() => {
-    const savedMessages = localStorage.getItem("phongtot_chat_history");
-    if (savedMessages) {
+    const fetchUser = async () => {
       try {
-        const parsed = JSON.parse(savedMessages) as any[];
-        setMessages(
-          parsed.map((m) => ({
-            ...m,
-            timestamp: new Date(m.timestamp),
-          }))
-        );
-      } catch (e) {
-        console.error("Failed to parse chat history:", e);
-        initializeFirstGreeting();
+        const res = await fetch("/api/v1/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setCurrentUser({
+              fullName: data.data.fullName,
+              phone: data.data.phone,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load user info:", err);
       }
-    } else {
-      initializeFirstGreeting();
-    }
+    };
+    fetchUser();
   }, []);
 
-  // Save messages to localStorage when updated
+  // Initialize Room ID and Socket connection
   useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem("phongtot_chat_history", JSON.stringify(messages));
-    } else {
-      localStorage.removeItem("phongtot_chat_history");
+    let id = localStorage.getItem("phongtot_chat_room_id");
+    if (!id) {
+      id = "room_" + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem("phongtot_chat_room_id", id);
     }
-  }, [messages]);
+    setRoomId(id);
 
-  // Scroll to bottom whenever messages change or typing state changes
+    // Connect to Socket.io server
+    const socket = io("http://localhost:3003");
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("[Socket] Client connected:", socket.id);
+      
+      // Register with the socket server
+      socket.emit("client-join", {
+        roomId: id,
+        clientName: currentUser?.fullName || "Khách ẩn danh",
+        clientPhone: currentUser?.phone || "Chưa cung cấp",
+      });
+    });
+
+    socket.on("chat-history", (history: any[]) => {
+      setMessages(
+        history.map((m) => ({
+          ...m,
+          timestamp: new Date(m.timestamp),
+        }))
+      );
+    });
+
+    socket.on("message", (msg: any) => {
+      setMessages((prev) => {
+        // Prevent duplicate messages
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [
+          ...prev,
+          {
+            ...msg,
+            timestamp: new Date(msg.timestamp),
+          },
+        ];
+      });
+
+      if (!isOpen && msg.sender === "staff") {
+        setHasNewMessage(true);
+      }
+    });
+
+    socket.on("typing", ({ isTyping: typing, sender }: { isTyping: boolean; sender: string }) => {
+      if (sender === "staff") {
+        setIsTyping(typing);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [currentUser]);
+
+  // Scroll to bottom whenever messages or typing state changes
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
-
-  const initializeFirstGreeting = () => {
-    const greeting: Message = {
-      id: "greeting",
-      sender: "staff",
-      text: "Xin chào! Cảm ơn bạn đã ghé thăm PhòngTốt. Mình có thể giúp gì cho bạn hôm nay? Hãy chọn một trong các gợi ý dưới đây hoặc nhắn tin cho mình nhé!",
-      timestamp: new Date(),
-    };
-    setMessages([greeting]);
-  };
 
   const handleToggleChat = () => {
     setIsOpen(!isOpen);
@@ -81,73 +130,72 @@ export function ChatWidget() {
     if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện này không?")) {
       setMessages([]);
       localStorage.removeItem("phongtot_chat_history");
-      setTimeout(() => {
-        initializeFirstGreeting();
-      }, 300);
-    }
-  };
+      
+      // We can reset room ID to start a completely fresh session
+      const newId = "room_" + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem("phongtot_chat_room_id", newId);
+      setRoomId(newId);
 
-  const addMessage = (sender: "user" | "staff", text: string) => {
-    const newMsg: Message = {
-      id: Math.random().toString(36).substring(2, 9),
-      sender,
-      text,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, newMsg]);
+      if (socketRef.current) {
+        socketRef.current.emit("client-join", {
+          roomId: newId,
+          clientName: currentUser?.fullName || "Khách ẩn danh",
+          clientPhone: currentUser?.phone || "Chưa cung cấp",
+        });
+      }
+    }
   };
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !socketRef.current) return;
 
-    const userText = inputValue.trim();
-    addMessage("user", userText);
+    const text = inputValue.trim();
+    
+    // Stop typing immediately
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    socketRef.current.emit("typing", { roomId, isTyping: false, sender: "user" });
+
+    // Send via socket
+    socketRef.current.emit("send-message", {
+      roomId,
+      text,
+      sender: "user",
+    });
+
     setInputValue("");
-    triggerBotResponse(userText);
   };
 
-  const handleQuickReply = (text: string, id: string) => {
-    addMessage("user", text);
-    triggerBotResponse(text, id);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+
+    if (!socketRef.current) return;
+
+    // Emit typing indicator
+    socketRef.current.emit("typing", { roomId, isTyping: true, sender: "user" });
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      if (socketRef.current) {
+        socketRef.current.emit("typing", { roomId, isTyping: false, sender: "user" });
+      }
+    }, 2000);
   };
 
-  const triggerBotResponse = (userText: string, replyId?: string) => {
-    setIsTyping(true);
+  const handleQuickReply = (text: string) => {
+    if (!socketRef.current) return;
 
-    setTimeout(() => {
-      let replyText = "";
-      const textLower = userText.toLowerCase();
-
-      if (replyId === "find_room" || textLower.includes("tim phong") || textLower.includes("tìm phòng")) {
-        replyText = "Dạ! Hiện tại PhòngTốt đang có hàng ngàn tin đăng phòng trọ chính chủ tại Hà Nội, TP. Hồ Chí Minh và Đà Nẵng. Bạn muốn tìm phòng ở khu vực Quận/Huyện nào, và mức tài chính tối đa khoảng bao nhiêu triệu một tháng để mình lọc giúp bạn nhanh nhất nhé? 😉";
-      } else if (replyId === "post_room" || textLower.includes("dang tin") || textLower.includes("đăng tin")) {
-        replyText = "Dạ, để đăng tin cho thuê phòng, bạn hãy click vào nút **Đăng tin** màu vàng ở phía trên góc phải trang web (hoặc truy cập trực tiếp link `/post`). \n\nHệ thống hỗ trợ cả đăng tin miễn phí và các gói tin VIP dịch vụ để bài đăng hiển thị nổi bật hơn. Bạn có gặp khó khăn gì khi đăng ký tài khoản không ạ?";
-      } else if (replyId === "price_info" || textLower.includes("bang gia") || textLower.includes("bảng giá") || textLower.includes("bao gia") || textLower.includes("báo giá")) {
-        replyText = "PhòngTốt hiện hỗ trợ các gói tin đăng linh hoạt:\n\n• **Tin Thường (Free)**: Miễn phí hoàn toàn, hiển thị cơ bản.\n• **Tin VIP 3**: 15.000đ/ngày (ưu tiên hiển thị trên tin thường).\n• **Tin VIP 2**: 30.000đ/ngày (nổi bật với thẻ nhãn cam).\n• **Tin VIP 1 (Hot)**: 50.000đ/ngày (luôn ghim đầu trang, thu hút lượng tiếp cận gấp 5 lần).\n\nNếu bạn muốn trải nghiệm đăng tin VIP, vui lòng liên hệ nhân viên qua hotline **0888.022.821** nhé!";
-      } else if (
-        replyId === "call_staff" ||
-        textLower.includes("nhan vien") ||
-        textLower.includes("nhân viên") ||
-        textLower.includes("ho tro") ||
-        textLower.includes("hỗ trợ") ||
-        textLower.includes("sdt") ||
-        textLower.includes("sđt") ||
-        textLower.includes("lien he") ||
-        textLower.includes("liên hệ")
-      ) {
-        replyText = "Cảm ơn bạn! Để gặp trực tiếp tư vấn viên PhòngTốt, bạn vui lòng liên hệ qua hotline chính thức: **0888.022.821** (Zalo/Hotline hỗ trợ 24/7).\n\nHoặc bạn vui lòng để lại số điện thoại/email ngay tại đây, bộ phận hỗ trợ khách hàng sẽ liên hệ lại trực tiếp cho bạn sau ít phút!";
-      } else {
-        replyText = `Cảm ơn bạn đã liên hệ PhòngTốt! Ý kiến/câu hỏi của bạn đã được gửi tới hệ thống hỗ trợ: \n\n*"${userText}"* \n\nChúng tôi sẽ trả lời trực tiếp qua khung chat này hoặc liên hệ qua thông tin tài khoản của bạn. Để được hỗ trợ nhanh nhất, hãy gọi hotline **0888.022.821** hoặc nhắn Zalo bạn nhé!`;
-      }
-
-      addMessage("staff", replyText);
-      setIsTyping(false);
-
-      if (!isOpen) {
-        setHasNewMessage(true);
-      }
-    }, 1200);
+    // Send reply text as user message
+    socketRef.current.emit("send-message", {
+      roomId,
+      text,
+      sender: "user",
+    });
   };
 
   const formatTime = (date: Date) => {
@@ -270,12 +318,12 @@ export function ChatWidget() {
         </div>
 
         {/* Suggestion Quick Replies */}
-        {messages.length === 1 && !isTyping && (
+        {messages.length <= 1 && !isTyping && (
           <div className="bg-slate-50 px-4 pb-3 flex flex-wrap gap-1.5 select-none">
             {QUICK_REPLIES.map((reply) => (
               <button
                 key={reply.id}
-                onClick={() => handleQuickReply(reply.text, reply.id)}
+                onClick={() => handleQuickReply(reply.text)}
                 type="button"
                 className="text-xs bg-white text-slate-600 border border-slate-200/80 px-2.5 py-1.5 rounded-full hover:bg-[#ecfdfe] hover:text-[#0b7ea9] hover:border-[#25c3c8] transition-all font-medium text-left"
               >
@@ -293,14 +341,13 @@ export function ChatWidget() {
           <input
             type="text"
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Nhập tin nhắn gửi đến hỗ trợ..."
             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-[14.5px] text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#25c3c8]/40 focus:border-[#25c3c8] transition-all"
-            disabled={isTyping}
           />
           <button
             type="submit"
-            disabled={!inputValue.trim() || isTyping}
+            disabled={!inputValue.trim()}
             className="h-10 w-10 flex items-center justify-center rounded-xl bg-[#045a84] text-white hover:bg-[#0b7ea9] active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:pointer-events-none transition-all shadow-sm shadow-[#045a84]/20"
             title="Gửi tin nhắn"
           >
