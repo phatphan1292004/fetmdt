@@ -262,7 +262,7 @@ export function PostCard({ post }: PostCardProps) {
   const { images, mediaCount, extraImageCount } = getGalleryImages(post);
   const cardData = resolveCardData(post);
   const galleryImages = [...images];
-  const postSlug = asTrimmedString("slug" in post ? post.slug : undefined) ?? ("id" in post ? post.id : "");
+  const postSlug = asTrimmedString("slug" in post ? post.slug : undefined) ?? ("id" in post ? post.id : undefined) ?? "";
   const detailHref = buildRoomRouteFromSlug(postSlug);
 
   while (galleryImages.length < 5) {

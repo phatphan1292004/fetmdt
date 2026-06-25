@@ -75,10 +75,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <LuChartNoAxesColumn size={17} />
               Báo cáo doanh thu
             </button>
-            <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+            <Link
+              href="/admin/chat"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+            >
               <LuMessageCircleMore size={17} />
               Hỗ trợ & Tin nhắn
-            </button>
+            </Link>
           </div>
         </aside>
 

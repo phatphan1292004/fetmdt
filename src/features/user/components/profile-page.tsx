@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { IoCopyOutline, IoCheckmarkCircle } from "react-icons/io5";
 
-type ProfileTabId = "info" | "saved" | "manage";
+type ProfileTabId = "info" | "saved" | "manage" | "buff";
 
 type TabItem = {
   id: ProfileTabId;
@@ -66,6 +67,7 @@ const TABS: readonly TabItem[] = [
   { id: "info", label: "Thông tin cá nhân" },
   { id: "saved", label: "Tin đăng đã lưu" },
   { id: "manage", label: "Quản lý tin đăng" },
+  { id: "buff", label: "Dịch vụ đẩy tin" },
 ];
 
 const SAVED_POSTS: readonly SavedPost[] = [
@@ -651,6 +653,440 @@ function ManagedPostsTab() {
   );
 }
 
+function BuffPostsTab() {
+  const [selectedPost, setSelectedPost] = useState("m-1");
+  const [selectedDuration, setSelectedDuration] = useState(7); // 7 days default
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [activePackage, setActivePackage] = useState<{
+    id: string;
+    name: string;
+    price: number;
+  } | null>(null);
+  
+  // VietQR integration states
+  const [showQrCode, setShowQrCode] = useState(false);
+  const [qrUrl, setQrUrl] = useState("");
+  const [qrAmount, setQrAmount] = useState(0);
+  const [qrDescription, setQrDescription] = useState("");
+  const [copiedType, setCopiedType] = useState<"account" | "amount" | "desc" | null>(null);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const packages = [
+    {
+      id: "vip1",
+      name: "VIP 1 (Siêu Cấp)",
+      price: 50000,
+      description: "Tiếp cận lượng khách hàng tối đa, ghim đầu trang tìm kiếm",
+      features: [
+        "Ghim đầu trang tìm kiếm danh mục",
+        "Thẻ bài đăng nổi bật (Glow border)",
+        "Tự động đẩy tin (Auto push) mỗi 2 giờ",
+        "Tiếp cận lượng khách hàng gấp 10 lần",
+        "Hỗ trợ thiết kế hình ảnh & bài đăng chuyên nghiệp",
+      ],
+      isPopular: true,
+      color: "from-amber-500 to-orange-600",
+      textColor: "text-amber-600",
+    },
+    {
+      id: "vip2",
+      name: "VIP 2 (Nổi Bật)",
+      price: 30000,
+      description: "Hiển thị nổi bật phía dưới tin VIP 1, tiếp cận gấp 5 lần",
+      features: [
+        "Hiển thị ưu tiên phía dưới gói VIP 1",
+        "Thẻ bài đăng có viền xanh lá nổi bật",
+        "Tự động đẩy tin (Auto push) mỗi 6 giờ",
+        "Tiếp cận lượng khách hàng gấp 5 lần",
+      ],
+      isPopular: false,
+      color: "from-emerald-500 to-teal-600",
+      textColor: "text-emerald-600",
+    },
+    {
+      id: "vip3",
+      name: "VIP 3 (Tiết Kiệm)",
+      price: 15000,
+      description: "Hiển thị ưu tiên hơn tin thường, chi phí tiết kiệm",
+      features: [
+        "Hiển thị ưu tiên hơn tin thường",
+        "Biểu tượng ngôi sao vàng nổi bật",
+        "Tự động đẩy tin (Auto push) 1 lần/ngày",
+        "Tiếp cận lượng khách hàng gấp 2.5 lần",
+      ],
+      isPopular: false,
+      color: "from-blue-500 to-indigo-600",
+      textColor: "text-blue-600",
+    },
+  ];
+
+  const handleOpenConfirm = (pkg: typeof packages[0]) => {
+    setActivePackage(pkg);
+    setIsConfirmOpen(true);
+    setShowQrCode(false);
+    setQrUrl("");
+  };
+
+  const handleConfirmPurchase = () => {
+    if (!activePackage) return;
+    
+    // Read VietQR settings from env or use defaults
+    const bankId = process.env.NEXT_PUBLIC_VIETQR_BANK_ID || "TCB";
+    const bankName = process.env.NEXT_PUBLIC_VIETQR_BANK_NAME || "Techcombank";
+    const accountNo = process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NO || "1273702222";
+    const accountName = process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NAME || "PHAN VAN PHAT";
+    const prefix = process.env.NEXT_PUBLIC_VIETQR_TRANSFER_PREFIX || "PHONGTOT";
+    const template = "qr_only";
+
+    const totalCost = activePackage.price * selectedDuration;
+    const discount = selectedDuration >= 15 ? 0.9 : 1;
+    const finalCost = Math.round(totalCost * discount);
+
+    // Build Transfer Description: PREFIX + POST_ID + DURATION + D
+    const rawDescription = `${prefix} ${selectedPost.toUpperCase()} ${selectedDuration}D`;
+    const encodedDescription = encodeURIComponent(rawDescription);
+    const encodedAccountName = encodeURIComponent(accountName);
+
+    // VietQR endpoint: https://img.vietqr.io/image/<BANK_ID>-<ACCOUNT_NO>-<TEMPLATE>.png
+    const url = `https://img.vietqr.io/image/${bankId}-${accountNo}-${template}.png?amount=${finalCost}&addInfo=${encodedDescription}&accountName=${encodedAccountName}`;
+
+    setQrUrl(url);
+    setQrAmount(finalCost);
+    setQrDescription(rawDescription);
+    setShowQrCode(true);
+  };
+
+  const handleCopyText = (text: string, type: "account" | "amount" | "desc") => {
+    if (typeof window !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedType(type);
+      setTimeout(() => {
+        setCopiedType(null);
+      }, 2000);
+    }
+  };
+
+  const handleFinishPayment = () => {
+    setIsConfirmOpen(false);
+    setShowQrCode(false);
+    setToastMessage("Hệ thống đang kiểm tra giao dịch của bạn. Tin đăng sẽ được kích hoạt sau vài phút!");
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 5000);
+  };
+
+  return (
+    <section className="space-y-6 relative">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-24 right-8 z-50 flex items-center gap-3 rounded-2xl bg-slate-900 px-5 py-4 text-[15px] font-medium text-white shadow-2xl animate-in fade-in slide-in-from-top-4 duration-300 max-w-md border border-slate-800">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white text-xs">✓</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Header Info */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
+        <h2 className="text-2xl font-extrabold text-slate-900">Dịch vụ đẩy tin & VIP</h2>
+        <p className="mt-1 text-slate-600 text-[15px]">
+          Tăng lượt tiếp cận khách hàng gấp 10 lần, chốt khách thuê phòng nhanh nhất.
+        </p>
+      </div>
+
+      {/* Packages Grid */}
+      <div className="grid gap-6 md:grid-cols-3">
+        {packages.map((pkg) => (
+          <article
+            key={pkg.id}
+            className={`relative rounded-3xl border bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between ${
+              pkg.isPopular
+                ? "border-amber-400 ring-2 ring-amber-400/20 scale-[1.02] md:scale-[1.03]"
+                : "border-slate-200"
+            }`}
+          >
+            {pkg.isPopular && (
+              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-xs px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+                Khuyên Dùng
+              </span>
+            )}
+
+            <div>
+              <h3 className="font-extrabold text-xl text-slate-900 leading-snug">{pkg.name}</h3>
+              <p className="text-slate-500 text-xs mt-1.5 min-h-[32px]">{pkg.description}</p>
+
+              <div className="my-4 border-y border-slate-100 py-3 flex items-baseline gap-1">
+                <span className="text-2xl font-black text-slate-900">
+                  {pkg.price.toLocaleString("vi-VN")}đ
+                </span>
+                <span className="text-slate-500 text-xs font-semibold">/ ngày</span>
+              </div>
+
+              <ul className="space-y-2.5 mb-6">
+                {pkg.features.map((feat, index) => (
+                  <li key={index} className="flex items-start gap-2 text-sm text-slate-600">
+                    <span className={`text-base font-bold shrink-0 ${pkg.textColor}`}>✓</span>
+                    <span className="leading-tight">{feat}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <button
+              onClick={() => handleOpenConfirm(pkg)}
+              type="button"
+              className={`w-full py-3 rounded-xl font-extrabold text-[15px] transition shadow-sm ${
+                pkg.isPopular
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-95 hover:shadow-[0_4px_14px_rgba(245,158,11,0.35)]"
+                  : "bg-slate-900 text-white hover:bg-slate-800"
+              }`}
+            >
+              Kích hoạt ngay
+            </button>
+          </article>
+        ))}
+      </div>
+
+      {/* Confirmation & VietQR Purchase Modal */}
+      {isConfirmOpen && activePackage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-xl shadow-2xl border border-slate-100 flex flex-col gap-5 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
+            
+            {!showQrCode ? (
+              // STEP 1: Select Listing & Duration
+              <>
+                <div>
+                  <h3 className="text-xl font-extrabold text-slate-900">Kích hoạt Gói dịch vụ</h3>
+                  <p className="text-slate-500 text-sm mt-1">Vui lòng chọn bài viết và số ngày muốn kích hoạt.</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                      Chọn tin đăng của bạn
+                    </label>
+                    <select
+                      value={selectedPost}
+                      onChange={(e) => setSelectedPost(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0b7ea9] transition"
+                    >
+                      {MANAGED_POSTS.map((post) => (
+                        <option key={post.id} value={post.id}>
+                          {post.title} ({post.priceLabel})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                      Chọn thời gian kích hoạt
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[3, 7, 15, 30].map((days) => (
+                        <button
+                          key={days}
+                          type="button"
+                          onClick={() => setSelectedDuration(days)}
+                          className={`py-3.5 rounded-xl border text-sm font-bold transition flex flex-col items-center justify-center ${
+                            selectedDuration === days
+                              ? "border-[#0b7ea9] bg-[#effaff] text-[#0b7ea9]"
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span>{days} ngày</span>
+                          {days >= 15 && (
+                            <span className="text-[10px] text-emerald-500 font-extrabold mt-0.5">
+                              -10%
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-100">
+                    <div className="flex justify-between text-sm text-slate-600">
+                      <span>Gói dịch vụ</span>
+                      <span className="font-semibold">{activePackage.name}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-slate-600">
+                      <span>Đơn giá / ngày</span>
+                      <span className="font-semibold">
+                        {activePackage.price.toLocaleString("vi-VN")} đ
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm text-slate-600">
+                      <span>Thời gian</span>
+                      <span className="font-semibold">{selectedDuration} ngày</span>
+                    </div>
+                    {selectedDuration >= 15 && (
+                      <div className="flex justify-between text-sm text-emerald-600 font-semibold">
+                        <span>Chiết khấu (10%)</span>
+                        <span>
+                          -{Math.round(activePackage.price * selectedDuration * 0.1).toLocaleString("vi-VN")} đ
+                        </span>
+                      </div>
+                    )}
+                    <div className="border-t border-slate-200 pt-2 flex justify-between text-base font-extrabold text-slate-900">
+                      <span>Tổng thanh toán</span>
+                      <span className="text-[#ef2f3d]">
+                        {Math.round(
+                          activePackage.price * selectedDuration * (selectedDuration >= 15 ? 0.9 : 1)
+                        ).toLocaleString("vi-VN")} đ
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmOpen(false)}
+                    className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmPurchase}
+                    className="flex-1 py-3 rounded-xl bg-[#0b7ea9] hover:bg-[#09678a] text-white text-sm font-bold transition shadow-md shadow-blue-500/10"
+                  >
+                    Tạo mã QR thanh toán
+                  </button>
+                </div>
+              </>
+            ) : (
+              // STEP 2: VietQR scan payment
+              <>
+                <div className="text-center">
+                  <h3 className="text-xl font-extrabold text-slate-900">Thanh toán qua VietQR</h3>
+                  <p className="text-slate-500 text-sm mt-1">Sử dụng ứng dụng Ngân hàng quét mã dưới đây để kích hoạt dịch vụ.</p>
+                </div>
+
+                {/* QR Code and Waiting indicator */}
+                <div className="flex flex-col items-center justify-center p-3.5 bg-slate-50 rounded-2xl border border-slate-200/60 shadow-inner">
+                  <img
+                    src={qrUrl}
+                    alt="Mã QR VietQR"
+                    className="w-56 h-56 border border-slate-200 p-2.5 rounded-2xl bg-white shadow-sm"
+                  />
+                  <div className="mt-3 flex items-center gap-2 text-slate-600 text-xs font-semibold">
+                    <span className="flex h-2.5 w-2.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+                    </span>
+                    <span>Đang chờ quét mã thanh toán...</span>
+                  </div>
+                </div>
+
+                {/* Transfer Info */}
+                <div className="space-y-2.5 text-sm border-t border-slate-100 pt-3">
+                  <div className="flex justify-between pb-1.5 border-b border-slate-100/60">
+                    <span className="text-slate-500">Ngân hàng</span>
+                    <span className="font-bold text-slate-800">
+                      {process.env.NEXT_PUBLIC_VIETQR_BANK_NAME || "Techcombank"} ({process.env.NEXT_PUBLIC_VIETQR_BANK_ID || "TCB"})
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pb-1.5 border-b border-slate-100/60">
+                    <span className="text-slate-500">Số tài khoản</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-slate-800">
+                        {process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NO || "1273702222"}
+                      </span>
+                      <button
+                        onClick={() => handleCopyText(process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NO || "1273702222", "account")}
+                        type="button"
+                        className="text-[#0b7ea9] hover:text-[#09678a] p-1 rounded-md hover:bg-slate-100 transition-colors"
+                        title="Sao chép số tài khoản"
+                      >
+                        {copiedType === "account" ? (
+                          <span className="text-xs text-emerald-600 font-bold">Đã chép</span>
+                        ) : (
+                          <IoCopyOutline className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between pb-1.5 border-b border-slate-100/60">
+                    <span className="text-slate-500">Chủ tài khoản</span>
+                    <span className="font-bold text-slate-800 uppercase">
+                      {process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NAME || "PHAN VAN PHAT"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pb-1.5 border-b border-slate-100/60">
+                    <span className="text-slate-500">Số tiền</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-extrabold text-[#ef2f3d]">
+                        {qrAmount.toLocaleString("vi-VN")} đ
+                      </span>
+                      <button
+                        onClick={() => handleCopyText(qrAmount.toString(), "amount")}
+                        type="button"
+                        className="text-[#0b7ea9] hover:text-[#09678a] p-1 rounded-md hover:bg-slate-100 transition-colors"
+                        title="Sao chép số tiền"
+                      >
+                        {copiedType === "amount" ? (
+                          <span className="text-xs text-emerald-600 font-bold">Đã chép</span>
+                        ) : (
+                          <IoCopyOutline className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pb-1.5">
+                    <span className="text-slate-500">Nội dung chuyển</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono font-bold bg-slate-100 px-2 py-0.5 rounded text-xs text-slate-800">
+                        {qrDescription}
+                      </span>
+                      <button
+                        onClick={() => handleCopyText(qrDescription, "desc")}
+                        type="button"
+                        className="text-[#0b7ea9] hover:text-[#09678a] p-1 rounded-md hover:bg-slate-100 transition-colors"
+                        title="Sao chép nội dung"
+                      >
+                        {copiedType === "desc" ? (
+                          <span className="text-xs text-emerald-600 font-bold">Đã chép</span>
+                        ) : (
+                          <IoCopyOutline className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowQrCode(false)}
+                    className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
+                  >
+                    Quay lại
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFinishPayment}
+                    className="flex-1 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition shadow-md"
+                  >
+                    Tôi đã chuyển khoản
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTabId>("info");
 
@@ -693,6 +1129,7 @@ export function ProfilePage() {
           {activeTab === "info" && <ProfileInfoTab />}
           {activeTab === "saved" && <SavedPostsTab />}
           {activeTab === "manage" && <ManagedPostsTab />}
+          {activeTab === "buff" && <BuffPostsTab />}
         </div>
       </section>
     </main>
