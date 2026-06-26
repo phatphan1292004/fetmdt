@@ -27,6 +27,8 @@ type CreatePostPayload = {
   listingType?: string;
   projectName?: string;
   address?: string;
+  city?: string;
+  district?: string;
   showRoomCode?: boolean | string;
   title?: string;
   description?: string;
@@ -60,6 +62,9 @@ type CreatePostPayload = {
   interiorStatus?: string;
   feature?: string;
   ownerType?: string;
+  allowPets?: boolean | string;
+  latitude?: number | string;
+  longitude?: number | string;
   mediaUrls?: unknown;
 };
 
@@ -175,6 +180,42 @@ function toBoolean(value: unknown): boolean {
   return false;
 }
 
+function toOptionalBoolean(value: unknown): boolean | undefined {
+  const normalized = toTrimmedString(value).toLowerCase();
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (["true", "on", "1"].includes(normalized)) {
+    return true;
+  }
+
+  if (["false", "off", "0"].includes(normalized)) {
+    return false;
+  }
+
+  return undefined;
+}
+
+function toOptionalCoordinate(
+  value: unknown,
+  min: number,
+  max: number
+): number | undefined {
+  const parsed = toOptionalNumber(value);
+
+  if (parsed === undefined) {
+    return undefined;
+  }
+
+  if (parsed < min || parsed > max) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
 function normalizeMediaUrls(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -234,6 +275,8 @@ async function parsePostBody(req: Request): Promise<ParsedPostBody> {
         listingType: getFormString(formData, "listingType"),
         projectName: getFormString(formData, "projectName"),
         address: getFormString(formData, "address"),
+        city: getFormString(formData, "city"),
+        district: getFormString(formData, "district"),
         showRoomCode: getFormString(formData, "showRoomCode"),
         title: getFormString(formData, "title"),
         description: getFormString(formData, "description"),
@@ -267,6 +310,9 @@ async function parsePostBody(req: Request): Promise<ParsedPostBody> {
         interiorStatus: getFormString(formData, "interiorStatus"),
         feature: getFormString(formData, "feature"),
         ownerType: getFormString(formData, "ownerType"),
+        allowPets: getFormString(formData, "allowPets"),
+        latitude: getFormString(formData, "latitude"),
+        longitude: getFormString(formData, "longitude"),
       },
       uploadedImageDataUrls,
     };
@@ -492,6 +538,10 @@ function buildDetailsByPropertyType(
     body.hasParking,
     "Vui lòng chọn thông tin chỗ để xe"
   );
+  const allowPets = requireBooleanChoice(
+    body.allowPets,
+    "Vui lòng chọn thông tin thú cưng"
+  );
 
   return {
     details: {
@@ -505,6 +555,7 @@ function buildDetailsByPropertyType(
       hasWashingMachine,
       utilityPricing,
       hasParking,
+      allowPets,
     },
     normalized: {
       area: roomArea,
@@ -999,12 +1050,22 @@ export async function POST(req: Request) {
 
     const detailData = buildDetailsByPropertyType(propertyTypeInput, body);
 
+    const latitude = toOptionalCoordinate(body.latitude, -90, 90);
+    const longitude = toOptionalCoordinate(body.longitude, -180, 180);
+    const allowPets = toOptionalBoolean(body.allowPets);
+    const location =
+      latitude !== undefined && longitude !== undefined
+        ? { type: "Point", coordinates: [longitude, latitude] as [number, number] }
+        : undefined;
+
     const newPost = new Post({
       ownerId: user._id,
       propertyType: propertyTypeInput,
       listingType: listingTypeInput,
       projectName: toOptionalString(body.projectName),
       address,
+      city: toOptionalString(body.city),
+      district: toOptionalString(body.district),
       showRoomCode: toBoolean(body.showRoomCode),
       title,
       description,
@@ -1026,8 +1087,10 @@ export async function POST(req: Request) {
         detailData.normalized.interiorStatus ?? toOptionalString(body.interiorStatus),
       feature: toOptionalString(body.feature),
       details: detailData.details,
+      allowPets: allowPets ?? (detailData.details.allowPets as boolean | undefined),
       ownerType: ownerTypeInput,
       mediaUrls,
+      location,
       status: "pending",
     });
 

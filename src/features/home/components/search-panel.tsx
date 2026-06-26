@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 
 type SearchPanelProps = {
@@ -12,7 +13,7 @@ type SearchPanelProps = {
 
 type MenuKey = "location" | "price" | "area" | "roomType";
 
-const LOCATION_FIELDS = ["Tỉnh/ Thành phố", "Quận/Huyện", "Phường/Xã", "Đường/Phố"];
+// location fields will be dynamically fetched
 
 const BASE_CHECKBOX_CLASS = "h-5 w-5 accent-[#2cc3c8]";
 
@@ -22,6 +23,7 @@ export function SearchPanel({
   areaOptions,
   roomTypeOptions,
 }: SearchPanelProps) {
+  const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
   const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
   const [keyword, setKeyword] = useState("");
@@ -29,11 +31,29 @@ export function SearchPanel({
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [selectedRoomType, setSelectedRoomType] = useState(roomTypeOptions[0] ?? "Tất cả");
 
+  const [provinces, setProvinces] = useState<{ code: number; name: string }[]>([]);
+  const [districts, setDistricts] = useState<{ code: number; name: string }[]>([]);
+  const [wards, setWards] = useState<{ code: number; name: string }[]>([]);
+
+  const [selectedProvince, setSelectedProvince] = useState<{ code: string; name: string }>({ code: "", name: "" });
+  const [selectedDistrict, setSelectedDistrict] = useState<{ code: string; name: string }>({ code: "", name: "" });
+  const [selectedWard, setSelectedWard] = useState<{ code: string; name: string }>({ code: "", name: "" });
+  const [street, setStreet] = useState("");
+
     useEffect(() => {
       function handleClickOutside(event: PointerEvent) {
-        if (!panelRef.current?.contains(event.target as Node)) {
-          setActiveMenu(null);
+        const target = event.target as Node;
+        
+        if (panelRef.current?.contains(target)) {
+          return;
         }
+        
+        const portal = document.getElementById("search-panel-portal");
+        if (portal?.contains(target)) {
+          return;
+        }
+
+        setActiveMenu(null);
       }
 
       document.addEventListener("pointerdown", handleClickOutside);
@@ -41,6 +61,39 @@ export function SearchPanel({
         document.removeEventListener("pointerdown", handleClickOutside);
       };
     }, []);
+
+    useEffect(() => {
+      if (activeMenu === "location" && provinces.length === 0) {
+        fetch("https://provinces.open-api.vn/api/p/")
+          .then((res) => res.json())
+          .then((data) => setProvinces(data))
+          .catch(console.error);
+      }
+    }, [activeMenu, provinces.length]);
+
+    useEffect(() => {
+      if (!selectedProvince.code) {
+        setDistricts([]);
+        setSelectedDistrict({ code: "", name: "" });
+        return;
+      }
+      fetch(`https://provinces.open-api.vn/api/p/${selectedProvince.code}?depth=2`)
+        .then((res) => res.json())
+        .then((data) => setDistricts(data.districts ?? []))
+        .catch(console.error);
+    }, [selectedProvince.code]);
+
+    useEffect(() => {
+      if (!selectedDistrict.code) {
+        setWards([]);
+        setSelectedWard({ code: "", name: "" });
+        return;
+      }
+      fetch(`https://provinces.open-api.vn/api/d/${selectedDistrict.code}?depth=2`)
+        .then((res) => res.json())
+        .then((data) => setWards(data.wards ?? []))
+        .catch(console.error);
+    }, [selectedDistrict.code]);
 
     // refs for each filter button so we can position the floating menu in a portal
     const buttonRefs = useRef<Partial<Record<MenuKey, HTMLButtonElement | null>>>({});
@@ -84,6 +137,76 @@ export function SearchPanel({
     [selectedAreas],
   );
 
+  function parseRangeLabel(label: string, multiplier: number) {
+    const normalized = label.toLowerCase();
+    const numbers = normalized.match(/\d+(?:[.,]\d+)?/g)?.map((item) => Number(item.replace(",", "."))) ?? [];
+
+    if (numbers.length === 0) {
+      return null;
+    }
+
+    const values = numbers.map((value) => value * multiplier);
+    const isUnder = normalized.includes("dưới") || normalized.includes("duoi");
+    const isOver = normalized.includes("trên") || normalized.includes("tren");
+
+    if (isUnder) {
+      return { min: undefined, max: values[0] };
+    }
+
+    if (isOver) {
+      return { min: values[0], max: undefined };
+    }
+
+    if (values.length >= 2) {
+      return { min: values[0], max: values[1] };
+    }
+
+    return null;
+  }
+
+  function buildRangeParams(values: string[], multiplier: number): string[] {
+    const ranges = values
+      .map((label) => parseRangeLabel(label, multiplier))
+      .filter((range): range is { min?: number; max?: number } => range !== null)
+      .map((range) => `${range.min ?? ""}-${range.max ?? ""}`);
+
+    return Array.from(new Set(ranges));
+  }
+
+  function handleSearch() {
+    const params = new URLSearchParams();
+    const keywordValue = keyword.trim();
+
+    if (keywordValue) {
+      params.set("q", keywordValue);
+    }
+    
+    let locationText = "";
+    if (street) locationText += street + ", ";
+    if (selectedWard.name) locationText += selectedWard.name + ", ";
+    if (selectedDistrict.name) locationText += selectedDistrict.name + ", ";
+    if (selectedProvince.name) locationText += selectedProvince.name;
+    
+    if (locationText) {
+      params.set("locationText", locationText.replace(/,\s*$/, ""));
+    }
+    if (selectedProvince.name) {
+      params.set("city", selectedProvince.name);
+    }
+    if (selectedDistrict.name) {
+      params.set("district", selectedDistrict.name);
+    }
+
+    const priceRanges = buildRangeParams(selectedPrices, 1_000_000);
+    const areaRanges = buildRangeParams(selectedAreas, 1);
+
+    priceRanges.forEach((range) => params.append("priceRange", range));
+    areaRanges.forEach((range) => params.append("areaRange", range));
+
+    router.push(`/phong-tro?${params.toString()}`);
+    setActiveMenu(null);
+  }
+
   function toggleFromList(value: string, selected: string[], onChange: (next: string[]) => void) {
     if (selected.includes(value)) {
       onChange(selected.filter((item) => item !== value));
@@ -98,6 +221,10 @@ export function SearchPanel({
     setSelectedPrices([]);
     setSelectedAreas([]);
     setSelectedRoomType(roomTypeOptions[0] ?? "Tất cả");
+    setSelectedProvince({ code: "", name: "" });
+    setSelectedDistrict({ code: "", name: "" });
+    setSelectedWard({ code: "", name: "" });
+    setStreet("");
     setActiveMenu(null);
   }
 
@@ -121,17 +248,64 @@ export function SearchPanel({
     return (
       <div className="w-[min(92vw,320px)] rounded-2xl bg-white p-4 shadow-2xl">
         {renderHeader("Khu vực")}
-        <div className="space-y-2">
-          {LOCATION_FIELDS.map((field) => (
-            <button
-              key={field}
-              type="button"
-              className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-[16px] text-slate-700"
-            >
-              {field}
-              <span className="text-slate-400">›</span>
-            </button>
-          ))}
+        <div className="space-y-3">
+          <select
+            value={selectedProvince.code}
+            onChange={(e) => {
+              const name = e.target.options[e.target.selectedIndex]?.text ?? "";
+              setSelectedProvince({ code: e.target.value, name: e.target.value ? name : "" });
+            }}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[15px] text-slate-700 outline-none focus:border-[#2cc3c8]"
+          >
+            <option value="">Chọn Tỉnh/ Thành phố</option>
+            {provinces.map((p) => (
+              <option key={p.code} value={p.code}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedDistrict.code}
+            onChange={(e) => {
+              const name = e.target.options[e.target.selectedIndex]?.text ?? "";
+              setSelectedDistrict({ code: e.target.value, name: e.target.value ? name : "" });
+            }}
+            disabled={!selectedProvince.code}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[15px] text-slate-700 outline-none focus:border-[#2cc3c8] disabled:opacity-50"
+          >
+            <option value="">Chọn Quận/Huyện</option>
+            {districts.map((d) => (
+              <option key={d.code} value={d.code}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedWard.code}
+            onChange={(e) => {
+              const name = e.target.options[e.target.selectedIndex]?.text ?? "";
+              setSelectedWard({ code: e.target.value, name: e.target.value ? name : "" });
+            }}
+            disabled={!selectedDistrict.code}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[15px] text-slate-700 outline-none focus:border-[#2cc3c8] disabled:opacity-50"
+          >
+            <option value="">Chọn Phường/Xã</option>
+            {wards.map((w) => (
+              <option key={w.code} value={w.code}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+
+          <input
+            type="text"
+            value={street}
+            onChange={(e) => setStreet(e.target.value)}
+            placeholder="Số nhà, Đường phố"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[15px] text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#2cc3c8]"
+          />
         </div>
 
         <div className="mt-5 flex items-center justify-between">
@@ -140,6 +314,7 @@ export function SearchPanel({
           </button>
           <button
             type="button"
+            onClick={handleSearch}
             className="rounded-xl bg-[#075b86] px-5 py-2.5 text-[16px] font-semibold text-white transition hover:bg-[#04425f]"
           >
             Tìm kiếm
@@ -204,6 +379,7 @@ export function SearchPanel({
           </button>
           <button
             type="button"
+            onClick={handleSearch}
             className="rounded-xl bg-[#075b86] px-5 py-2.5 text-[16px] font-semibold text-white transition hover:bg-[#04425f]"
           >
             Tìm kiếm
@@ -296,6 +472,7 @@ export function SearchPanel({
             />
             <button
               type="button"
+              onClick={handleSearch}
               className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl bg-[#25c3c8] text-white"
               aria-label="Tìm kiếm"
             >
@@ -306,9 +483,11 @@ export function SearchPanel({
             </button>
           </div>
 
-          <button
-            type="button"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#005b8a] px-6 text-[16px] font-semibold text-white"
+          <a
+            href={keyword.trim() ? `https://www.google.com/maps?hl=vi&q=${encodeURIComponent(keyword.trim())}` : "https://www.google.com/maps?hl=vi"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#005b8a] px-6 text-[16px] font-semibold text-white transition hover:bg-[#00476b]"
           >
             <svg className="h-5 w-5" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
               <path d="M2 4L6.5 2V16L2 14V4Z" fill="currentColor" />
@@ -316,7 +495,7 @@ export function SearchPanel({
               <path d="M11.5 4L16 2V14L11.5 16V4Z" fill="currentColor" opacity="0.65" />
             </svg>
             Bản đồ
-          </button>
+          </a>
         </div>
 
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -361,6 +540,7 @@ export function SearchPanel({
             <div
               style={{ left: menuStyle.left, top: menuStyle.top, width: menuStyle.width }}
               className="absolute z-60 mt-2 rounded-2xl"
+              id="search-panel-portal"
             >
               {renderMenu(activeMenu)}
             </div>,

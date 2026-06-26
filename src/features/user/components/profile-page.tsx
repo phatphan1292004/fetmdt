@@ -22,6 +22,9 @@ type ProfileData = {
   status: string;
   avatarUrl?: string | null;
   preferredArea?: string;
+  identityCard?: string;
+  occupation?: string;
+  hobbies?: string[];
   createdAt?: string;
   lastLoginAt?: string | null;
 };
@@ -193,6 +196,9 @@ function ProfileInfoTab() {
     email: "",
     phone: "",
     preferredArea: "",
+    identityCard: "",
+    occupation: "",
+    hobbies: "",
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -221,6 +227,9 @@ function ProfileInfoTab() {
           email: data.data.email || "",
           phone: data.data.phone || "",
           preferredArea: data.data.preferredArea || "",
+          identityCard: data.data.identityCard || "",
+          occupation: data.data.occupation || "",
+          hobbies: data.data.hobbies?.join(", ") || "",
         });
       } catch (error: any) {
         if (!isMounted) return;
@@ -285,6 +294,9 @@ function ProfileInfoTab() {
     { key: "fullName", label: "Họ và tên", value: profile?.fullName || "--", editable: true },
     { key: "phone", label: "Số điện thoại", value: profile?.phone || "--", editable: true },
     { key: "email", label: "Email", value: profile?.email || "--", editable: true },
+    { key: "identityCard", label: "Số CCCD", value: profile?.identityCard || "--", editable: true },
+    { key: "occupation", label: "Nghề nghiệp", value: profile?.occupation || "--", editable: true },
+    { key: "hobbies", label: "Sở thích", value: profile?.hobbies?.join(", ") || "--", editable: true },
     { key: "preferredArea", label: "Khu vực ưu tiên", value: profile?.preferredArea || "--", editable: true },
     { key: "createdAt", label: "Ngày tham gia", value: formatDate(profile?.createdAt) || "--", editable: false },
   ] as const;
@@ -323,6 +335,9 @@ function ProfileInfoTab() {
       email: profile.email || "",
       phone: profile.phone || "",
       preferredArea: profile.preferredArea || "",
+      identityCard: profile.identityCard || "",
+      occupation: profile.occupation || "",
+      hobbies: profile.hobbies?.join(", ") || "",
     });
   };
 
@@ -337,6 +352,9 @@ function ProfileInfoTab() {
         email: profile.email || "",
         phone: profile.phone || "",
         preferredArea: profile.preferredArea || "",
+        identityCard: profile.identityCard || "",
+        occupation: profile.occupation || "",
+        hobbies: profile.hobbies?.join(", ") || "",
       });
     }
   };
@@ -358,6 +376,9 @@ function ProfileInfoTab() {
         formData.append("email", formState.email);
         formData.append("phone", formState.phone);
         formData.append("preferredArea", formState.preferredArea);
+        formData.append("identityCard", formState.identityCard);
+        formData.append("occupation", formState.occupation);
+        formData.append("hobbies", formState.hobbies);
         formData.append("avatar", avatarFile);
 
         res = await fetch("/api/v1/user/profile", {
@@ -375,6 +396,9 @@ function ProfileInfoTab() {
             email: formState.email,
             phone: formState.phone,
             preferredArea: formState.preferredArea,
+            identityCard: formState.identityCard,
+            occupation: formState.occupation,
+            hobbies: formState.hobbies.split(",").map((s) => s.trim()).filter(Boolean),
           }),
         });
       }
