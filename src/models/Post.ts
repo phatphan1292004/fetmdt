@@ -12,6 +12,8 @@ export type PostDocument = {
   slug: string;
   projectName?: string;
   address: string;
+  city?: string;
+  district?: string;
   showRoomCode: boolean;
   title: string;
   description: string;
@@ -29,8 +31,13 @@ export type PostDocument = {
   interiorStatus?: string;
   feature?: string;
   details?: Record<string, unknown>;
+  allowPets?: boolean;
   ownerType: OwnerType;
   mediaUrls: string[];
+  location?: {
+    type: "Point";
+    coordinates: [number, number];
+  };
   status: PostStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -62,6 +69,14 @@ const PostSchema = new Schema<PostDocument>(
     address: {
       type: String,
       required: true,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+    district: {
+      type: String,
       trim: true,
     },
     showRoomCode: {
@@ -144,6 +159,10 @@ const PostSchema = new Schema<PostDocument>(
       type: Schema.Types.Mixed,
       default: {},
     },
+    allowPets: {
+      type: Boolean,
+      default: undefined,
+    },
     ownerType: {
       type: String,
       enum: ["ca_nhan", "moi_gioi"],
@@ -153,6 +172,16 @@ const PostSchema = new Schema<PostDocument>(
     mediaUrls: {
       type: [String],
       default: [],
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+      },
     },
     status: {
       type: String,
@@ -167,6 +196,8 @@ const PostSchema = new Schema<PostDocument>(
     collection: "posts",
   },
 );
+
+PostSchema.index({ location: "2dsphere" });
 
 const PostModel =
   (mongoose.models.Post as Model<PostDocument>) ||

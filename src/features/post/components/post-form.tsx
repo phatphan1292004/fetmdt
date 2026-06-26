@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useState } from "react";
+import { GooglePlacesInput } from "@/src/components/GooglePlacesInput";
 import { createPostApi } from "../servers/create-post";
 
 const PROPERTY_TYPES = [
@@ -35,7 +36,8 @@ type FieldName =
 	| "hasWashingMachine"
 	| "utilityPricing"
 	| "hasParking"
-	| "interiorStatus";
+	| "interiorStatus"
+	| "allowPets";
 
 type FieldType = "number" | "text" | "boolean";
 
@@ -218,6 +220,12 @@ const FIELD_CONFIGS: Record<FieldName, FieldConfig> = {
 		type: "boolean",
 		required: true,
 	},
+	allowPets: {
+		name: "allowPets",
+		label: "Cho phép nuôi thú cưng",
+		type: "boolean",
+		required: true,
+	},
 	interiorStatus: {
 		name: "interiorStatus",
 		label: "Tình trạng nội thất",
@@ -240,6 +248,7 @@ const FIELDS_BY_PROPERTY: Record<PropertyType, readonly FieldName[]> = {
 		"hasWashingMachine",
 		"utilityPricing",
 		"hasParking",
+		"allowPets",
 	],
 };
 
@@ -323,6 +332,13 @@ export function PostForm() {
 	const [selectedImageNames, setSelectedImageNames] = useState<string[]>([]);
 	const [submitting, setSubmitting] = useState(false);
 	const [feedback, setFeedback] = useState<Feedback | null>(null);
+	const [addressValue, setAddressValue] = useState("");
+	const [locationMeta, setLocationMeta] = useState<{
+		city?: string;
+		district?: string;
+		lat?: number;
+		lng?: number;
+	} | null>(null);
 	const currentPropertyLabel =
 		PROPERTY_TYPES.find((type) => type.value === propertyType)?.label ?? "Bất động sản";
 	const detailFields = FIELDS_BY_PROPERTY[propertyType].map((fieldName) => FIELD_CONFIGS[fieldName]);
@@ -447,6 +463,8 @@ export function PostForm() {
 			setPropertyType("phong_tro");
 			setOwnerType("ca_nhan");
 			setSelectedImageNames([]);
+			setAddressValue("");
+			setLocationMeta(null);
 		} catch (error: unknown) {
 			setFeedback({
 				type: "error",
@@ -524,17 +542,35 @@ export function PostForm() {
 								</div>
 
 								<div>
-									<label htmlFor="address" className="mb-1.5 block text-[15px] font-semibold text-slate-700">
-										Địa chỉ cụ thể *
-									</label>
-									<input
-										id="address"
+									<GooglePlacesInput
+										label="Địa chỉ cụ thể *"
 										name="address"
-										type="text"
 										required
 										placeholder="Ví dụ: Số 20 ngõ 120 Hoàng Quốc Việt, Cầu Giấy, Hà Nội"
-										className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-[17px] text-slate-700 outline-none transition focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
+										value={addressValue}
+										onValueChange={(value) => {
+											setAddressValue(value);
+											setLocationMeta(null);
+										}}
+										onPlaceSelected={(place) => {
+											if (!place) {
+												setLocationMeta(null);
+												return;
+											}
+
+											setAddressValue(place.address);
+											setLocationMeta({
+												city: place.city,
+												district: place.district,
+												lat: place.lat,
+												lng: place.lng,
+											});
+										}}
 									/>
+									<input type="hidden" name="city" value={locationMeta?.city ?? ""} />
+									<input type="hidden" name="district" value={locationMeta?.district ?? ""} />
+									<input type="hidden" name="latitude" value={locationMeta?.lat ?? ""} />
+									<input type="hidden" name="longitude" value={locationMeta?.lng ?? ""} />
 								</div>
 
 								<label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 text-[15px] text-slate-700">

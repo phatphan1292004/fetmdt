@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 
 type SearchPanelProps = {
@@ -22,6 +23,7 @@ export function SearchPanel({
   areaOptions,
   roomTypeOptions,
 }: SearchPanelProps) {
+  const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
   const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
   const [keyword, setKeyword] = useState("");
@@ -84,6 +86,60 @@ export function SearchPanel({
     [selectedAreas],
   );
 
+  function parseRangeLabel(label: string, multiplier: number) {
+    const normalized = label.toLowerCase();
+    const numbers = normalized.match(/\d+(?:[.,]\d+)?/g)?.map((item) => Number(item.replace(",", "."))) ?? [];
+
+    if (numbers.length === 0) {
+      return null;
+    }
+
+    const values = numbers.map((value) => value * multiplier);
+    const isUnder = normalized.includes("dưới") || normalized.includes("duoi");
+    const isOver = normalized.includes("trên") || normalized.includes("tren");
+
+    if (isUnder) {
+      return { min: undefined, max: values[0] };
+    }
+
+    if (isOver) {
+      return { min: values[0], max: undefined };
+    }
+
+    if (values.length >= 2) {
+      return { min: values[0], max: values[1] };
+    }
+
+    return null;
+  }
+
+  function buildRangeParams(values: string[], multiplier: number): string[] {
+    const ranges = values
+      .map((label) => parseRangeLabel(label, multiplier))
+      .filter((range): range is { min?: number; max?: number } => range !== null)
+      .map((range) => `${range.min ?? ""}-${range.max ?? ""}`);
+
+    return Array.from(new Set(ranges));
+  }
+
+  function handleSearch() {
+    const params = new URLSearchParams();
+    const keywordValue = keyword.trim();
+
+    if (keywordValue) {
+      params.set("q", keywordValue);
+    }
+
+    const priceRanges = buildRangeParams(selectedPrices, 1_000_000);
+    const areaRanges = buildRangeParams(selectedAreas, 1);
+
+    priceRanges.forEach((range) => params.append("priceRange", range));
+    areaRanges.forEach((range) => params.append("areaRange", range));
+
+    router.push(`/phong-tro?${params.toString()}`);
+    setActiveMenu(null);
+  }
+
   function toggleFromList(value: string, selected: string[], onChange: (next: string[]) => void) {
     if (selected.includes(value)) {
       onChange(selected.filter((item) => item !== value));
@@ -140,6 +196,7 @@ export function SearchPanel({
           </button>
           <button
             type="button"
+            onClick={handleSearch}
             className="rounded-xl bg-[#075b86] px-5 py-2.5 text-[16px] font-semibold text-white transition hover:bg-[#04425f]"
           >
             Tìm kiếm
@@ -204,6 +261,7 @@ export function SearchPanel({
           </button>
           <button
             type="button"
+            onClick={handleSearch}
             className="rounded-xl bg-[#075b86] px-5 py-2.5 text-[16px] font-semibold text-white transition hover:bg-[#04425f]"
           >
             Tìm kiếm
@@ -296,6 +354,7 @@ export function SearchPanel({
             />
             <button
               type="button"
+              onClick={handleSearch}
               className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl bg-[#25c3c8] text-white"
               aria-label="Tìm kiếm"
             >
