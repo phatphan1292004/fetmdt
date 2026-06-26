@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   LuCircleCheck, 
   LuClock, 
@@ -12,29 +12,42 @@ import {
   LuFileSpreadsheet
 } from "react-icons/lu";
 
-// --- 1. DỮ LIỆU MẪU MỞ RỘNG ---
-const initialTransactions = [
-  { id: "GD1001", user: "Nguyễn Văn A", package: "Tin VIP 1 (Ghim đầu trang)", amount: "50000", method: "VNPay", status: "Thành công", date: "17/05/2026" },
-  { id: "GD1002", user: "Trần Thị B", package: "Nạp tiền vào ví hệ thống", amount: "200000", method: "Chuyển khoản", status: "Chờ duyệt", date: "17/05/2026" },
-  { id: "GD1003", user: "Lê Hoàng C", package: "Đẩy tin tự động", amount: "10000", method: "Ví hệ thống", status: "Thất bại", date: "16/05/2026" },
-  { id: "GD1004", user: "Phạm Văn D", package: "Tin VIP 2 (Nổi bật danh mục)", amount: "30000", method: "Momo", status: "Thành công", date: "15/05/2026" },
-  { id: "GD1005", user: "Hoàng Thị E", package: "Nạp tiền vào ví hệ thống", amount: "500000", method: "Chuyển khoản", status: "Chờ duyệt", date: "15/05/2026" },
-  { id: "GD1006", user: "Ngô Văn F", package: "Tin VIP 1 (Ghim đầu trang)", amount: "150000", method: "VNPay", status: "Thành công", date: "14/05/2026" },
-  { id: "GD1007", user: "Vũ Thị G", package: "Đẩy tin tự động", amount: "20000", method: "Ví hệ thống", status: "Thành công", date: "13/05/2026" },
-  { id: "GD1008", user: "Đặng Văn H", package: "Tin VIP 2 (Nổi bật danh mục)", amount: "90000", method: "Momo", status: "Thất bại", date: "12/05/2026" },
-  { id: "GD1009", user: "Bùi Thị I", package: "Nạp tiền vào ví hệ thống", amount: "100000", method: "Chuyển khoản", status: "Chờ duyệt", date: "12/05/2026" },
-  { id: "GD1010", user: "Đỗ Văn K", package: "Tin VIP 1 (Ghim đầu trang)", amount: "50000", method: "VNPay", status: "Thành công", date: "11/05/2026" },
-  { id: "GD1011", user: "Hồ Thị L", package: "Đẩy tin tự động", amount: "10000", method: "Ví hệ thống", status: "Thành công", date: "10/05/2026" },
-  { id: "GD1012", user: "Dương Văn M", package: "Tin VIP 2 (Nổi bật danh mục)", amount: "30000", method: "Momo", status: "Thành công", date: "09/05/2026" },
-];
-
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState(initialTransactions);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // States Bộ lọc & Phân trang
   const [statusFilter, setStatusFilter] = useState("Tất cả");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/v1/admin/transactions");
+      const result = await res.json();
+      if (result.success) {
+        const mapped = (result.data || []).map((tx: any) => ({
+          id: tx._id,
+          user: tx.userId?.fullName || "Người dùng ẩn",
+          package: `${tx.packageName} (${tx.duration} ngày) - Tin: ${tx.post?.title || "N/A"}`,
+          amount: tx.amount.toString(),
+          method: "VietQR",
+          status: tx.status === "completed" ? "Thành công" : tx.status === "cancelled" ? "Thất bại" : "Chờ duyệt",
+          date: new Date(tx.createdAt).toLocaleDateString("vi-VN"),
+        }));
+        setTransactions(mapped);
+      }
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
 
   // --- LOGIC BỘ LỌC ---
   const filteredTransactions = transactions.filter(tx => {
@@ -48,13 +61,37 @@ export default function TransactionsPage() {
   const currentTransactions = filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
 
   // --- LOGIC THAO TÁC DUYỆT GIAO DỊCH THỦ CÔNG ---
-  const handleUpdateStatus = (id: string, newStatus: "Thành công" | "Thất bại") => {
+  const handleUpdateStatus = async (id: string, newStatus: "Thành công" | "Thất bại") => {
     const actionText = newStatus === "Thành công" ? "duyệt THÀNH CÔNG" : "TỪ CHỐI";
     if (window.confirm(`Bạn có chắc chắn muốn ${actionText} giao dịch này không?`)) {
-      const updated = transactions.map(tx => 
-        tx.id === id ? { ...tx, status: newStatus } : tx
-      );
-      setTransactions(updated);
+      try {
+        const dbStatus = newStatus === "Thành công" ? "completed" : "cancelled";
+        const response = await fetch("/api/v1/admin/transactions", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            orderId: id,
+            status: dbStatus,
+          }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          // Update the state locally
+          setTransactions(prev =>
+            prev.map(tx =>
+              tx.id === id ? { ...tx, status: newStatus } : tx
+            )
+          );
+        } else {
+          alert(`Lỗi cập nhật: ${data.message || "Không xác định"}`);
+        }
+      } catch (error) {
+        console.error("Error updating transaction status:", error);
+        alert("Có lỗi xảy ra khi cập nhật giao dịch!");
+      }
     }
   };
 
@@ -116,7 +153,13 @@ export default function TransactionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {currentTransactions.length > 0 ? currentTransactions.map((tx) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-medium">
+                    Đang tải dữ liệu giao dịch...
+                  </td>
+                </tr>
+              ) : currentTransactions.length > 0 ? currentTransactions.map((tx) => (
                 <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-medium text-slate-800">{tx.id}</td>
                   <td className="px-6 py-4 font-medium">{tx.user}</td>
