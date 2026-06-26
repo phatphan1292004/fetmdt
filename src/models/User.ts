@@ -46,6 +46,33 @@ const UserSchema = new mongoose.Schema(
             trim: true,
         },
 
+        identityCard: {
+            type: String,
+            default: null,
+            trim: true,
+        },
+
+        identityCardFrontUrl: {
+            type: String,
+            default: null,
+        },
+
+        identityCardBackUrl: {
+            type: String,
+            default: null,
+        },
+
+        hobbies: {
+            type: [String],
+            default: [],
+        },
+
+        occupation: {
+            type: String,
+            default: null,
+            trim: true,
+        },
+
         preferredArea: {
             type: String,
             default: "",
