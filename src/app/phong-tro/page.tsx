@@ -1,5 +1,6 @@
-import { RoomSearchPage } from "@/src/features/room/components";
+import { redirect } from "next/navigation";
 
 export default function RoomSearchRoutePage() {
-  return <RoomSearchPage />;
+  redirect("/search");
 }
+

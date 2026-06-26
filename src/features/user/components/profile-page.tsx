@@ -608,6 +608,84 @@ function SavedPostsTab() {
 }
 
 function ManagedPostsTab() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPosts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/user/posts");
+      const data = await res.json();
+      if (data.success) {
+        setPosts(data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const handleToggleStatus = async (postId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "published" ? "hidden" : "published";
+    try {
+      const res = await fetch(`/api/v1/user/posts/${postId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPosts((prev) =>
+          prev.map((p) => (p._id === postId ? { ...p, status: newStatus } : p))
+        );
+      } else {
+        alert(data.message || "Không thể cập nhật trạng thái");
+      }
+    } catch (error) {
+      console.error("Error toggling status:", error);
+      alert("Đã xảy ra lỗi khi cập nhật trạng thái");
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "published":
+        return "Đang hiển thị";
+      case "pending":
+        return "Chờ duyệt";
+      case "rejected":
+        return "Bị từ chối";
+      case "hidden":
+        return "Đã ẩn";
+      case "draft":
+        return "Tin nháp";
+      default:
+        return status;
+    }
+  };
+
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case "published":
+        return "bg-[#e8f9f8] text-[#0a7f86]";
+      case "pending":
+        return "bg-[#fff7df] text-[#b7791f]";
+      case "rejected":
+        return "bg-rose-50 text-rose-600";
+      case "hidden":
+        return "bg-slate-100 text-slate-500";
+      case "draft":
+        return "bg-blue-50 text-blue-600";
+      default:
+        return "bg-slate-100 text-slate-600";
+    }
+  };
+
   return (
     <section className="space-y-4">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.06)] sm:p-5">
@@ -636,41 +714,71 @@ function ManagedPostsTab() {
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left">
-            <thead className="bg-slate-50">
-              <tr className="text-sm text-slate-500">
-                <th className="px-4 py-3 font-semibold sm:px-5">Tin đăng</th>
-                <th className="px-4 py-3 font-semibold sm:px-5">Trạng thái</th>
-                <th className="px-4 py-3 font-semibold sm:px-5">Ngày đăng</th>
-                <th className="px-4 py-3 font-semibold sm:px-5">Lượt xem</th>
-                <th className="px-4 py-3 font-semibold sm:px-5">Giá</th>
-                <th className="px-4 py-3 font-semibold sm:px-5">Thao tác</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {MANAGED_POSTS.map((post) => (
-                <tr key={post.id} className="border-t border-slate-100 text-sm text-slate-700">
-                  <td className="px-4 py-3.5 sm:px-5">
-                    <p className="max-w-[260px] font-semibold text-slate-900">{post.title}</p>
-                  </td>
-                  <td className="px-4 py-3.5 sm:px-5">
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusClassName(post.status)}`}>
-                      {post.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 sm:px-5">{post.postedAt}</td>
-                  <td className="px-4 py-3.5 sm:px-5">{post.views}</td>
-                  <td className="px-4 py-3.5 font-semibold text-[#ef2f3d] sm:px-5">{post.priceLabel}</td>
-                  <td className="px-4 py-3.5 sm:px-5">
-                    <button type="button" className="font-semibold text-[#0b7ea9] hover:underline">
-                      Sửa tin
-                    </button>
-                  </td>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <span className="text-slate-500 font-medium">Đang tải danh sách tin...</span>
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-slate-500 font-medium">Bạn chưa có tin đăng nào.</p>
+              <Link
+                href="/post"
+                className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#f7cd00] px-4 text-sm font-bold text-slate-900 transition hover:brightness-95"
+              >
+                Đăng tin ngay
+              </Link>
+            </div>
+          ) : (
+            <table className="w-full min-w-[720px] text-left">
+              <thead className="bg-slate-50">
+                <tr className="text-sm text-slate-500">
+                  <th className="px-4 py-3 font-semibold sm:px-5">Tin đăng</th>
+                  <th className="px-4 py-3 font-semibold sm:px-5">Trạng thái</th>
+                  <th className="px-4 py-3 font-semibold sm:px-5">Ngày đăng</th>
+                  <th className="px-4 py-3 font-semibold sm:px-5">Lượt xem</th>
+                  <th className="px-4 py-3 font-semibold sm:px-5">Giá</th>
+                  <th className="px-4 py-3 font-semibold sm:px-5">Thao tác</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {posts.map((post) => (
+                  <tr key={post._id} className="border-t border-slate-100 text-sm text-slate-700">
+                    <td className="px-4 py-3.5 sm:px-5">
+                      <p className="max-w-[260px] font-semibold text-slate-900">{post.title}</p>
+                      <p className="max-w-[260px] text-xs text-slate-500 truncate mt-0.5">{post.address}</p>
+                    </td>
+                    <td className="px-4 py-3.5 sm:px-5">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusClass(post.status)}`}>
+                        {getStatusLabel(post.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 sm:px-5">{formatDate(post.createdAt)}</td>
+                    <td className="px-4 py-3.5 sm:px-5">{post.views || 0}</td>
+                    <td className="px-4 py-3.5 font-semibold text-[#ef2f3d] sm:px-5">
+                      {post.price.toLocaleString("vi-VN")}đ/tháng
+                    </td>
+                    <td className="px-4 py-3.5 sm:px-5">
+                      <div className="flex items-center gap-3">
+                        <Link href={`/post?edit=${post._id}`} className="font-semibold text-[#0b7ea9] hover:underline">
+                          Sửa
+                        </Link>
+                        {(post.status === "published" || post.status === "hidden") && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(post._id, post.status)}
+                            className="font-semibold text-slate-600 hover:text-[#0b7ea9] hover:underline"
+                          >
+                            {post.status === "published" ? "Ẩn" : "Hiện"}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </section>
@@ -678,7 +786,9 @@ function ManagedPostsTab() {
 }
 
 function BuffPostsTab() {
-  const [selectedPost, setSelectedPost] = useState("m-1");
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState("");
   const [selectedDuration, setSelectedDuration] = useState(7); // 7 days default
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [activePackage, setActivePackage] = useState<{
@@ -686,6 +796,27 @@ function BuffPostsTab() {
     name: string;
     price: number;
   } | null>(null);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch("/api/v1/user/posts");
+        const data = await res.json();
+        if (data.success) {
+          const fetchedPosts = data.data || [];
+          setPosts(fetchedPosts);
+          if (fetchedPosts.length > 0) {
+            setSelectedPost(fetchedPosts[0]._id);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching posts for buff:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPosts();
+  }, []);
   
   // VietQR integration states
   const [showQrCode, setShowQrCode] = useState(false);
@@ -792,15 +923,43 @@ function BuffPostsTab() {
     }
   };
 
-  const handleFinishPayment = () => {
+  const handleFinishPayment = async () => {
+    try {
+      const response = await fetch("/api/v1/user/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          postId: selectedPost,
+          packageId: activePackage?.id,
+          packageName: activePackage?.name,
+          amount: qrAmount,
+          duration: selectedDuration,
+          description: qrDescription,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setToastMessage("Hệ thống đã ghi nhận đơn hàng và đang kiểm tra giao dịch của bạn. Tin đăng sẽ được kích hoạt sau vài phút!");
+      } else {
+        setToastMessage(`Lỗi tạo đơn hàng: ${data.message || "Không xác định"}`);
+      }
+    } catch (error: any) {
+      console.error("Error creating order:", error);
+      setToastMessage("Có lỗi xảy ra khi tạo đơn hàng. Vui lòng liên hệ hỗ trợ!");
+    }
+
     setIsConfirmOpen(false);
     setShowQrCode(false);
-    setToastMessage("Hệ thống đang kiểm tra giao dịch của bạn. Tin đăng sẽ được kích hoạt sau vài phút!");
     setShowToast(true);
     setTimeout(() => {
       setShowToast(false);
     }, 5000);
   };
+
 
   return (
     <section className="space-y-6 relative">
@@ -891,17 +1050,30 @@ function BuffPostsTab() {
                     <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Chọn tin đăng của bạn
                     </label>
-                    <select
-                      value={selectedPost}
-                      onChange={(e) => setSelectedPost(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0b7ea9] transition"
-                    >
-                      {MANAGED_POSTS.map((post) => (
-                        <option key={post.id} value={post.id}>
-                          {post.title} ({post.priceLabel})
-                        </option>
-                      ))}
-                    </select>
+                    {loading ? (
+                      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-500">
+                        Đang tải danh sách tin...
+                      </div>
+                    ) : posts.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center bg-slate-50">
+                        <p className="text-sm text-slate-500">Bạn chưa có tin đăng nào.</p>
+                        <Link href="/post" className="mt-2 inline-flex text-xs font-bold text-[#0b7ea9] hover:underline">
+                          Đăng tin ngay
+                        </Link>
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedPost}
+                        onChange={(e) => setSelectedPost(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0b7ea9] transition"
+                      >
+                        {posts.map((post) => (
+                          <option key={post._id} value={post._id}>
+                            {post.title} ({post.price.toLocaleString("vi-VN")}đ/tháng)
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
 
                   <div>

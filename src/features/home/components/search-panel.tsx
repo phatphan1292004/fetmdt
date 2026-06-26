@@ -167,7 +167,7 @@ export function SearchPanel({
   function buildRangeParams(values: string[], multiplier: number): string[] {
     const ranges = values
       .map((label) => parseRangeLabel(label, multiplier))
-      .filter((range): range is { min?: number; max?: number } => range !== null)
+      .filter((range): range is Exclude<ReturnType<typeof parseRangeLabel>, null> => range !== null)
       .map((range) => `${range.min ?? ""}-${range.max ?? ""}`);
 
     return Array.from(new Set(ranges));
@@ -203,7 +203,7 @@ export function SearchPanel({
     priceRanges.forEach((range) => params.append("priceRange", range));
     areaRanges.forEach((range) => params.append("areaRange", range));
 
-    router.push(`/phong-tro?${params.toString()}`);
+    router.push(`/search?${params.toString()}`);
     setActiveMenu(null);
   }
 

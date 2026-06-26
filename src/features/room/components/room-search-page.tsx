@@ -323,14 +323,14 @@ export function RoomSearchPage() {
 
   function applyFilters() {
     const params = buildQueryParams(filters);
-    router.replace(`/phong-tro?${params.toString()}`);
+    router.replace(`/search?${params.toString()}`);
     setAppliedFilters(filters);
   }
 
   function resetFilters() {
     setFilters(DEFAULT_FILTERS);
     setAppliedFilters(DEFAULT_FILTERS);
-    router.replace("/phong-tro");
+    router.replace("/search");
   }
 
   return (
