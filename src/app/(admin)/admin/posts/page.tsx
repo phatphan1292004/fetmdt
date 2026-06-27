@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   LuEye, 
   LuSquarePen, 
@@ -10,29 +10,18 @@ import {
   LuChevronRight,
   LuMapPin,
   LuPhone,
-  LuCalendarDays
+  LuCalendarDays,
+  LuPlus
 } from "react-icons/lu";
-
-// --- 1. DỮ LIỆU MẪU ---
-const initialPosts = [
-  { id: "P001", title: "Phòng trọ ban công thoáng mát", owner: "Nguyễn Văn A", phone: "0901234567", price: "3500000", address: "123 Cầu Giấy, Hà Nội", status: "Đang hiển thị", date: "17/05/2026", desc: "Phòng mới xây, dọn vào ở ngay, giờ giấc tự do." },
-  { id: "P002", title: "Chung cư mini full nội thất", owner: "Trần B", phone: "0987654321", price: "5000000", address: "456 Đống Đa, Hà Nội", status: "Chờ duyệt", date: "16/05/2026", desc: "Đầy đủ điều hòa, nóng lạnh, giường tủ." },
-  { id: "P003", title: "Ký túc xá cao cấp Q10", owner: "Lê C", phone: "0912345678", price: "1800000", address: "Sư Vạn Hạnh, Q10, HCM", status: "Đã ẩn", date: "15/05/2026", desc: "Bao điện nước, có máy giặt chung." },
-  { id: "P004", title: "Nhà nguyên căn 3 lầu hẻm xe hơi", owner: "Phạm D", phone: "0933445566", price: "12000000", address: "Tân Bình, HCM", status: "Đang hiển thị", date: "14/05/2026", desc: "Thích hợp làm văn phòng hoặc gia đình ở." },
-  { id: "P005", title: "Sleepbox sinh viên bao điện nước", owner: "Hoàng E", phone: "0966778899", price: "1500000", address: "Làng Đại Học, Thủ Đức", status: "Chờ duyệt", date: "13/05/2026", desc: "An ninh 24/7, có vân tay." },
-  { id: "P001", title: "Phòng trọ ban công thoáng mát", owner: "Nguyễn Văn A", phone: "0901234567", price: "3500000", address: "123 Cầu Giấy, Hà Nội", status: "Đang hiển thị", date: "17/05/2026", desc: "Phòng mới xây, dọn vào ở ngay, giờ giấc tự do." },
-  { id: "P002", title: "Chung cư mini full nội thất", owner: "Trần B", phone: "0987654321", price: "5000000", address: "456 Đống Đa, Hà Nội", status: "Chờ duyệt", date: "16/05/2026", desc: "Đầy đủ điều hòa, nóng lạnh, giường tủ." },
-  { id: "P003", title: "Ký túc xá cao cấp Q10", owner: "Lê C", phone: "0912345678", price: "1800000", address: "Sư Vạn Hạnh, Q10, HCM", status: "Đã ẩn", date: "15/05/2026", desc: "Bao điện nước, có máy giặt chung." },
-  { id: "P004", title: "Nhà nguyên căn 3 lầu hẻm xe hơi", owner: "Phạm D", phone: "0933445566", price: "12000000", address: "Tân Bình, HCM", status: "Đang hiển thị", date: "14/05/2026", desc: "Thích hợp làm văn phòng hoặc gia đình ở." },
-  { id: "P005", title: "Sleepbox sinh viên bao điện nước", owner: "Hoàng E", phone: "0966778899", price: "1500000", address: "Làng Đại Học, Thủ Đức", status: "Chờ duyệt", date: "13/05/2026", desc: "An ninh 24/7, có vân tay." },
-];
+import { toast } from "react-toastify";
 
 export default function PostManagementPage() {
-  const [posts, setPosts] = useState(initialPosts);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // States Phân trang
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   // States quản lý Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -40,49 +29,155 @@ export default function PostManagementPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
 
+  const fetchPosts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/admin/posts");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPosts(data.data || []);
+      } else {
+        toast.error(data.message || "Không thể tải danh sách tin đăng");
+      }
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      toast.error("Đã xảy ra lỗi kết nối");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
   // --- LOGIC PHÂN TRANG ---
   const totalPages = Math.ceil(posts.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentPosts = posts.slice(startIndex, startIndex + itemsPerPage);
 
+  // Status mapping functions
+  const mapBackendToFrontendStatus = (status: string) => {
+    switch (status) {
+      case "published":
+        return "Đang hiển thị";
+      case "pending":
+        return "Chờ duyệt";
+      case "hidden":
+        return "Đã ẩn";
+      case "draft":
+        return "Bản nháp";
+      case "rejected":
+        return "Từ chối";
+      default:
+        return "Chờ duyệt";
+    }
+  };
+
+  const mapFrontendToBackendStatus = (status: string) => {
+    switch (status) {
+      case "Đang hiển thị":
+        return "published";
+      case "Chờ duyệt":
+        return "pending";
+      case "Đã ẩn":
+        return "hidden";
+      default:
+        return "pending";
+    }
+  };
+
   // --- LOGIC THÊM MỚI (ADD) ---
-  const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newId = `P00${posts.length + 1}`; // Tạo ID giả
-    const today = new Date().toLocaleDateString('vi-VN');
+    const title = formData.get("title") as string;
+    const price = formData.get("price") as string;
+    const frontendStatus = formData.get("status") as string;
+    const address = formData.get("address") as string;
+    const owner = formData.get("owner") as string;
+    const phone = formData.get("phone") as string;
 
-    const newPost = {
-      id: newId,
-      title: formData.get("title") as string,
-      owner: formData.get("owner") as string,
-      phone: formData.get("phone") as string,
-      price: formData.get("price") as string,
-      address: formData.get("address") as string,
-      status: formData.get("status") as string,
-      date: today,
-      desc: "Chưa có mô tả chi tiết."
+    const payload = {
+      title,
+      price,
+      status: mapFrontendToBackendStatus(frontendStatus),
+      address,
+      owner,
+      phone
     };
 
-    setPosts([newPost, ...posts]);
-    setIsAddModalOpen(false);
+    try {
+      const res = await fetch("/api/v1/admin/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success("Thêm tin đăng mới thành công!");
+        setIsAddModalOpen(false);
+        fetchPosts();
+      } else {
+        toast.error(data.message || "Thêm tin đăng thất bại");
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+      toast.error("Thêm tin đăng thất bại");
+    }
   };
 
   // --- LOGIC CHỈNH SỬA (EDIT) ---
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedPosts = posts.map((p) => (p.id === selectedPost.id ? selectedPost : p));
-    setPosts(updatedPosts);
-    setIsEditModalOpen(false);
+    const payload = {
+      title: selectedPost.title,
+      price: selectedPost.price,
+      status: mapFrontendToBackendStatus(selectedPost.status),
+      address: selectedPost.address
+    };
+
+    try {
+      const res = await fetch(`/api/v1/admin/posts?id=${selectedPost._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success("Cập nhật tin đăng thành công!");
+        setIsEditModalOpen(false);
+        // Refresh local state without full reload
+        setPosts(prev => prev.map(p => p._id === selectedPost._id ? data.data : p));
+      } else {
+        toast.error(data.message || "Cập nhật thất bại");
+      }
+    } catch (error) {
+      console.error("Error updating post:", error);
+      toast.error("Cập nhật thất bại");
+    }
   };
 
   // --- LOGIC XÓA (DELETE) ---
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa tin đăng này không? Hành động này không thể hoàn tác.")) {
-      setPosts(posts.filter(p => p.id !== id));
-      // Trở về trang 1 nếu trang hiện tại bị trống
-      if (currentPosts.length === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
+      try {
+        const res = await fetch(`/api/v1/admin/posts?id=${id}`, {
+          method: "DELETE"
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          toast.success("Xóa tin đăng thành công!");
+          setPosts(prev => prev.filter(p => p._id !== id));
+          if (currentPosts.length === 1 && currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+          }
+        } else {
+          toast.error(data.message || "Xóa thất bại");
+        }
+      } catch (error) {
+        console.error("Error deleting post:", error);
+        toast.error("Xóa thất bại");
       }
     }
   };
@@ -97,98 +192,133 @@ export default function PostManagementPage() {
         </div>
         <button 
           onClick={() => setIsAddModalOpen(true)}
-          className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm"
+          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm cursor-pointer"
         >
-          + Thêm tin đăng mới
+          <LuPlus size={16} />
+          Thêm tin đăng mới
         </button>
       </div>
 
       {/* Bảng Dữ Liệu */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-        <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="border-b border-slate-200 bg-slate-50 text-slate-800">
-              <tr>
-                <th className="px-6 py-4 font-semibold">Mã tin</th>
-                <th className="px-6 py-4 font-semibold">Tiêu đề</th>
-                <th className="px-6 py-4 font-semibold">Người đăng</th>
-                <th className="px-6 py-4 font-semibold">Giá thuê</th>
-                <th className="px-6 py-4 font-semibold">Trạng thái</th>
-                <th className="px-6 py-4 font-semibold text-center">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {currentPosts.length > 0 ? currentPosts.map((post) => (
-                <tr key={post.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-slate-800">{post.id}</td>
-                  <td className="px-6 py-4 max-w-[250px] truncate" title={post.title}>{post.title}</td>
-                  <td className="px-6 py-4">{post.owner}</td>
-                  <td className="px-6 py-4 font-medium text-rose-600">{Number(post.price).toLocaleString('vi-VN')}đ</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                      post.status === "Đang hiển thị" ? "bg-emerald-100 text-emerald-700" :
-                      post.status === "Chờ duyệt" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"
-                    }`}>
-                      {post.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-center gap-3">
-                      <button 
-                        onClick={() => { setSelectedPost(post); setIsViewModalOpen(true); }}
-                        className="text-slate-400 hover:text-blue-600 transition" title="Xem chi tiết"
-                      >
-                        <LuEye size={18} />
-                      </button>
-                      <button 
-                        onClick={() => { setSelectedPost({...post}); setIsEditModalOpen(true); }}
-                        className="text-slate-400 hover:text-emerald-600 transition" title="Chỉnh sửa"
-                      >
-                        <LuSquarePen size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(post.id)}
-                        className="text-slate-400 hover:text-rose-600 transition" title="Xóa"
-                      >
-                        <LuTrash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                    Không có dữ liệu tin đăng.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Phân trang */}
-        <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 bg-white">
-          <span className="text-sm text-slate-500">
-            Đang xem <span className="font-medium text-slate-800">{posts.length > 0 ? startIndex + 1 : 0}</span> đến <span className="font-medium text-slate-800">{Math.min(startIndex + itemsPerPage, posts.length)}</span> trong tổng số <span className="font-medium text-slate-800">{posts.length}</span> tin
-          </span>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 transition"
-            >
-              <LuChevronLeft size={16} />
-            </button>
-            <span className="text-sm font-medium text-slate-700 px-2">{currentPage} / {totalPages}</span>
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 transition"
-            >
-              <LuChevronRight size={16} />
-            </button>
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col min-h-[300px]">
+        {loading ? (
+          <div className="flex flex-1 flex-col items-center justify-center py-20 text-slate-400">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+            <p className="mt-3 text-sm font-medium">Đang tải danh sách tin đăng...</p>
           </div>
-        </div>
+        ) : posts.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center py-20 text-slate-400">
+            <p className="text-sm font-medium">Không có dữ liệu tin đăng nào.</p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left text-sm text-slate-600">
+                <thead className="border-b border-slate-200 bg-slate-50 text-slate-800">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold">Mã tin</th>
+                    <th className="px-6 py-4 font-semibold">Tiêu đề</th>
+                    <th className="px-6 py-4 font-semibold">Người đăng</th>
+                    <th className="px-6 py-4 font-semibold">Giá thuê</th>
+                    <th className="px-6 py-4 font-semibold">Trạng thái</th>
+                    <th className="px-6 py-4 font-semibold text-center">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {currentPosts.map((post) => {
+                    const displayStatus = mapBackendToFrontendStatus(post.status);
+                    return (
+                      <tr key={post._id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 font-medium text-slate-800">
+                          {post._id.slice(-6).toUpperCase()}
+                        </td>
+                        <td className="px-6 py-4 max-w-[250px] truncate" title={post.title}>
+                          {post.title}
+                        </td>
+                        <td className="px-6 py-4">
+                          {post.ownerId?.fullName || "Quản trị viên"}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-rose-600">
+                          {Number(post.price).toLocaleString('vi-VN')}đ
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                            displayStatus === "Đang hiển thị" ? "bg-emerald-100 text-emerald-700" :
+                            displayStatus === "Chờ duyệt" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"
+                          }`}>
+                            {displayStatus}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-3">
+                            <button 
+                              onClick={() => { 
+                                setSelectedPost({
+                                  ...post, 
+                                  status: displayStatus,
+                                  owner: post.ownerId?.fullName || "Quản trị viên",
+                                  phone: post.ownerId?.phone || "0888022821"
+                                }); 
+                                setIsViewModalOpen(true); 
+                              }}
+                              className="text-slate-400 hover:text-blue-600 transition cursor-pointer" title="Xem chi tiết"
+                            >
+                              <LuEye size={18} />
+                            </button>
+                            <button 
+                              onClick={() => { 
+                                setSelectedPost({
+                                  ...post, 
+                                  status: displayStatus,
+                                  owner: post.ownerId?.fullName || "Quản trị viên",
+                                  phone: post.ownerId?.phone || "0888022821"
+                                }); 
+                                setIsEditModalOpen(true); 
+                              }}
+                              className="text-slate-400 hover:text-emerald-600 transition cursor-pointer" title="Chỉnh sửa"
+                            >
+                              <LuSquarePen size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(post._id)}
+                              className="text-slate-400 hover:text-rose-600 transition cursor-pointer" title="Xóa"
+                            >
+                              <LuTrash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Phân trang */}
+            <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 bg-white">
+              <span className="text-sm text-slate-500">
+                Đang xem <span className="font-medium text-slate-800">{posts.length > 0 ? startIndex + 1 : 0}</span> đến <span className="font-medium text-slate-800">{Math.min(startIndex + itemsPerPage, posts.length)}</span> trong tổng số <span className="font-medium text-slate-800">{posts.length}</span> tin
+              </span>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                >
+                  <LuChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-medium text-slate-700 px-2">{currentPage} / {totalPages}</span>
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                >
+                  <LuChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ================= MODAL: THÊM MỚI TIN ĐĂNG ================= */}
@@ -197,7 +327,7 @@ export default function PostManagementPage() {
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white flex items-center justify-between border-b border-slate-100 px-6 py-4 z-10">
               <h3 className="text-lg font-bold text-slate-800">Thêm tin đăng mới</h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition">
+              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
                 <LuX size={20} />
               </button>
             </div>
@@ -214,9 +344,10 @@ export default function PostManagementPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Trạng thái duyệt</label>
-                  <select name="status" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition">
+                  <select name="status" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer">
                     <option value="Chờ duyệt">Chờ duyệt</option>
                     <option value="Đang hiển thị">Duyệt và Hiển thị</option>
+                    <option value="Đã ẩn">Đã ẩn</option>
                   </select>
                 </div>
                 <div className="md:col-span-2">
@@ -234,8 +365,8 @@ export default function PostManagementPage() {
               </div>
 
               <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition">Hủy bỏ</button>
-                <button type="submit" className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">Tạo tin đăng</button>
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">Hủy bỏ</button>
+                <button type="submit" className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm cursor-pointer">Tạo tin đăng</button>
               </div>
             </form>
           </div>
@@ -247,8 +378,8 @@ export default function PostManagementPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <h3 className="text-lg font-bold text-slate-800">Chỉnh sửa tin đăng <span className="text-blue-600">#{selectedPost.id}</span></h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition">
+              <h3 className="text-lg font-bold text-slate-800">Chỉnh sửa tin đăng <span className="text-blue-600">#{selectedPost._id.slice(-6).toUpperCase()}</span></h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
                 <LuX size={20} />
               </button>
             </div>
@@ -259,6 +390,14 @@ export default function PostManagementPage() {
                 <input 
                   type="text" value={selectedPost.title} required
                   onChange={(e) => setSelectedPost({...selectedPost, title: e.target.value})}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Địa chỉ</label>
+                <input 
+                  type="text" value={selectedPost.address} required
+                  onChange={(e) => setSelectedPost({...selectedPost, address: e.target.value})}
                   className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition"
                 />
               </div>
@@ -276,7 +415,7 @@ export default function PostManagementPage() {
                   <select 
                     value={selectedPost.status}
                     onChange={(e) => setSelectedPost({...selectedPost, status: e.target.value})}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer"
                   >
                     <option value="Đang hiển thị">Đang hiển thị</option>
                     <option value="Chờ duyệt">Chờ duyệt</option>
@@ -286,8 +425,8 @@ export default function PostManagementPage() {
               </div>
 
               <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => setIsEditModalOpen(false)} className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition">Hủy bỏ</button>
-                <button type="submit" className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">Lưu thay đổi</button>
+                <button type="button" onClick={() => setIsEditModalOpen(false)} className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">Hủy bỏ</button>
+                <button type="submit" className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm cursor-pointer">Lưu thay đổi</button>
               </div>
             </form>
           </div>
@@ -300,9 +439,9 @@ export default function PostManagementPage() {
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                Chi tiết tin đăng <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-sm">{selectedPost.id}</span>
+                Chi tiết tin đăng <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-sm">#{selectedPost._id.slice(-6).toUpperCase()}</span>
               </h3>
-              <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition bg-white rounded-full p-1 shadow-sm">
+              <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition bg-white rounded-full p-1 shadow-sm cursor-pointer">
                 <LuX size={20} />
               </button>
             </div>
@@ -318,13 +457,13 @@ export default function PostManagementPage() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <LuCalendarDays className="text-slate-400" size={16} />
-                    <span>Ngày đăng: {selectedPost.date}</span>
+                    <span>Ngày đăng: {new Date(selectedPost.createdAt).toLocaleDateString("vi-VN")}</span>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
-                      {selectedPost.owner.charAt(0)}
+                      {selectedPost.owner.charAt(0).toUpperCase()}
                     </div>
                     <span>{selectedPost.owner}</span>
                   </div>
@@ -338,7 +477,7 @@ export default function PostManagementPage() {
               <div className="mb-6">
                 <h4 className="text-sm font-semibold text-slate-800 mb-2">Mô tả thêm:</h4>
                 <p className="text-sm text-slate-600 leading-relaxed bg-white border border-slate-100 p-3 rounded-lg">
-                  {selectedPost.desc || "Người đăng không cung cấp mô tả chi tiết."}
+                  {selectedPost.description || "Người đăng không cung cấp mô tả chi tiết."}
                 </p>
               </div>
 
@@ -363,13 +502,13 @@ export default function PostManagementPage() {
             <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-200">
               <button 
                 onClick={() => setIsViewModalOpen(false)}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 transition"
+                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 transition cursor-pointer"
               >
                 Đóng
               </button>
               <button 
                 onClick={() => { setIsViewModalOpen(false); setIsEditModalOpen(true); }}
-                className="rounded-xl bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm"
+                className="rounded-xl bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm cursor-pointer"
               >
                 Chỉnh sửa tin này
               </button>

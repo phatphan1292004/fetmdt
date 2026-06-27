@@ -1048,6 +1048,16 @@ export async function POST(req: Request) {
       );
     }
 
+    const slug = title
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[đ]/g, "d")
+      .replace(/[Đ]/g, "d")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-") + "-" + Date.now();
+
     const detailData = buildDetailsByPropertyType(propertyTypeInput, body);
 
     const latitude = toOptionalCoordinate(body.latitude, -90, 90);
@@ -1070,6 +1080,7 @@ export async function POST(req: Request) {
       title,
       description,
       price,
+      slug,
       deposit: toOptionalNumber(body.deposit),
       area: detailData.normalized.area ?? toOptionalNumber(body.area),
       bedrooms: detailData.normalized.bedrooms ?? toOptionalNumber(body.bedrooms),
@@ -1093,6 +1104,10 @@ export async function POST(req: Request) {
       location,
       status: "pending",
     });
+
+    if (!location) {
+      newPost.set("location", undefined);
+    }
 
     await newPost.validate();
     await newPost.save();
@@ -1136,13 +1151,15 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Dữ liệu bài đăng không hợp lệ",
+          message: `Dữ liệu bài đăng không hợp lệ: ${error.message}`,
           data: null,
           error: error.message,
         },
         { status: 400 }
       );
     }
+
+    console.error("CRITICAL POST API ERROR:", error);
 
     return NextResponse.json(
       {

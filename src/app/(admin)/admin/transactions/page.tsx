@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { 
   LuCircleCheck, 
   LuClock, 
@@ -110,9 +111,9 @@ export default function TransactionsPage() {
           <p className="mt-1 text-sm text-slate-500">Quản lý lịch sử thanh toán, nạp tiền ví và mua các gói tương tác.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition shadow-sm">
+          <Link href="/admin/packages" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition shadow-sm">
             Quản lý Gói tin
-          </button>
+          </Link>
           <button className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm flex items-center gap-2">
             <LuFileSpreadsheet size={16} />
             Xuất báo cáo (Excel)

@@ -1,7 +1,6 @@
-import "dotenv/config";
 import { connectDB } from "@/src/lib/mongoose";
 import { verifyToken } from "@/src/lib/jwt";
-import bcrypt from "bcryptjs";
+import Post from "@/src/models/Post";
 import User from "@/src/models/User";
 import { NextResponse } from "next/server";
 
@@ -38,7 +37,20 @@ async function isAuthUser(req: Request) {
   }
 }
 
-// 1. GET: Fetch all users
+// Helper to generate a slug
+function generateSlug(title: string) {
+  return title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đ]/g, "d")
+    .replace(/[Đ]/g, "d")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-") + "-" + Date.now();
+}
+
+// 1. GET: Fetch all posts populated with owner
 export async function GET(req: Request) {
   const caller = await isAuthUser(req);
   if (!caller) {
@@ -47,18 +59,21 @@ export async function GET(req: Request) {
 
   try {
     await connectDB();
-    const users = await User.find().sort({ createdAt: -1 });
+    
+    // Register User model before populating
+    const posts = await Post.find().populate("ownerId").sort({ createdAt: -1 });
+
     return NextResponse.json({
       success: true,
-      message: "Get users successfully",
-      data: users,
+      message: "Get posts successfully",
+      data: posts,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
-// 2. POST: Create a new user
+// 2. POST: Create new post
 export async function POST(req: Request) {
   const caller = await isAuthUser(req);
   if (!caller) {
@@ -66,48 +81,54 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { fullName, email, phone, password, role } = await req.json();
+    const { title, price, status, address, owner, phone } = await req.json();
 
-    if (!fullName || !email || !phone || !password || !role) {
+    if (!title || !price || !status || !address || !owner || !phone) {
       return NextResponse.json({ success: false, message: "Thiếu thông tin bắt buộc" }, { status: 400 });
     }
 
     await connectDB();
 
-    // Check existing
-    const existingEmail = await User.findOne({ email });
-    if (existingEmail) {
-      return NextResponse.json({ success: false, message: "Email đã tồn tại" }, { status: 400 });
+    // Check or create user for the owner
+    let landlord = await User.findOne({ phone });
+    if (!landlord) {
+      const bcrypt = require("bcryptjs");
+      const passwordHash = await bcrypt.hash("123456", 10);
+      landlord = await User.create({
+        fullName: owner,
+        phone,
+        email: `${phone}@phongtot.dev`,
+        passwordHash,
+        role: "nguoi_cho_thue_tro",
+        status: "active",
+        isVerified: true
+      });
     }
 
-    const existingPhone = await User.findOne({ phone });
-    if (existingPhone) {
-      return NextResponse.json({ success: false, message: "Số điện thoại đã tồn tại" }, { status: 400 });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const newUser = await User.create({
-      fullName,
-      email,
-      phone,
-      passwordHash,
-      role,
-      status: "active",
-      isVerified: true,
+    const newPost = await Post.create({
+      ownerId: landlord._id,
+      title,
+      price: Number(price),
+      status,
+      address,
+      propertyType: "phong_tro",
+      listingType: "cho_thue",
+      description: "Được đăng bởi ban quản trị.",
+      slug: generateSlug(title),
+      mediaUrls: ["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=500&q=80"]
     });
 
     return NextResponse.json({
       success: true,
-      message: "User created successfully",
-      data: newUser,
+      message: "Post created successfully",
+      data: newPost,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
-// 3. PUT: Update user details
+// 3. PUT: Update post
 export async function PUT(req: Request) {
   const caller = await isAuthUser(req);
   if (!caller) {
@@ -118,37 +139,38 @@ export async function PUT(req: Request) {
   const id = searchParams.get("id");
 
   if (!id) {
-    return NextResponse.json({ success: false, message: "Thiếu user id" }, { status: 400 });
+    return NextResponse.json({ success: false, message: "Thiếu mã tin đăng" }, { status: 400 });
   }
 
   try {
     const body = await req.json();
     await connectDB();
 
-    const user = await User.findById(id) as any;
-    if (!user) {
-      return NextResponse.json({ success: false, message: "Không tìm thấy người dùng" }, { status: 404 });
+    const post = await Post.findById(id);
+    if (!post) {
+      return NextResponse.json({ success: false, message: "Không tìm thấy tin đăng" }, { status: 404 });
     }
 
     // Update fields
-    if (body.fullName !== undefined) user.fullName = body.fullName;
-    if (body.phone !== undefined) user.phone = body.phone;
-    if (body.role !== undefined) user.role = body.role;
-    if (body.status !== undefined) user.status = body.status;
+    const updateData: any = {};
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.price !== undefined) updateData.price = Number(body.price);
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.address !== undefined) updateData.address = body.address;
 
-    await user.save();
+    const updatedPost = await Post.findByIdAndUpdate(id, { $set: updateData }, { new: true }).populate("ownerId");
 
     return NextResponse.json({
       success: true,
-      message: "User updated successfully",
-      data: user,
+      message: "Post updated successfully",
+      data: updatedPost,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
-// 4. DELETE: Delete user
+// 4. DELETE: Delete post
 export async function DELETE(req: Request) {
   const caller = await isAuthUser(req);
   if (!caller) {
@@ -159,19 +181,19 @@ export async function DELETE(req: Request) {
   const id = searchParams.get("id");
 
   if (!id) {
-    return NextResponse.json({ success: false, message: "Thiếu user id" }, { status: 400 });
+    return NextResponse.json({ success: false, message: "Thiếu mã tin đăng" }, { status: 400 });
   }
 
   try {
     await connectDB();
-    const deletedUser = await User.findByIdAndDelete(id);
-    if (!deletedUser) {
-      return NextResponse.json({ success: false, message: "Không tìm thấy người dùng" }, { status: 404 });
+    const deletedPost = await Post.findByIdAndDelete(id);
+    if (!deletedPost) {
+      return NextResponse.json({ success: false, message: "Không tìm thấy tin đăng" }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
-      message: "User deleted successfully",
+      message: "Post deleted successfully",
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });

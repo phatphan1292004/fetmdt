@@ -51,4 +51,6 @@ export type RoomDetailData = {
 	imageUrls: readonly string[];
 	contact: RoomContact;
 	location: RoomLocation;
+	propertyType?: string;
+	details?: any;
 };
