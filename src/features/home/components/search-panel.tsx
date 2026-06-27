@@ -203,6 +203,17 @@ export function SearchPanel({
     priceRanges.forEach((range) => params.append("priceRange", range));
     areaRanges.forEach((range) => params.append("areaRange", range));
 
+    if (selectedRoomType && selectedRoomType !== "Tất cả") {
+      if (selectedRoomType.includes("phòng ngủ")) {
+        const match = selectedRoomType.match(/\d+/);
+        if (match) {
+          params.set("minBedrooms", match[0]);
+        }
+      } else {
+        params.set("q", keywordValue ? `${keywordValue} ${selectedRoomType}` : selectedRoomType);
+      }
+    }
+
     router.push(`/search?${params.toString()}`);
     setActiveMenu(null);
   }
@@ -226,6 +237,13 @@ export function SearchPanel({
     setSelectedWard({ code: "", name: "" });
     setStreet("");
     setActiveMenu(null);
+  }
+
+  function resetLocationFilters() {
+    setSelectedProvince({ code: "", name: "" });
+    setSelectedDistrict({ code: "", name: "" });
+    setSelectedWard({ code: "", name: "" });
+    setStreet("");
   }
 
   function renderHeader(title: string) {
@@ -309,15 +327,15 @@ export function SearchPanel({
         </div>
 
         <div className="mt-5 flex items-center justify-between">
-          <button type="button" onClick={resetFilters} className="text-[16px] font-semibold text-[#087cb2] underline">
+          <button type="button" onClick={resetLocationFilters} className="text-[16px] font-semibold text-[#087cb2] underline">
             Đặt lại
           </button>
           <button
             type="button"
-            onClick={handleSearch}
+            onClick={() => setActiveMenu(null)}
             className="rounded-xl bg-[#075b86] px-5 py-2.5 text-[16px] font-semibold text-white transition hover:bg-[#04425f]"
           >
-            Tìm kiếm
+            Áp dụng
           </button>
         </div>
       </div>
@@ -374,15 +392,15 @@ export function SearchPanel({
         </div>
 
         <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3">
-          <button type="button" onClick={resetFilters} className="text-[16px] font-semibold text-[#087cb2] underline">
+          <button type="button" onClick={() => onChange([])} className="text-[16px] font-semibold text-[#087cb2] underline">
             Đặt lại
           </button>
           <button
             type="button"
-            onClick={handleSearch}
+            onClick={() => setActiveMenu(null)}
             className="rounded-xl bg-[#075b86] px-5 py-2.5 text-[16px] font-semibold text-white transition hover:bg-[#04425f]"
           >
-            Tìm kiếm
+            Áp dụng
           </button>
         </div>
       </div>
@@ -449,8 +467,18 @@ export function SearchPanel({
     return renderRoomTypeMenu();
   }
 
+  const locationLabel = useMemo(() => {
+    if (selectedDistrict.name && selectedProvince.name) {
+      return `${selectedDistrict.name}, ${selectedProvince.name}`;
+    }
+    if (selectedProvince.name) {
+      return selectedProvince.name;
+    }
+    return "Toàn quốc";
+  }, [selectedProvince.name, selectedDistrict.name]);
+
   const filters: ReadonlyArray<{ key: MenuKey; label: string }> = [
-    { key: "location", label: "Toàn quốc" },
+    { key: "location", label: locationLabel },
     { key: "price", label: priceLabel },
     { key: "area", label: areaLabel },
     { key: "roomType", label: selectedRoomType },
@@ -482,20 +510,6 @@ export function SearchPanel({
               </svg>
             </button>
           </div>
-
-          <a
-            href={keyword.trim() ? `https://www.google.com/maps?hl=vi&q=${encodeURIComponent(keyword.trim())}` : "https://www.google.com/maps?hl=vi"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#005b8a] px-6 text-[16px] font-semibold text-white transition hover:bg-[#00476b]"
-          >
-            <svg className="h-5 w-5" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-              <path d="M2 4L6.5 2V16L2 14V4Z" fill="currentColor" />
-              <path d="M7 2L11 4V14L7 16V2Z" fill="currentColor" opacity="0.8" />
-              <path d="M11.5 4L16 2V14L11.5 16V4Z" fill="currentColor" opacity="0.65" />
-            </svg>
-            Bản đồ
-          </a>
         </div>
 
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -525,13 +539,22 @@ export function SearchPanel({
             })}
           </div>
 
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="self-start text-[17px] font-semibold text-white underline decoration-white/80 underline-offset-2 transition hover:text-[#e7fdff]"
-          >
-            Đặt lại
-          </button>
+          <div className="flex items-center gap-4 self-start lg:self-auto">
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-[17px] font-semibold text-white underline decoration-white/80 underline-offset-2 transition hover:text-[#e7fdff]"
+            >
+              Đặt lại
+            </button>
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#005b8a] px-6 text-[16px] font-bold text-white transition hover:bg-[#00476b] shadow-md hover:shadow-lg active:scale-95"
+            >
+              Tìm kiếm
+            </button>
+          </div>
         </div>
       </div>
 

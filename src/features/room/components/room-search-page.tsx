@@ -674,7 +674,7 @@ export function RoomSearchPage() {
           </div>
         </div>
 
-        <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,2fr)_360px]">
+        <section className="mt-6">
           <div className="space-y-4">
             {loading ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600">
@@ -766,28 +766,6 @@ export function RoomSearchPage() {
               </div>
             ) : null}
           </div>
-
-          <aside className="space-y-4">
-            <article className="rounded-2xl bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-              <h2 className="text-[20px] font-extrabold text-slate-900">Bản đồ khu vực</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                {filters.city || filters.district || filters.locationText || "Toàn quốc"}
-              </p>
-              <div className="mt-3 overflow-hidden rounded-xl border border-slate-200">
-                <iframe
-                  src={mapSrc}
-                  title="Bản đồ"
-                  className="h-64 w-full"
-                  loading="lazy"
-                />
-              </div>
-              {filters.lat && filters.lng ? (
-                <p className="mt-3 text-sm text-slate-600">
-                  Tìm trong bán kính {filters.radiusKm} km quanh vị trí đã chọn.
-                </p>
-              ) : null}
-            </article>
-          </aside>
         </section>
       </section>
     </main>
