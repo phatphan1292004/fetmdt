@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { AmenityData, AmenitySlug, RoomDetailData } from "../types";
 import { buildRoomRouteFromSlug } from "../servers";
 import { AMENITY_MAP } from "../constants/amenity-icons";
+import { toast } from "react-toastify";
 
 type RoomDetailPageProps = {
   room: RoomDetailData;
@@ -63,6 +64,85 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
   const gallery = [...room.imageUrls];
   const contactPhoneHref = room.contact.phone.replace(/\D/g, "");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const [isSaved, setIsSaved] = useState(false);
+  const [isAuth, setIsAuth] = useState(false);
+  const [checkingSave, setCheckingSave] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkSavedStatus = async () => {
+      try {
+        const authRes = await fetch("/api/v1/auth/me");
+        if (!authRes.ok) {
+          if (isMounted) setCheckingSave(false);
+          return;
+        }
+        const authData = await authRes.json();
+        if (authData.success && authData.data) {
+          if (isMounted) setIsAuth(true);
+          // Check saved status
+          const savedRes = await fetch(`/api/v1/user/saved-posts?postId=${room.id}`);
+          if (savedRes.ok) {
+            const savedData = await savedRes.json();
+            if (isMounted && savedData.success) {
+              setIsSaved(savedData.isSaved);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check saved status:", error);
+      } finally {
+        if (isMounted) setCheckingSave(false);
+      }
+    };
+    checkSavedStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, [room.id]);
+
+  const handleToggleSave = async () => {
+    if (!isAuth) {
+      // Redirect to login page
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+
+    const previousSaved = isSaved;
+    setIsSaved(!previousSaved);
+
+    try {
+      if (previousSaved) {
+        // Unsave
+        const res = await fetch(`/api/v1/user/saved-posts?postId=${room.id}`, {
+          method: "DELETE",
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "Failed to unsave");
+        }
+        toast.success("Đã xóa phòng khỏi danh sách yêu thích!");
+      } else {
+        // Save
+        const res = await fetch("/api/v1/user/saved-posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postId: room.id }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "Failed to save");
+        }
+        toast.success("Đã lưu phòng vào danh sách yêu thích!");
+      }
+    } catch (error) {
+      // Rollback on error
+      setIsSaved(previousSaved);
+      toast.error("Đã xảy ra lỗi, vui lòng thử lại sau!");
+      console.error("Failed to update saved status:", error);
+    }
+  };
 
   while (gallery.length < 5) {
     gallery.push(room.imageUrls[0]);
@@ -146,12 +226,25 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
 
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#8cd7db] hover:text-[#0b7ea9]"
+                  onClick={handleToggleSave}
+                  disabled={checkingSave}
+                  className={`inline-flex shrink-0 whitespace-nowrap items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                    isSaved
+                      ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-[#8cd7db] hover:text-[#0b7ea9]"
+                  }`}
                 >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill={isSaved ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden
+                  >
                     <path d="M12.1 20.3l-1.1-1C6 15 3 12.3 3 8.9 3 6.1 5.1 4 7.9 4c1.6 0 3.1.8 4.1 2.1C13 4.8 14.5 4 16.1 4 18.9 4 21 6.1 21 8.9c0 3.4-3 6.1-8 10.4l-.9 1z" />
                   </svg>
-                  Lưu
+                  {isSaved ? "Đã lưu" : "Lưu"}
                 </button>
               </div>
 

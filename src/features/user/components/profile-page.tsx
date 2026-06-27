@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { IoCopyOutline, IoCheckmarkCircle } from "react-icons/io5";
+import { useSearchParams } from "next/navigation";
 
 type ProfileTabId = "info" | "saved" | "manage" | "buff";
 
@@ -48,14 +49,7 @@ type ProfileSummary = {
   };
 };
 
-type SavedPost = {
-  id: string;
-  title: string;
-  address: string;
-  priceLabel: string;
-  areaLabel: string;
-  imageUrl: string;
-};
+// Removed hardcoded SavedPost type
 
 type ManagedPost = {
   id: string;
@@ -73,35 +67,7 @@ const TABS: readonly TabItem[] = [
   { id: "buff", label: "Dịch vụ đẩy tin" },
 ];
 
-const SAVED_POSTS: readonly SavedPost[] = [
-  {
-    id: "saved-1",
-    title: "Phòng trọ gần ĐH Thương Mại",
-    address: "Phạm Văn Đồng, Bắc Từ Liêm, Hà Nội",
-    priceLabel: "3.200.000đ/tháng",
-    areaLabel: "22 m2",
-    imageUrl:
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "saved-2",
-    title: "Studio đầy đủ nội thất Mỹ Đình",
-    address: "Mỹ Đình 2, Nam Từ Liêm, Hà Nội",
-    priceLabel: "4.600.000đ/tháng",
-    areaLabel: "28 m2",
-    imageUrl:
-      "https://images.unsplash.com/photo-1493666438817-866a91353ca9?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "saved-3",
-    title: "Căn mini có gác xép, bao phí wifi",
-    address: "Hồ Tùng Mậu, Cầu Giấy, Hà Nội",
-    priceLabel: "3.900.000đ/tháng",
-    areaLabel: "25 m2",
-    imageUrl:
-      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80",
-  },
-];
+// Removed hardcoded SAVED_POSTS constant
 
 const MANAGED_POSTS: readonly ManagedPost[] = [
   {
@@ -567,6 +533,47 @@ function ProfileInfoTab() {
 }
 
 function SavedPostsTab() {
+  const [savedRooms, setSavedRooms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSavedRooms = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/user/saved-posts");
+      const data = await res.json();
+      if (data.success) {
+        setSavedRooms(data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching saved rooms:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSavedRooms();
+  }, []);
+
+  const handleUnsave = async (roomId: string) => {
+    // Optimistic update
+    setSavedRooms((prev) => prev.filter((room) => room.id !== roomId));
+
+    try {
+      const res = await fetch(`/api/v1/user/saved-posts?postId=${roomId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to unsave");
+      }
+    } catch (error) {
+      console.error("Error unsaving room:", error);
+      // Re-fetch to restore state if it failed
+      fetchSavedRooms();
+    }
+  };
+
   return (
     <section className="space-y-4">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.06)] sm:p-5">
@@ -574,35 +581,56 @@ function SavedPostsTab() {
         <p className="mt-1 text-slate-600">Danh sách tin bạn đã lưu để theo dõi.</p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        {SAVED_POSTS.map((post) => (
-          <article key={post.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.07)]">
-            <div className="h-44 bg-cover bg-center" style={{ backgroundImage: `url(${post.imageUrl})` }} aria-hidden />
+      {loading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 font-medium">
+          Đang tải danh sách phòng đã lưu...
+        </div>
+      ) : savedRooms.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 font-medium">
+          Bạn chưa lưu phòng nào.
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          {savedRooms.map((room) => (
+            <article key={room.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.07)]">
+              <Link href={`/phong-tro/${room.slug}`} className="block">
+                <div
+                  className="h-44 bg-cover bg-center transition duration-300 hover:scale-[1.02]"
+                  style={{ backgroundImage: `url(${room.imageUrls[0] || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=900&q=80"})` }}
+                  aria-hidden
+                />
+              </Link>
 
-            <div className="space-y-2 p-4">
-              <h3 className="line-clamp-2 text-[18px] font-bold leading-tight text-slate-900">{post.title}</h3>
-              <p className="text-sm text-slate-500">{post.address}</p>
+              <div className="space-y-2 p-4">
+                <Link href={`/phong-tro/${room.slug}`} className="block group">
+                  <h3 className="line-clamp-2 text-[18px] font-bold leading-tight text-slate-900 transition group-hover:text-[#0b7ea9]">
+                    {room.title}
+                  </h3>
+                </Link>
+                <p className="text-sm text-slate-500">{room.address}</p>
 
-              <div className="flex items-end justify-between border-t border-slate-100 pt-3">
-                <div>
-                  <p className="text-[21px] font-extrabold leading-none text-[#ef2f3d]">{post.priceLabel}</p>
-                  <p className="mt-1 text-sm text-slate-600">{post.areaLabel}</p>
+                <div className="flex items-end justify-between border-t border-slate-100 pt-3">
+                  <div>
+                    <p className="text-[21px] font-extrabold leading-none text-[#ef2f3d]">{room.priceLabel}</p>
+                    <p className="mt-1 text-sm text-slate-600">{room.areaLabel}</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleUnsave(room.id)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-red-100 bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-700"
+                    aria-label="Bỏ lưu tin"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                      <path d="M12.1 20.3l-1.1-1C6 15 3 12.3 3 8.9 3 6.1 5.1 4 7.9 4c1.6 0 3.1.8 4.1 2.1C13 4.8 14.5 4 16.1 4 18.9 4 21 6.1 21 8.9c0 3.4-3 6.1-8 10.4l-.9 1z" />
+                    </svg>
+                  </button>
                 </div>
-
-                <button
-                  type="button"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-[#7cdadf] hover:text-[#0b7ea9]"
-                  aria-label="Bỏ lưu tin"
-                >
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-                    <path d="M12.1 20.3l-1.1-1C6 15 3 12.3 3 8.9 3 6.1 5.1 4 7.9 4c1.6 0 3.1.8 4.1 2.1C13 4.8 14.5 4 16.1 4 18.9 4 21 6.1 21 8.9c0 3.4-3 6.1-8 10.4l-.9 1z" />
-                  </svg>
-                </button>
               </div>
-            </div>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -1284,7 +1312,15 @@ function BuffPostsTab() {
 }
 
 export function ProfilePage() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<ProfileTabId>("info");
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab") as ProfileTabId;
+    if (tabParam && ["info", "saved", "manage", "buff"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   return (
     <main className="flex-1 bg-[#f3f5f7] pb-12 pt-6 sm:pt-8">

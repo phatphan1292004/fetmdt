@@ -19,6 +19,7 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
     (location) => location.city.trim().length > 0,
   );
 
+
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/90 bg-white">
       <div className="relative">
@@ -129,8 +130,8 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
               Hotline:{" "}
               <span className="font-semibold text-slate-900">{hotline}</span>
             </p>
-            <button
-              type="button"
+            <Link
+              href="/phong-da-luu"
               className="inline-flex shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-slate-500 whitespace-nowrap transition hover:bg-slate-100"
             >
               <svg
@@ -143,7 +144,7 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
                 <path d="M10 17.3L8.7 16.1C4 11.8 1 9 1 5.6C1 3 3 1 5.6 1C7.1 1 8.5 1.7 9.4 2.9C10.3 1.7 11.7 1 13.2 1C15.8 1 17.8 3 17.8 5.6C17.8 9 14.8 11.8 10.1 16.1L10 17.3Z" />
               </svg>
               Phòng đã lưu
-            </button>
+            </Link>
             <Link
               href="/post"
               className="shrink-0 font-semibold text-slate-700 underline decoration-slate-400 decoration-1 underline-offset-2"
