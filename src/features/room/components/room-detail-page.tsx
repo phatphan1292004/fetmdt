@@ -22,6 +22,15 @@ function GalleryTile({ imageUrl, className }: { imageUrl: string; className?: st
   );
 }
 
+function DetailItem({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-[#fbfdfd] p-3.5 shadow-sm transition hover:shadow-md">
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
+      <p className="mt-1 text-[14px] font-semibold text-slate-700 leading-snug">{value}</p>
+    </div>
+  );
+}
+
 const iconClassName = "h-4 w-4 text-[#25c3c8]";
 
 const AMENITY_LABEL_TO_SLUG: Readonly<Record<string, AmenitySlug>> = {
@@ -64,6 +73,83 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
   const gallery = [...room.imageUrls];
   const contactPhoneHref = room.contact.phone.replace(/\D/g, "");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const renderPropertyDetails = () => {
+    const details = room.details || {};
+    const type = room.propertyType;
+
+    if (type === "can_ho_chung_cu") {
+      return (
+        <div className="mt-6 border-t border-slate-100 pt-6">
+          <h3 className="text-lg font-bold text-[#0b5f89] mb-4">Chi tiết căn hộ</h3>
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
+            {room.subtitle && <DetailItem label="Dự án" value={room.subtitle} />}
+            {details.bedrooms !== undefined && <DetailItem label="Phòng ngủ" value={`${details.bedrooms} phòng`} />}
+            {details.bathrooms !== undefined && <DetailItem label="Phòng tắm" value={`${details.bathrooms} phòng`} />}
+            {details.apartmentFloor !== undefined && <DetailItem label="Tầng số" value={`Tầng ${details.apartmentFloor}`} />}
+            {details.buildingFloors !== undefined && <DetailItem label="Tổng số tầng" value={`${details.buildingFloors} tầng`} />}
+            {details.hasBalcony !== undefined && (
+              <DetailItem 
+                label="Ban công" 
+                value={details.hasBalcony ? `Có (${details.balconyDirection || "chưa rõ"})` : "Không"} 
+              />
+            )}
+            {details.interiorStatus && <DetailItem label="Nội thất" value={details.interiorStatus} />}
+            {details.managementFee !== undefined && (
+              <DetailItem 
+                label="Phí quản lý" 
+                value={details.managementFee > 0 ? `${details.managementFee.toLocaleString("vi-VN")}đ/tháng` : "Miễn phí"} 
+              />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (type === "nha_o") {
+      return (
+        <div className="mt-6 border-t border-slate-100 pt-6">
+          <h3 className="text-lg font-bold text-[#0b5f89] mb-4">Chi tiết nhà ở</h3>
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
+            {room.subtitle && <DetailItem label="Tên nhà" value={room.subtitle} />}
+            {details.landArea !== undefined && <DetailItem label="Diện tích đất" value={`${details.landArea} m²`} />}
+            {details.usableArea !== undefined && <DetailItem label="Diện tích sử dụng" value={`${details.usableArea} m²`} />}
+            {details.bedrooms !== undefined && <DetailItem label="Phòng ngủ" value={`${details.bedrooms} phòng`} />}
+            {details.bathrooms !== undefined && <DetailItem label="Phòng tắm" value={`${details.bathrooms} phòng`} />}
+            {details.floors !== undefined && <DetailItem label="Số tầng" value={`${details.floors} tầng`} />}
+            {details.frontage !== undefined && <DetailItem label="Mặt tiền" value={`${details.frontage} m`} />}
+            {details.alleyWidth !== undefined && <DetailItem label="Đường/Hẻm rộng" value={`${details.alleyWidth} m`} />}
+            {details.houseDirection && <DetailItem label="Hướng nhà" value={details.houseDirection} />}
+            {details.interiorStatus && <DetailItem label="Nội thất" value={details.interiorStatus} />}
+            {details.legalStatus && <DetailItem label="Pháp lý" value={details.legalStatus} />}
+          </div>
+        </div>
+      );
+    }
+
+    if (type === "phong_tro") {
+      return (
+        <div className="mt-6 border-t border-slate-100 pt-6">
+          <h3 className="text-lg font-bold text-[#0b5f89] mb-4">Chi tiết phòng trọ</h3>
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
+            {details.area !== undefined && <DetailItem label="Diện tích" value={`${details.area} m²`} />}
+            {details.maxOccupants !== undefined && <DetailItem label="Số người tối đa" value={`${details.maxOccupants} người`} />}
+            {details.hasLoft !== undefined && <DetailItem label="Gác lửng" value={details.hasLoft ? "Có gác" : "Không gác"} />}
+            {details.hasPrivateWc !== undefined && <DetailItem label="WC riêng" value={details.hasPrivateWc ? "WC riêng biệt" : "WC chung"} />}
+            {details.curfewFree !== undefined && <DetailItem label="Chung chủ" value={details.curfewFree ? "Không chung chủ (Tự do)" : "Chung chủ"} />}
+            {details.hasAirConditioner !== undefined && <DetailItem label="Máy lạnh" value={details.hasAirConditioner ? "Đã trang bị" : "Không có"} />}
+            {details.hasFridge !== undefined && <DetailItem label="Tủ lạnh" value={details.hasFridge ? "Đã trang bị" : "Không có"} />}
+            {details.hasWashingMachine !== undefined && <DetailItem label="Máy giặt" value={details.hasWashingMachine ? "Đã trang bị" : "Không có"} />}
+            {details.hasParking !== undefined && <DetailItem label="Có chỗ để xe" value={details.hasParking ? "Có" : "Không"} />}
+            {details.allowPets !== undefined && <DetailItem label="Cho nuôi thú cưng" value={details.allowPets ? "Được phép" : "Không được phép"} />}
+            {details.utilityPricing && <DetailItem label="Giá điện/nước" value={details.utilityPricing} />}
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   const [isSaved, setIsSaved] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
@@ -221,7 +307,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0b7ea9]">Tin đăng</p>
-                  <h1 className="mt-2 text-[24px] font-black leading-tight text-slate-900 md:text-[30px]">{room.title}</h1>
+                  <h1 className="mt-2 text-[20px] font-bold leading-tight text-slate-900 md:text-[24px]">{room.title}</h1>
                 </div>
 
                 <button
@@ -262,11 +348,11 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-3xl bg-[#f6fcfd] p-4">
                   <p className="text-sm text-slate-500">Giá thuê</p>
-                  <p className="mt-1 text-[22px] font-black text-[#f2483a]">{room.priceLabel}</p>
+                  <p className="mt-1 text-[18px] font-bold text-[#f2483a]">{room.priceLabel}</p>
                 </div>
                 <div className="rounded-3xl bg-[#f6fcfd] p-4">
                   <p className="text-sm text-slate-500">Diện tích</p>
-                  <p className="mt-1 text-[22px] font-black text-[#0b5f89]">{room.areaLabel}</p>
+                  <p className="mt-1 text-[18px] font-bold text-[#0b5f89]">{room.areaLabel}</p>
                 </div>
               </div>
 
@@ -312,7 +398,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
           <div className="space-y-6">
             <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-[24px] font-extrabold text-[#0b5f89] md:text-[34px]">Đặc điểm bất động sản</h2>
+                <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Đặc điểm bất động sản</h2>
                 <span className="rounded-full bg-[#eefcfd] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#0b7ea9]">
                   Tổng quan
                 </span>
@@ -321,27 +407,29 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-[24px] bg-[#f7fbfc] p-4">
                   <p className="text-sm text-slate-500">Giá thuê</p>
-                  <p className="mt-1 text-[22px] font-black text-[#f2483a]">{room.priceLabel}</p>
+                  <p className="mt-1 text-[18px] font-bold text-[#f2483a]">{room.priceLabel}</p>
                 </div>
                 <div className="rounded-[24px] bg-[#f7fbfc] p-4">
                   <p className="text-sm text-slate-500">Diện tích</p>
-                  <p className="mt-1 text-[22px] font-black text-[#0b5f89]">{room.areaLabel}</p>
+                  <p className="mt-1 text-[18px] font-bold text-[#0b5f89]">{room.areaLabel}</p>
                 </div>
                 <div className="rounded-[24px] bg-[#f7fbfc] p-4">
                   <p className="text-sm text-slate-500">Đặt cọc</p>
-                  <p className="mt-1 text-[18px] font-bold text-slate-800">{room.depositLabel}</p>
+                  <p className="mt-1 text-[16px] font-semibold text-slate-800">{room.depositLabel}</p>
                 </div>
                 <div className="rounded-[24px] bg-[#f7fbfc] p-4">
                   <p className="text-sm text-slate-500">Số phòng trống</p>
-                  <p className="mt-1 text-[18px] font-bold text-slate-800">{room.availableRoomsLabel}</p>
+                  <p className="mt-1 text-[16px] font-semibold text-slate-800">{room.availableRoomsLabel}</p>
                 </div>
               </div>
 
-              <p className="mt-5 text-[16px] leading-8 text-slate-700 md:text-[18px]">{room.description}</p>
+              <p className="mt-5 text-[14px] leading-7 text-slate-600 md:text-[15px]">{room.description}</p>
+
+              {renderPropertyDetails()}
             </article>
 
             <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7">
-              <h2 className="text-[24px] font-extrabold text-[#0b5f89] md:text-[34px]">Phí dịch vụ chung</h2>
+              <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Phí dịch vụ chung</h2>
               <div className="mt-4 rounded-[28px] bg-[#f7fbfc] p-4 md:p-6">
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {[
@@ -357,8 +445,8 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                         </svg>
                       </span>
                       <div>
-                        <p className="text-[15px] font-medium text-slate-700 md:text-[17px]">{item.title}</p>
-                        <p className="text-[14px] text-[#0b7ea9] md:text-[16px]">{item.value}</p>
+                        <p className="text-[13px] font-medium text-slate-600 md:text-[14px]">{item.title}</p>
+                        <p className="text-[13px] font-semibold text-[#0b7ea9] md:text-[14px]">{item.value}</p>
                       </div>
                     </div>
                   ))}
@@ -366,36 +454,71 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
               </div>
             </article>
 
-            <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7">
-              <h2 className="text-[24px] font-extrabold text-[#0b5f89] md:text-[34px]">Tiện ích chung</h2>
-              <div className="mt-4 rounded-[28px] bg-[#f7fbfc] p-5 md:p-7">
-                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {room.amenities.map((amenity, index) => {
-                    const normalizedAmenity = normalizeAmenity(amenity, index);
+            {room.amenities && room.amenities.length > 0 && (
+              <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7">
+                <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Tiện ích chung</h2>
+                <div className="mt-4 rounded-[28px] bg-[#f7fbfc] p-5 md:p-7">
+                  <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {room.amenities.map((amenity, index) => {
+                      const normalizedAmenity = normalizeAmenity(amenity, index);
 
-                    return (
-                      <div key={normalizedAmenity.id} className="flex items-start gap-3 text-[16px] text-slate-700 md:text-[20px]">
-                        <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
-                          <AmenityIcon slug={normalizedAmenity.slug} />
-                        </span>
-                        <span className="leading-6">{normalizedAmenity.name}</span>
-                      </div>
-                    );
-                  })}
+                      return (
+                        <div key={normalizedAmenity.id} className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                          <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+                            <AmenityIcon slug={normalizedAmenity.slug} />
+                          </span>
+                          <span className="leading-7">{normalizedAmenity.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            </article>
+              </article>
+            )}
 
             <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7">
-              <h2 className="text-[24px] font-extrabold text-[#0b5f89] md:text-[34px]">Nội quy</h2>
-              <div className="mt-4 rounded-[28px] bg-[#f7fbfc] p-5 md:p-7">
-                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-2">
-                  {room.rules.map((rule) => (
-                    <div key={rule} className="flex items-start gap-3 rounded-2xl bg-white px-4 py-3 text-[16px] text-slate-700 shadow-sm md:text-[20px]">
-                      <span className="mt-2 inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#25c3c8]" aria-hidden />
-                      <span className="leading-6">{rule}</span>
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Vị trí</h2>
+                      <p className="mt-1 text-[15px] text-slate-600">{room.location.districtLabel}</p>
                     </div>
-                  ))}
+
+                    <span className="rounded-full bg-[#ecfeff] px-4 py-2 text-[13px] font-semibold text-[#0b7ea9]">
+                      {room.location.mapLabel}
+                    </span>
+                  </div>
+
+                  {room.location.nearbyPlaces && room.location.nearbyPlaces.length > 0 && (
+                    <div className="mt-5 rounded-3xl bg-[#f6f6f6] p-5 md:p-7">
+                      <div className="mb-4 text-[16px] font-semibold text-slate-800 md:text-[18px]">Khu vực lân cận</div>
+                      <ul className="space-y-3">
+                        {room.location.nearbyPlaces.map((place) => (
+                          <li key={place} className="flex items-start gap-3 rounded-2xl bg-white px-4 py-3 text-[15px] text-slate-700 shadow-sm md:text-[17px]">
+                            <span className="mt-2 inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#25c3c8]" aria-hidden />
+                            <span className="leading-7">{place}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-inner">
+                  <div className="relative h-72 md:h-full md:min-h-[420px]">
+                    <iframe
+                      src={`https://maps.google.com/maps?hl=vi&q=${encodeURIComponent(`${room.address}, ${room.city}`)}&z=15&output=embed`}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      title={`Ban do ${room.title}`}
+                      className="grayscale transition-all duration-700 hover:grayscale-0"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      allowFullScreen
+                    />
+                  </div>
                 </div>
               </div>
             </article>
@@ -458,73 +581,30 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
               </div>
             </article>
 
-            <article className="rounded-[28px] border border-white/70 bg-white p-4 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-5">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-[22px] font-extrabold text-slate-900">Phòng liên quan</h2>
-                <span className="rounded-full bg-[#eefcfd] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#0b7ea9]">
-                  {relatedRooms.length}
-                </span>
-              </div>
-              <div className="mt-3 space-y-3">
-                {relatedRooms.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={buildRoomRouteFromSlug(item.slug)}
-                    className="group block rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-[#7ed9dd] hover:bg-white hover:shadow-md"
-                  >
-                    <p className="font-semibold text-slate-900 transition group-hover:text-[#0b7ea9]">{item.title}</p>
-                    <p className="mt-1 text-sm text-slate-500">{item.address}</p>
-                    <p className="mt-3 text-base font-extrabold text-[#f2483a]">{item.priceLabel}</p>
-                  </Link>
-                ))}
-              </div>
-            </article>
-          </aside>
-
-          <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7 lg:col-span-2">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-[24px] font-extrabold text-[#0b5f89] md:text-[34px]">Vị trí</h2>
-                    <p className="mt-1 text-[15px] text-slate-600">{room.location.districtLabel}</p>
-                  </div>
-
-                  <span className="rounded-full bg-[#ecfeff] px-4 py-2 text-[13px] font-semibold text-[#0b7ea9]">
-                    {room.location.mapLabel}
+            {relatedRooms && relatedRooms.length > 0 && (
+              <article className="rounded-[28px] border border-white/70 bg-white p-4 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-[22px] font-extrabold text-slate-900">Phòng liên quan</h2>
+                  <span className="rounded-full bg-[#eefcfd] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#0b7ea9]">
+                    {relatedRooms.length}
                   </span>
                 </div>
-
-                <div className="mt-5 rounded-3xl bg-[#f6f6f6] p-5 md:p-7">
-                  <div className="mb-4 text-[16px] font-semibold text-slate-800 md:text-[18px]">Khu vực lân cận</div>
-                  <ul className="space-y-3">
-                    {room.location.nearbyPlaces.map((place) => (
-                      <li key={place} className="flex items-start gap-3 rounded-2xl bg-white px-4 py-3 text-[15px] text-slate-700 shadow-sm md:text-[17px]">
-                        <span className="mt-2 inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#25c3c8]" aria-hidden />
-                        <span className="leading-7">{place}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="mt-3 space-y-3">
+                  {relatedRooms.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={buildRoomRouteFromSlug(item.slug)}
+                      className="group block rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-[#7ed9dd] hover:bg-white hover:shadow-md"
+                    >
+                      <p className="font-semibold text-slate-900 transition group-hover:text-[#0b7ea9]">{item.title}</p>
+                      <p className="mt-1 text-sm text-slate-500">{item.address}</p>
+                      <p className="mt-3 text-base font-extrabold text-[#f2483a]">{item.priceLabel}</p>
+                    </Link>
+                  ))}
                 </div>
-              </div>
-
-              <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-inner">
-                <div className="relative h-72 md:h-full md:min-h-[420px]">
-                  <iframe
-                    src={`https://maps.google.com/maps?hl=vi&q=${encodeURIComponent(`${room.address}, ${room.city}`)}&z=15&output=embed`}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    title={`Ban do ${room.title}`}
-                    className="grayscale transition-all duration-700 hover:grayscale-0"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    allowFullScreen
-                  />
-                </div>
-              </div>
-            </div>
-          </article>
+              </article>
+            )}
+          </aside>
         </section>
       </section>
     </main>

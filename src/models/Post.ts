@@ -177,7 +177,6 @@ const PostSchema = new Schema<PostDocument>(
       type: {
         type: String,
         enum: ["Point"],
-        default: "Point",
       },
       coordinates: {
         type: [Number],

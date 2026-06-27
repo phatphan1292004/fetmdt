@@ -815,35 +815,40 @@ function ManagedPostsTab() {
 
 function BuffPostsTab() {
   const [posts, setPosts] = useState<any[]>([]);
+  const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState("");
   const [selectedDuration, setSelectedDuration] = useState(7); // 7 days default
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [activePackage, setActivePackage] = useState<{
-    id: string;
-    name: string;
-    price: number;
-  } | null>(null);
+  const [activePackage, setActivePackage] = useState<any>(null);
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch("/api/v1/user/posts");
-        const data = await res.json();
-        if (data.success) {
-          const fetchedPosts = data.data || [];
+        // Fetch posts
+        const postsRes = await fetch("/api/v1/user/posts");
+        const postsData = await postsRes.json();
+        if (postsData.success) {
+          const fetchedPosts = postsData.data || [];
           setPosts(fetchedPosts);
           if (fetchedPosts.length > 0) {
             setSelectedPost(fetchedPosts[0]._id);
           }
         }
+
+        // Fetch packages
+        const pkgsRes = await fetch("/api/v1/packages");
+        const pkgsData = await pkgsRes.json();
+        if (pkgsData.success) {
+          setPackages(pkgsData.data || []);
+        }
       } catch (error) {
-        console.error("Error fetching posts for buff:", error);
+        console.error("Error fetching data for buff:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchPosts();
+    fetchData();
   }, []);
   
   // VietQR integration states
@@ -856,56 +861,7 @@ function BuffPostsTab() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
-  const packages = [
-    {
-      id: "vip1",
-      name: "VIP 1 (Siêu Cấp)",
-      price: 50000,
-      description: "Tiếp cận lượng khách hàng tối đa, ghim đầu trang tìm kiếm",
-      features: [
-        "Ghim đầu trang tìm kiếm danh mục",
-        "Thẻ bài đăng nổi bật (Glow border)",
-        "Tự động đẩy tin (Auto push) mỗi 2 giờ",
-        "Tiếp cận lượng khách hàng gấp 10 lần",
-        "Hỗ trợ thiết kế hình ảnh & bài đăng chuyên nghiệp",
-      ],
-      isPopular: true,
-      color: "from-amber-500 to-orange-600",
-      textColor: "text-amber-600",
-    },
-    {
-      id: "vip2",
-      name: "VIP 2 (Nổi Bật)",
-      price: 30000,
-      description: "Hiển thị nổi bật phía dưới tin VIP 1, tiếp cận gấp 5 lần",
-      features: [
-        "Hiển thị ưu tiên phía dưới gói VIP 1",
-        "Thẻ bài đăng có viền xanh lá nổi bật",
-        "Tự động đẩy tin (Auto push) mỗi 6 giờ",
-        "Tiếp cận lượng khách hàng gấp 5 lần",
-      ],
-      isPopular: false,
-      color: "from-emerald-500 to-teal-600",
-      textColor: "text-emerald-600",
-    },
-    {
-      id: "vip3",
-      name: "VIP 3 (Tiết Kiệm)",
-      price: 15000,
-      description: "Hiển thị ưu tiên hơn tin thường, chi phí tiết kiệm",
-      features: [
-        "Hiển thị ưu tiên hơn tin thường",
-        "Biểu tượng ngôi sao vàng nổi bật",
-        "Tự động đẩy tin (Auto push) 1 lần/ngày",
-        "Tiếp cận lượng khách hàng gấp 2.5 lần",
-      ],
-      isPopular: false,
-      color: "from-blue-500 to-indigo-600",
-      textColor: "text-blue-600",
-    },
-  ];
-
-  const handleOpenConfirm = (pkg: typeof packages[0]) => {
+  const handleOpenConfirm = (pkg: any) => {
     setActivePackage(pkg);
     setIsConfirmOpen(true);
     setShowQrCode(false);
@@ -960,7 +916,7 @@ function BuffPostsTab() {
         },
         body: JSON.stringify({
           postId: selectedPost,
-          packageId: activePackage?.id,
+          packageId: activePackage?.code || activePackage?._id || activePackage?.id,
           packageName: activePackage?.name,
           amount: qrAmount,
           duration: selectedDuration,
@@ -1011,7 +967,7 @@ function BuffPostsTab() {
       <div className="grid gap-6 md:grid-cols-3">
         {packages.map((pkg) => (
           <article
-            key={pkg.id}
+            key={pkg._id || pkg.code || pkg.id}
             className={`relative rounded-3xl border bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between ${
               pkg.isPopular
                 ? "border-amber-400 ring-2 ring-amber-400/20 scale-[1.02] md:scale-[1.03]"

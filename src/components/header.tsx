@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CurrentUser, UserMenu } from "./UserMenu";
+import Image from "next/image";
 
 type HeaderLocation = {
   city: string;
@@ -27,35 +28,20 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
           <div className="flex items-center gap-7 xl:gap-9">
             <Link
               href="/"
-              className="inline-flex shrink-0 items-center gap-2.5 text-[#045a84]"
+              className="inline-flex shrink-0 items-center gap-2.5"
               aria-label="PhòngTốt"
             >
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#22c2c7] text-white shadow-[0_8px_18px_rgba(34,194,199,0.28)]">
-                <svg
-                  className="h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden
-                >
-                  <path
-                    d="M4 9.5C6.2 11.7 9 13 12 13C15 13 17.8 11.7 20 9.5V15.2C20 18.4 17.4 21 14.2 21H9.8C6.6 21 4 18.4 4 15.2V9.5Z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M8 6C9.1 5.3 10.5 5 12 5C13.5 5 14.9 5.3 16 6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
-              <span className="font-display text-[34px] font-black leading-none tracking-tight">
-                <span className="text-[#045a84]">Phòng</span>
-                <span className="text-[#0a6e97]">tốt</span>
+              <Image
+                src="/logo2.png"
+                alt="PhòngTốt"
+                width={100}
+                height={100}
+                priority
+                className="object-contain"
+              />
+              <span className="font-display -ml-8 text-[30px] font-black leading-none tracking-tight">
+                <span className="text-[#045a84]">Phong</span>
+                <span className="text-[#0a6e97]">Tot</span>
               </span>
             </Link>
 

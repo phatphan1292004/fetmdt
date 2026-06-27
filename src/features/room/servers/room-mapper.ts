@@ -169,24 +169,12 @@ function buildAmenities(
     amenities.push("WC riêng");
   }
 
-  if (toBoolean(details.hasBalcony)) {
-    amenities.push("Ban công");
-  }
-
   if (toBoolean(details.hasLoft)) {
     amenities.push("Có gác");
   }
 
   if (toBoolean(allowPets)) {
     amenities.push("Cho phép thú cưng");
-  }
-
-  if (interiorStatus) {
-    amenities.push(`Nội thất: ${interiorStatus}`);
-  }
-
-  if (feature) {
-    amenities.push(feature);
   }
 
   return amenities;
@@ -251,6 +239,8 @@ export function mapPostToRoomDetail(
       mapLabel: address,
       nearbyPlaces: [],
     },
+    propertyType: post.propertyType,
+    details: details,
   };
 }
 
