@@ -7,7 +7,7 @@ import { HeroSection } from "./hero-section";
 
 export async function PropertyHomePage() {
   const landingData = getPropertyLandingData();
-  const featuredPosts = getFeaturedPostsData();
+  const featuredPosts = await getFeaturedPostsData();
   const newestPosts = await getNewestPostsData();
 
   return (

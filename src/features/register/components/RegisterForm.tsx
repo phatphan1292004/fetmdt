@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { registerApi } from "../servers/register";
+import { toast } from "react-toastify";
 
 export function RegisterForm() {
     const [role, setRole] = useState<"nguoi_tim_tro" | "nguoi_cho_thue_tro">("nguoi_tim_tro");
@@ -14,59 +15,23 @@ export function RegisterForm() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isAgree, setIsAgree] = useState(false);
     const [loading, setLoading] = useState(false);
-
-    const [toast, setToast] = useState<{
-        type: "success" | "error";
-        message: string;
-        show: boolean;
-    }>({
-        type: "success",
-        message: "",
-        show: false,
-    });
-
-    const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const router = useRouter();
-
-    const showToast = (type: "success" | "error", message: string) => {
-        if (toastTimeoutRef.current) {
-            clearTimeout(toastTimeoutRef.current);
-        }
-
-        setToast({
-            type,
-            message,
-            show: true,
-        });
-
-        toastTimeoutRef.current = setTimeout(() => {
-            setToast((prev) => ({ ...prev, show: false }));
-        }, 3000);
-    };
-
-    useEffect(() => {
-        return () => {
-            if (toastTimeoutRef.current) {
-                clearTimeout(toastTimeoutRef.current);
-            }
-        };
-    }, []);
 
     const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (password.length < 8) {
-            showToast("error", "Mật khẩu phải có ít nhất 8 ký tự");
+            toast.error("Mật khẩu phải có ít nhất 8 ký tự");
             return;
         }
 
         if (password !== confirmPassword) {
-            showToast("error", "Mật khẩu xác nhận không khớp");
+            toast.error("Mật khẩu xác nhận không khớp");
             return;
         }
 
         if (!isAgree) {
-            showToast("error", "Vui lòng đồng ý điều khoản trước khi đăng ký");
+            toast.error("Vui lòng đồng ý điều khoản trước khi đăng ký");
             return;
         }
 
@@ -82,15 +47,15 @@ export function RegisterForm() {
             });
 
             if (res.success) {
-                showToast("success", "Đăng ký thành công");
+                toast.success("Đăng ký thành công!");
                 setTimeout(() => {
                     router.push("/login");
                 }, 500);
             } else {
-                showToast("error", res.message || "Đăng ký thất bại");
+                toast.error(res.message || "Đăng ký thất bại");
             }
         } catch (err: any) {
-            showToast("error", err.message || "Lỗi hệ thống");
+            toast.error(err.message || "Lỗi hệ thống");
         } finally {
             setLoading(false);
         }
@@ -282,23 +247,7 @@ export function RegisterForm() {
             </p>
         </section>
 
-        {toast.show && (
-            <div
-                className={`fixed top-5 right-5 z-50 min-w-70 rounded-xl px-4 py-3 text-white shadow-lg transition-all ${toast.type === "success" ? "bg-green-500" : "bg-red-500"
-                    }`}
-            >
-                <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium">{toast.message}</p>
-                    <button
-                        type="button"
-                        onClick={() => setToast((prev) => ({ ...prev, show: false }))}
-                        className="text-white/80 hover:text-white"
-                    >
-                        ×
-                    </button>
-                </div>
-            </div>
-        )}
+        
     </>
     );
 }

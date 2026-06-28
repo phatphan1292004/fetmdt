@@ -82,9 +82,28 @@ export async function PUT(req: Request) {
     order.status = status;
     await order.save();
 
-    // If order was approved, update the post status to "published"
+    // If order was approved, update the post status to "published" and activate the VIP package
     if (status === "completed") {
-      await Post.findByIdAndUpdate(order.post, { status: "published" });
+      const packageId = order.packageId;
+      const durationDays = order.duration || 1;
+      const expireAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+      
+      const weights: Record<string, number> = {
+        supervip: 5,
+        vip1: 4,
+        vip2: 3,
+        vip3: 2,
+        free: 0,
+      };
+      const weight = weights[packageId] ?? 0;
+
+      await Post.findByIdAndUpdate(order.post, {
+        status: "published",
+        vipType: packageId,
+        vipWeight: weight,
+        vipExpireAt: expireAt,
+        lastPushedAt: new Date(), // Push the post to top instantly upon activation
+      });
     }
 
     return NextResponse.json({

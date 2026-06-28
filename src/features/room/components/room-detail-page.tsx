@@ -184,6 +184,70 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
   const contactPhoneHref = room.contact.phone.replace(/\D/g, "");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+  // Reviews states
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [stats, setStats] = useState({ totalReviews: 0, avgRating: 5.0 });
+  const [newRating, setNewRating] = useState(5);
+  const [newContent, setNewContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+
+  const fetchReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      const res = await fetch(`/api/v1/rooms/${room.id}/reviews`);
+      const result = await res.json();
+      if (result.success && result.data) {
+        setReviews(result.data.reviews || []);
+        setStats(result.data.stats || { totalReviews: 0, avgRating: 5.0 });
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, [room.id]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAuth) {
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+
+    if (!newContent.trim()) {
+      toast.error("Vui lòng nhập nội dung đánh giá!");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/v1/rooms/${room.id}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: newRating, content: newContent }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success(result.message || "Đánh giá thành công!");
+        setNewContent("");
+        setNewRating(5);
+        fetchReviews();
+      } else {
+        toast.error(result.message || "Không thể gửi đánh giá!");
+      }
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      toast.error("Đã xảy ra lỗi, vui lòng thử lại sau!");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const [selectedCategory, setSelectedCategory] = useState<typeof AMENITY_CATEGORIES[number] | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     room.location.latitude && room.location.longitude
@@ -772,6 +836,91 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
             )}
 
             <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7">
+              <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Quy định phòng trọ</h2>
+              <div className="mt-4 rounded-[28px] bg-[#fffaf5] p-5 border border-amber-100 md:p-7">
+                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">Giờ giấc tự do</strong>
+                      <span className="text-xs text-slate-500">Ra vào thoải mái, tự chủ thời gian đi lại.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">An ninh đảm bảo</strong>
+                      <span className="text-xs text-slate-500">Khóa vân tay, có camera giám sát 24/7.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">Không chung chủ</strong>
+                      <span className="text-xs text-slate-500">Không gian sinh hoạt hoàn toàn độc lập.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                        <polyline points="17 21 17 13 7 13 7 21" />
+                        <polyline points="7 3 7 8 15 8" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">Bảo quản tài sản</strong>
+                      <span className="text-xs text-slate-500">Giữ gìn trang thiết bị và cơ sở vật chất chung.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">Đóng phí đúng hạn</strong>
+                      <span className="text-xs text-slate-500">Thanh toán tiền phòng và dịch vụ đầu tháng.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">Tôn trọng tập thể</strong>
+                      <span className="text-xs text-slate-500">Hạn chế tiếng ồn lớn sau 23h đêm.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                   <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Vị trí & Tiện ích</h2>
@@ -931,6 +1080,95 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                 </div>
               </div>
             </article>
+
+            {/* Reviews Section */}
+            <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7 space-y-6">
+              <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Nhận xét & Đánh giá</h2>
+              
+              {/* Write Review Form */}
+              <form onSubmit={handleSubmitReview} className="space-y-4 rounded-2xl bg-slate-50 p-4 md:p-5 border border-slate-100">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-slate-700">Đánh giá của bạn:</span>
+                  <div className="flex gap-1 text-2xl text-amber-400">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setNewRating(star)}
+                        className="transition hover:scale-110 cursor-pointer focus:outline-none"
+                      >
+                        {star <= newRating ? "★" : "☆"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <textarea
+                    rows={3}
+                    placeholder="Chia sẻ trải nghiệm của bạn về phòng trọ này (vị trí, không gian, an ninh, chủ nhà...)..."
+                    value={newContent}
+                    onChange={(e) => setNewContent(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-[14px] text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0b7ea9]"
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center justify-center rounded-xl bg-[#0b7ea9] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0a7198] disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Đang gửi..." : "Gửi đánh giá"}
+                  </button>
+                </div>
+              </form>
+
+              {/* Reviews List */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-slate-800">
+                  Ý kiến khách hàng ({reviews.length})
+                </h3>
+
+                {loadingReviews ? (
+                  <p className="text-sm text-slate-500 py-4 text-center">Đang tải đánh giá...</p>
+                ) : reviews.length > 0 ? (
+                  <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
+                    {reviews.map((review) => (
+                      <div key={review._id} className="py-4 first:pt-0 last:pb-0 space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className="h-10 w-10 shrink-0 rounded-full bg-cover bg-center ring-1 ring-slate-100"
+                              style={{
+                                backgroundImage: `url(${review.userAvatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(review.userName)}&background=0A6D97&color=fff`})`,
+                              }}
+                            />
+                            <div>
+                              <h4 className="text-sm font-bold text-slate-800">{review.userName}</h4>
+                              <p className="text-xs text-slate-400">
+                                {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-sm text-[#f59e0b] bg-amber-50 px-2 py-0.5 rounded-full font-semibold">
+                            {"★".repeat(review.rating)}
+                            {"☆".repeat(5 - review.rating)}
+                          </div>
+                        </div>
+                        <p className="text-slate-600 text-sm pl-[50px] whitespace-pre-line leading-relaxed">
+                          {review.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-sm text-slate-500 rounded-2xl border-2 border-dashed border-slate-100">
+                    Chưa có đánh giá nào cho phòng trọ này. Hãy là người đầu tiên đánh giá!
+                  </div>
+                )}
+              </div>
+            </article>
           </div>
 
           <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
@@ -979,12 +1217,19 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
               <h2 className="text-[22px] font-extrabold text-[#0b5f89]">Đánh giá</h2>
               <div className="mx-auto mt-4 grid max-w-[300px] grid-cols-2 items-center rounded-3xl bg-white p-4 shadow-sm">
                 <div className="pr-4 text-center">
-                  <p className="text-[28px] font-black leading-none text-slate-900">8,8</p>
-                  <p className="mt-1 text-[15px] tracking-wide text-[#f59e0b]">★ ★ ★ ★ ★</p>
+                  <p className="text-[28px] font-black leading-none text-slate-900">
+                    {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "5.0"}
+                  </p>
+                  <p className="mt-1 text-[14px] tracking-wide text-[#f59e0b]">
+                    {"★".repeat(Math.round(stats.avgRating || 5))}
+                    {"☆".repeat(5 - Math.round(stats.avgRating || 5))}
+                  </p>
                 </div>
 
                 <div className="border-l border-slate-200 pl-4 text-center">
-                  <p className="text-[24px] font-black leading-none text-slate-900">102</p>
+                  <p className="text-[24px] font-black leading-none text-slate-900">
+                    {stats.totalReviews}
+                  </p>
                   <p className="text-sm text-slate-600">Đánh giá</p>
                 </div>
               </div>

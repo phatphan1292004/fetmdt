@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { CurrentUser, UserMenu } from "./UserMenu";
 import Image from "next/image";
+import { toast } from "react-toastify";
 
 type HeaderLocation = {
   city: string;
@@ -19,6 +21,22 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
   const safeLocations = (locations ?? []).filter(
     (location) => location.city.trim().length > 0,
   );
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const loginSuccess = sessionStorage.getItem("login_success");
+      if (loginSuccess) {
+        toast.success("Đăng nhập thành công!");
+        sessionStorage.removeItem("login_success");
+      }
+
+      const logoutSuccess = sessionStorage.getItem("logout_success");
+      if (logoutSuccess) {
+        toast.success("Đăng xuất thành công!");
+        sessionStorage.removeItem("logout_success");
+      }
+    }
+  }, []);
 
 
   return (

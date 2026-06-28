@@ -105,6 +105,8 @@ type PublicPostDocument = {
   ownerType?: string;
   mediaUrls?: string[];
   status?: string;
+  vipType?: string;
+  vipExpireAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -632,13 +634,75 @@ async function getNewestPublicPosts(
 ): Promise<PublicPostApiData[]> {
   await connectDB();
 
+  // Sweep expired VIP packages
+  await Post.updateMany(
+    { vipExpireAt: { $lt: new Date() }, vipType: { $ne: "free" } },
+    { $set: { vipType: "free", vipWeight: 0 } }
+  );
+
   const posts = await Post.find({
     status: { $in: PUBLIC_POST_STATUSES },
   })
-    .sort({ createdAt: -1 })
+    .sort({ vipWeight: -1, lastPushedAt: -1 })
     .limit(limit)
     .populate("ownerId", "fullName")
     .lean<PublicPostDocument[]>();
+
+  if (!posts.length) {
+    return [];
+  }
+
+  const ownerObjectIds = [...new Set(posts.map((post) => getPublicOwnerInfo(post.ownerId).ownerId))]
+    .filter((ownerId) => Types.ObjectId.isValid(ownerId))
+    .map((ownerId) => new Types.ObjectId(ownerId));
+
+  const ownerPostCounts = ownerObjectIds.length
+    ? await Post.aggregate<{ _id: Types.ObjectId; count: number }>([
+        {
+          $match: {
+            ownerId: { $in: ownerObjectIds },
+            status: { $in: PUBLIC_POST_STATUSES },
+          },
+        },
+        {
+          $group: {
+            _id: "$ownerId",
+            count: { $sum: 1 },
+          },
+        },
+      ])
+    : [];
+
+  const ownerPostCountMap = new Map<string, number>(
+    ownerPostCounts.map((item) => [String(item._id), item.count])
+  );
+
+  return posts.map((post) => mapPublicPostForResponse(post, ownerPostCountMap));
+}
+
+async function getFeaturedPublicPosts(
+  limit: number
+): Promise<PublicPostApiData[]> {
+  await connectDB();
+
+  // Sweep expired VIP packages
+  await Post.updateMany(
+    { vipExpireAt: { $lt: new Date() }, vipType: { $ne: "free" } },
+    { $set: { vipType: "free", vipWeight: 0 } }
+  );
+
+  // 1. Query only VIP posts
+  let posts = await Post.find({
+    status: { $in: PUBLIC_POST_STATUSES },
+    vipType: { $ne: "free" },
+    vipWeight: { $gt: 0 },
+  })
+    .sort({ vipWeight: -1, lastPushedAt: -1 })
+    .limit(limit)
+    .populate("ownerId", "fullName")
+    .lean<PublicPostDocument[]>();
+
+
 
   if (!posts.length) {
     return [];
@@ -676,7 +740,7 @@ async function getNewestPublicPosts(
  * @openapi
  * /api/v1/posts:
  *   get:
- *     summary: Lấy danh sách bài đăng mới nhất
+ *     summary: Lấy danh sách bài đăng mới nhất hoặc nổi bật
  *     tags:
  *       - Posts
  *     parameters:
@@ -684,7 +748,7 @@ async function getNewestPublicPosts(
  *         name: section
  *         schema:
  *           type: string
- *           enum: [newest]
+ *           enum: [newest, featured]
  *       - in: query
  *         name: limit
  *         schema:
@@ -704,7 +768,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const section = toTrimmedString(searchParams.get("section") ?? "newest").toLowerCase();
 
-    if (section !== "newest") {
+    if (!["newest", "featured"].includes(section)) {
       return NextResponse.json(
         {
           success: false,
@@ -716,12 +780,14 @@ export async function GET(req: Request) {
     }
 
     const limit = normalizeNewestLimit(searchParams.get("limit"));
-    const newestPosts = await getNewestPublicPosts(limit);
+    const data = section === "featured"
+      ? await getFeaturedPublicPosts(limit)
+      : await getNewestPublicPosts(limit);
 
     return NextResponse.json({
       success: true,
-      message: "Lấy danh sách bài đăng mới nhất thành công",
-      data: newestPosts,
+      message: `Lấy danh sách bài đăng ${section === "featured" ? "nổi bật" : "mới nhất"} thành công`,
+      data,
     });
   } catch (error: unknown) {
     return NextResponse.json(

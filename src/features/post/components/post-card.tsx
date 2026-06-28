@@ -27,8 +27,39 @@ const DEFAULT_GALLERY_IMAGE =
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80";
 
 const FEATURE_TRANSLATIONS: Record<string, string> = {
+  // Features/subtitles from forms
+  "nha-mat-tien": "Nhà mặt tiền",
+  "hem-rong": "Hẻm rộng",
+  "gan-truong-cho": "Gần trường/chợ",
+  "phu-hop-gia-dinh": "Phù hợp gia đình",
+  "ban-cong": "Có ban công",
   "view-dep": "View đẹp",
   "view-thoang": "View thoáng",
+  "an-ninh-24-7": "An ninh 24/7",
+  "gan-thang-may": "Gần thang máy",
+  "co-gac": "Có gác",
+  "wc-rieng": "WC riêng",
+  "gio-giac-tu-do": "Giờ giấc tự do",
+  "gan-trung-tam": "Gần trung tâm",
+
+  // Legacy/Mock featured post subtitles/features
+  "noi-that-cao-cap": "Nội thất cao cấp",
+  "can-goc-view-thoang": "Căn góc, view thoáng",
+  "nha-moi-vao-o-ngay": "Nhà mới, vào ở ngay",
+  "thang-may-khoa-van-tay": "Thang máy, khóa vân tay",
+  "tin-uu-tien": "Tin ưu tiên",
+  "noi-that-day-du": "Nội thất đầy đủ",
+  "phong-tro-cao-cap": "Phòng trọ cao cấp",
+  "cho-thue": "Cho thuê",
+};
+
+const CATEGORY_TRANSLATIONS: Record<string, string> = {
+  "phong-tro": "Phòng trọ",
+  "nha-o": "Nhà ở",
+  "can-ho-mini": "Căn hộ mini",
+  "can-ho": "Căn hộ",
+  "studio": "Studio",
+  "nha-nguyen-can": "Nhà nguyên căn",
 };
 
 function isFeaturedPost(post: PostListingData): post is PostCardData {
@@ -123,6 +154,11 @@ function formatCategory(propertyType?: string, category?: string): string {
   const categoryLabel = asTrimmedString(category);
 
   if (categoryLabel) {
+    const normalizedKey = categoryLabel.toLowerCase().replace(/_/g, "-").replace(/\s+/g, "-");
+    const translated = CATEGORY_TRANSLATIONS[normalizedKey];
+    if (translated) {
+      return translated;
+    }
     return categoryLabel;
   }
 
@@ -135,6 +171,23 @@ function formatCategory(propertyType?: string, category?: string): string {
   }
 
   return "Phòng trọ";
+}
+
+function formatTagLabel(tag?: string): string {
+  const parsed = asTrimmedString(tag);
+  if (!parsed) {
+    return "Bài đăng mới";
+  }
+  const normalizedKey = parsed.toLowerCase().replace(/_/g, "-").replace(/\s+/g, "-");
+  return FEATURE_TRANSLATIONS[normalizedKey] ?? parsed;
+}
+
+function formatPostCountLabel(countLabel?: string): string {
+  const parsed = asTrimmedString(countLabel);
+  if (!parsed) {
+    return "1 tin đăng";
+  }
+  return parsed.replace(/tin\s+dang/gi, "tin đăng");
 }
 
 function formatPostStatus(status?: string): string {
@@ -227,15 +280,15 @@ function resolveCardData(post: PostListingData) {
     return {
       title: post.title,
       subtitle: formatSubtitle(post.subtitle),
-      categoryLabel: post.category,
+      categoryLabel: formatCategory(post.propertyType, post.category),
       statusLabel: post.availableLabel,
       priceLabel: post.priceLabel,
       areaLabel: normalizeAreaLabel(post.areaLabel),
       addressLabel: mergeAddress(post.address, post.city),
-      tagLabel: post.tagLabel,
+      tagLabel: formatTagLabel(post.tagLabel),
       authorName: post.authorName,
       authorAvatarUrl: post.authorAvatarUrl,
-      authorPostCountLabel: post.authorPostCountLabel,
+      authorPostCountLabel: formatPostCountLabel(post.authorPostCountLabel),
     };
   }
 
@@ -265,12 +318,37 @@ export function PostCard({ post }: PostCardProps) {
   const postSlug = asTrimmedString("slug" in post ? post.slug : undefined) ?? ("id" in post ? post.id : undefined) ?? "";
   const detailHref = buildRoomRouteFromSlug(postSlug);
 
+  const isVipActive = (() => {
+    if (!("vipExpireAt" in post) || !post.vipExpireAt) {
+      return false;
+    }
+    const expireTime = new Date(post.vipExpireAt).getTime();
+    return expireTime > Date.now();
+  })();
+
+  const vipType = isVipActive && "vipType" in post ? post.vipType : "free";
+
+  const getVipCardStyles = () => {
+    switch (vipType) {
+      case "supervip":
+        return "border-2 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)] bg-gradient-to-b from-red-50/5 via-white to-white";
+      case "vip1": // VIP 1 (Siêu Cấp) - Glow border (orange glow border)
+        return "border-2 border-amber-500 shadow-[0_0_22px_rgba(245,158,11,0.35)] relative before:absolute before:inset-0 before:rounded-3xl before:border-2 before:border-amber-400/60 before:pointer-events-none before:animate-pulse";
+      case "vip2": // VIP 2 (Nổi Bật) - Viền xanh lá
+        return "border-2 border-emerald-500 shadow-[0_4px_20px_rgba(16,185,129,0.12)]";
+      case "vip3": // VIP 3 (Tiết Kiệm) - Biểu tượng ngôi sao vàng nổi bật
+        return "border border-sky-300 shadow-[0_4px_12px_rgba(14,165,233,0.06)]";
+      default:
+        return "border border-slate-200/90 shadow-[0_14px_34px_rgba(15,23,42,0.1)]";
+    }
+  };
+
   while (galleryImages.length < 5) {
     galleryImages.push(galleryImages[0]);
   }
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-slate-200/90 bg-linear-to-b from-white to-slate-50 p-3 shadow-[0_14px_34px_rgba(15,23,42,0.1)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.14)] md:p-4">
+    <article className={`overflow-hidden rounded-3xl bg-linear-to-b from-white to-slate-50 p-3 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.14)] md:p-4 ${getVipCardStyles()}`}>
       <Link
         href={detailHref}
         className="block overflow-hidden rounded-2xl border border-slate-100 bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b7ea9]"
@@ -285,8 +363,21 @@ export function PostCard({ post }: PostCardProps) {
             <span className="absolute bottom-2 left-2 rounded-full bg-emerald-600/95 px-2.5 py-1 text-[11px] font-semibold text-white md:text-[12px]">
               {cardData.tagLabel}
             </span>
+            {isVipActive && vipType && vipType !== "free" && (
+              <span className={`absolute right-2 top-2 rounded-full px-2.5 py-1 text-[10px] font-bold text-white uppercase tracking-wider shadow-sm z-10 ${
+                vipType === "supervip" 
+                  ? "bg-red-500" 
+                  : vipType === "vip1" 
+                    ? "bg-amber-500" 
+                    : vipType === "vip2" 
+                      ? "bg-emerald-500" 
+                      : "bg-sky-500"
+              }`}>
+                {vipType === "supervip" ? "🏆 Super VIP" : vipType === "vip1" ? "⭐ VIP 1" : vipType === "vip2" ? "✨ VIP 2" : "✔ VIP 3"}
+              </span>
+            )}
           </GalleryCell>
-
+ 
           <GalleryCell imageUrl={galleryImages[1]} />
 
           <div className="grid grid-rows-2 gap-0.5">

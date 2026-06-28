@@ -39,6 +39,10 @@ export type PostDocument = {
     coordinates: [number, number];
   };
   status: PostStatus;
+  vipType?: "supervip" | "vip1" | "vip2" | "vip3" | "free";
+  vipWeight?: number;
+  vipExpireAt?: Date | null;
+  lastPushedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -189,6 +193,27 @@ const PostSchema = new Schema<PostDocument>(
       required: true,
       index: true,
     },
+    vipType: {
+      type: String,
+      enum: ["supervip", "vip1", "vip2", "vip3", "free"],
+      default: "free",
+      index: true,
+    },
+    vipWeight: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+    vipExpireAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    lastPushedAt: {
+      type: Date,
+      default: Date.now,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -197,6 +222,7 @@ const PostSchema = new Schema<PostDocument>(
 );
 
 PostSchema.index({ location: "2dsphere" });
+PostSchema.index({ vipWeight: -1, lastPushedAt: -1 });
 
 const PostModel =
   (mongoose.models.Post as Model<PostDocument>) ||

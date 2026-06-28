@@ -1,45 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loginApi } from "../servers/login";
+import { toast } from "react-toastify";
 
 export function LoginForm() {
     const [account, setAccount] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    const [toast, setToast] = useState<{
-        type: "success" | "error";
-        message: string;
-        show: boolean;
-    }>({
-        type: "success",
-        message: "",
-        show: false,
-    });
-
-    const showToast = (type: "success" | "error", message: string) => {
-        if (toastTimeoutRef.current) {
-            clearTimeout(toastTimeoutRef.current);
-        }
-
-        setToast({
-            type,
-            message,
-            show: true,
-        });
-
-        toastTimeoutRef.current = setTimeout(() => {
-            setToast((prev) => ({ ...prev, show: false }));
-        }, 3000);
-    };
-
-    const handleSubmit = async (e: React.SubmitEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
 
@@ -51,17 +24,16 @@ export function LoginForm() {
 
             if (data.success) {
                 // localStorage.setItem("user", JSON.stringify(data.data!));
-
-                showToast("success", "Đăng nhập thành công");
+                sessionStorage.setItem("login_success", "true");
 
                 setTimeout(() => {
-                    router.push("/");
+                    window.location.href = "/";
                 }, 500);
             } else {
-                showToast("error", data.message);
+                toast.error(data.message || "Đăng nhập thất bại");
             }
         } catch (err: any) {
-            showToast("error", err.message || "Lỗi hệ thống");
+            toast.error(err.message || "Lỗi hệ thống");
         } finally {
             setLoading(false);
         }
@@ -163,22 +135,7 @@ export function LoginForm() {
                 </Link>
             </p>
         </section>
-        {toast.show && (
-            <div
-                className={`fixed top-5 right-5 z-50 min-w-70 rounded-xl px-4 py-3 text-white shadow-lg transition-all ${toast.type === "success" ? "bg-green-500" : "bg-red-500"
-                    }`}
-            >
-                <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium">{toast.message}</p>
-                    <button
-                        onClick={() => setToast((prev) => ({ ...prev, show: false }))}
-                        className="text-white/80 hover:text-white"
-                    >
-                        ✕
-                    </button>
-                </div>
-            </div>
-        )}
+        
     </>
     );
 }

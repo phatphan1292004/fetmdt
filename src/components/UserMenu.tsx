@@ -69,6 +69,7 @@ export function UserMenu({ currentUser, variant = "desktop" }: UserMenuProps) {
             });
 
             if (response.ok) {
+                sessionStorage.setItem("logout_success", "true");
                 window.location.reload();
             }
         } finally {
