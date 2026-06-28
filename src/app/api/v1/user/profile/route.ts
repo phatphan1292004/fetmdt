@@ -1,6 +1,8 @@
 import { connectDB } from "@/src/lib/mongoose";
 import { verifyToken } from "@/src/lib/jwt";
 import User from "@/src/models/User";
+import { promises as fs } from "fs";
+import path from "path";
 
 function getToken(req: Request) {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -70,11 +72,20 @@ export async function PATCH(req: Request) {
         body.hobbies = hobbiesStr.split(",").map((s) => s.trim()).filter(Boolean);
       }
       
-      // Handle avatar upload if needed (not implemented here, assuming Cloudinary or similar elsewhere, but for now we just skip or simulate)
+      // Handle avatar upload
       const avatarFile = formData.get("avatar");
       if (avatarFile && typeof avatarFile !== "string") {
-         // In a real app, upload avatarFile to S3/Cloudinary and get URL
-         // body.avatarUrl = uploadedUrl;
+        const bytes = await avatarFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+
+        const filename = `${Date.now()}-${avatarFile.name.replace(/\s+/g, '_')}`;
+        const uploadDir = path.join(process.cwd(), "public", "uploads");
+        await fs.mkdir(uploadDir, { recursive: true });
+        
+        const filepath = path.join(uploadDir, filename);
+        await fs.writeFile(filepath, buffer);
+        
+        body.avatarUrl = `/uploads/${filename}`;
       }
     } else {
       body = await req.json();

@@ -496,6 +496,28 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
     }
   };
 
+  const handleCompare = () => {
+    try {
+      const stored = localStorage.getItem("compareRooms");
+      const rooms: RoomDetailData[] = stored ? JSON.parse(stored) : [];
+      if (!rooms.some((r) => r.id === room.id)) {
+        if (rooms.length >= 3) {
+          toast.warning("Chỉ có thể so sánh tối đa 3 phòng!");
+          return;
+        }
+        rooms.push(room);
+        localStorage.setItem("compareRooms", JSON.stringify(rooms));
+      }
+      toast.success("Đã thêm vào danh sách so sánh. Trở về Trang chủ/Tìm kiếm để so sánh nhé!", {
+        autoClose: 3000,
+      });
+      // Optionally dispatch an event if we want components to listen
+      window.dispatchEvent(new Event("compareRoomsUpdated"));
+    } catch (e) {
+      console.error("Failed to add to compare list", e);
+    }
+  };
+
   while (gallery.length < 5) {
     gallery.push(room.imageUrls[0]);
   }
@@ -636,13 +658,20 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
               <div className="mt-5 flex gap-3">
                 <button
                   type="button"
-                  className="inline-flex flex-1 items-center justify-center rounded-2xl bg-[#0b7ea9] px-4 py-3.5 font-semibold text-white transition hover:bg-[#0a7198]"
+                  className="inline-flex flex-1 items-center justify-center rounded-2xl bg-[#0b7ea9] px-2 py-3.5 text-[15px] font-semibold text-white transition hover:bg-[#0a7198]"
                 >
                   Chia sẻ
                 </button>
+                <button
+                  type="button"
+                  onClick={handleCompare}
+                  className="inline-flex flex-1 items-center justify-center rounded-2xl bg-[#f7cd00] px-2 py-3.5 text-[15px] font-semibold text-slate-900 transition hover:brightness-95"
+                >
+                  So sánh
+                </button>
                 <a
                   href={`tel:${contactPhoneHref}`}
-                  className="inline-flex flex-1 items-center justify-center rounded-2xl border border-[#0b7ea9] px-4 py-3.5 font-semibold text-[#0b7ea9] transition hover:bg-[#effaff]"
+                  className="inline-flex flex-1 items-center justify-center rounded-2xl border border-[#0b7ea9] px-2 py-3.5 text-[15px] font-semibold text-[#0b7ea9] transition hover:bg-[#effaff]"
                 >
                   Gọi ngay
                 </a>
