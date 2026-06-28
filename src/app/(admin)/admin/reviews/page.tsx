@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LuCheck,
   LuTrash2,
@@ -30,7 +30,8 @@ const initialReviews = [
 ];
 
 export default function ReviewManagementPage() {
-  const [reviews, setReviews] = useState(initialReviews);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // States Phân trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,34 +41,85 @@ export default function ReviewManagementPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<any>(null);
 
+  // Load reviews from DB
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/v1/admin/reviews");
+      const result = await res.json();
+      if (result.success && result.data) {
+        const mapped = result.data.map((r: any) => ({
+          id: r._id,
+          user: r.userName,
+          post: r.postTitle,
+          rating: r.rating,
+          content: r.content,
+          date: new Date(r.createdAt).toLocaleDateString("vi-VN"),
+          status: r.status === "approved" ? "Đã duyệt" : r.status === "pending" ? "Chờ duyệt" : "Đã ẩn",
+        }));
+        setReviews(mapped);
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
   // --- LOGIC PHÂN TRANG ---
   const totalPages = Math.ceil(reviews.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentReviews = reviews.slice(startIndex, startIndex + itemsPerPage);
 
   // --- LOGIC DUYỆT / XÓA ---
-  const handleApprove = (id: string) => {
-    const updatedReviews = reviews.map(r =>
-      r.id === id ? { ...r, status: "Đã duyệt" } : r
-    );
-    setReviews(updatedReviews);
+  const handleApprove = async (id: string) => {
+    try {
+      const res = await fetch("/api/v1/admin/reviews", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "approved" }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        const updatedReviews = reviews.map(r =>
+          r.id === id ? { ...r, status: "Đã duyệt" } : r
+        );
+        setReviews(updatedReviews);
 
-    // Nếu đang mở modal mà bấm duyệt trong modal thì cập nhật luôn
-    if (selectedReview && selectedReview.id === id) {
-      setSelectedReview({ ...selectedReview, status: "Đã duyệt" });
+        if (selectedReview && selectedReview.id === id) {
+          setSelectedReview({ ...selectedReview, status: "Đã duyệt" });
+        }
+      }
+    } catch (error) {
+      console.error("Error approving review:", error);
     }
   };
 
-  const handleHide = (id: string) => {
+  const handleHide = async (id: string) => {
     if (window.confirm("Bạn có chắc chắn muốn ẩn đánh giá này không? Đánh giá sẽ không hiển thị với người dùng.")) {
-      const updatedReviews = reviews.map(r =>
-        r.id === id ? { ...r, status: "Đã ẩn" } : r
-      );
-      setReviews(updatedReviews);
+      try {
+        const res = await fetch("/api/v1/admin/reviews", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, status: "hidden" }),
+        });
+        const result = await res.json();
+        if (result.success) {
+          const updatedReviews = reviews.map(r =>
+            r.id === id ? { ...r, status: "Đã ẩn" } : r
+          );
+          setReviews(updatedReviews);
 
-      // Nếu đang mở modal xem chi tiết thì cập nhật luôn trạng thái trong modal
-      if (selectedReview && selectedReview.id === id) {
-        setSelectedReview({ ...selectedReview, status: "Đã ẩn" });
+          if (selectedReview && selectedReview.id === id) {
+            setSelectedReview({ ...selectedReview, status: "Đã ẩn" });
+          }
+        }
+      } catch (error) {
+        console.error("Error hiding review:", error);
       }
     }
   };
