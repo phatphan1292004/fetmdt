@@ -335,9 +335,15 @@ export async function GET(req: Request) {
 
     await connectDB();
 
+    // Sweep expired VIP packages
+    await Post.updateMany(
+      { vipExpireAt: { $lt: new Date() }, vipType: { $ne: "free" } },
+      { $set: { vipType: "free", vipWeight: 0 } }
+    );
+
     const [posts, total] = await Promise.all([
       Post.find(query)
-        .sort({ createdAt: -1 })
+        .sort({ vipWeight: -1, lastPushedAt: -1 })
         .skip(skip)
         .limit(limit)
         .populate("ownerId", "fullName phone avatarUrl responseRate")

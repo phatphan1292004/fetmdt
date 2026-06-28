@@ -743,6 +743,91 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
             )}
 
             <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7">
+              <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Quy định phòng trọ</h2>
+              <div className="mt-4 rounded-[28px] bg-[#fffaf5] p-5 border border-amber-100 md:p-7">
+                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">Giờ giấc tự do</strong>
+                      <span className="text-xs text-slate-500">Ra vào thoải mái, tự chủ thời gian đi lại.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">An ninh đảm bảo</strong>
+                      <span className="text-xs text-slate-500">Khóa vân tay, có camera giám sát 24/7.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">Không chung chủ</strong>
+                      <span className="text-xs text-slate-500">Không gian sinh hoạt hoàn toàn độc lập.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                        <polyline points="17 21 17 13 7 13 7 21" />
+                        <polyline points="7 3 7 8 15 8" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">Bảo quản tài sản</strong>
+                      <span className="text-xs text-slate-500">Giữ gìn trang thiết bị và cơ sở vật chất chung.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">Đóng phí đúng hạn</strong>
+                      <span className="text-xs text-slate-500">Thanh toán tiền phòng và dịch vụ đầu tháng.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-[14px] text-slate-600 md:text-[15px]">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-amber-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                      </svg>
+                    </span>
+                    <div className="leading-7">
+                      <strong className="text-slate-800 block">Tôn trọng tập thể</strong>
+                      <span className="text-xs text-slate-500">Hạn chế tiếng ồn lớn sau 23h đêm.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                   <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Vị trí & Tiện ích</h2>

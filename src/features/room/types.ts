@@ -55,4 +55,6 @@ export type RoomDetailData = {
 	location: RoomLocation;
 	propertyType?: string;
 	details?: any;
+	vipType?: string;
+	vipExpireAt?: string;
 };

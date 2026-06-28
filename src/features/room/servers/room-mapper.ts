@@ -47,6 +47,8 @@ export type RoomPostDocument = {
   };
   createdAt?: Date;
   updatedAt?: Date;
+  vipType?: string;
+  vipExpireAt?: Date;
 };
 
 const DEFAULT_ROOM_IMAGE =
@@ -247,6 +249,8 @@ export function mapPostToRoomDetail(
     },
     propertyType: post.propertyType,
     details: details,
+    vipType: post.vipType,
+    vipExpireAt: post.vipExpireAt ? post.vipExpireAt.toISOString() : undefined,
   };
 }
 
