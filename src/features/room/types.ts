@@ -9,6 +9,8 @@ export type RoomLocation = {
 	districtLabel: string;
 	mapLabel: string;
 	nearbyPlaces: readonly string[];
+	latitude?: number;
+	longitude?: number;
 };
 
 export type AmenitySlug =

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
-import { IoCopyOutline, IoCheckmarkCircle } from "react-icons/io5";
+import { IoCopyOutline } from "react-icons/io5";
 import { useSearchParams } from "next/navigation";
 
 type ProfileTabId = "info" | "saved" | "manage" | "buff";
@@ -250,11 +250,11 @@ function ProfileInfoTab() {
   const stats = summary?.stats;
   const profileStats = stats
     ? [
-        { label: "Tin đăng đang hiển thị", value: formatNumber(stats.activePosts) },
-        { label: "Tin đăng đã lưu", value: formatNumber(stats.savedPosts) },
-        { label: "Lượt xem 7 ngày", value: formatNumber(stats.views7Days) },
-        { label: "Tỷ lệ phản hồi", value: `${formatNumber(stats.responseRate)}%` },
-      ]
+      { label: "Tin đăng đang hiển thị", value: formatNumber(stats.activePosts) },
+      { label: "Tin đăng đã lưu", value: formatNumber(stats.savedPosts) },
+      { label: "Lượt xem 7 ngày", value: formatNumber(stats.views7Days) },
+      { label: "Tỷ lệ phản hồi", value: `${formatNumber(stats.responseRate)}%` },
+    ]
     : DEFAULT_PROFILE_STATS;
   const accountInfo = [
     { key: "fullName", label: "Họ và tên", value: profile?.fullName || "--", editable: true },
@@ -269,15 +269,15 @@ function ProfileInfoTab() {
 
   const activityItems = activities.length
     ? activities.map((item, index) => ({
-        key: item.id || `${item.title}-${item.createdAt}-${index}`,
-        title: item.title,
-        time: formatActivityTime(item.createdAt),
-      }))
+      key: item.id || `${item.title}-${item.createdAt}-${index}`,
+      title: item.title,
+      time: formatActivityTime(item.createdAt),
+    }))
     : DEFAULT_ACTIVITIES.map((item, index) => ({
-        key: `default-${index}`,
-        title: item.title,
-        time: item.time,
-      }));
+      key: `default-${index}`,
+      title: item.title,
+      time: item.time,
+    }));
 
   const handleAvatarClick = () => {
     if (!editing) setEditing(true);
@@ -850,7 +850,7 @@ function BuffPostsTab() {
     };
     fetchData();
   }, []);
-  
+
   // VietQR integration states
   const [showQrCode, setShowQrCode] = useState(false);
   const [qrUrl, setQrUrl] = useState("");
@@ -870,7 +870,7 @@ function BuffPostsTab() {
 
   const handleConfirmPurchase = () => {
     if (!activePackage) return;
-    
+
     // Read VietQR settings from env or use defaults
     const bankId = process.env.NEXT_PUBLIC_VIETQR_BANK_ID || "TCB";
     const bankName = process.env.NEXT_PUBLIC_VIETQR_BANK_NAME || "Techcombank";
@@ -968,11 +968,10 @@ function BuffPostsTab() {
         {packages.map((pkg) => (
           <article
             key={pkg._id || pkg.code || pkg.id}
-            className={`relative rounded-3xl border bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between ${
-              pkg.isPopular
-                ? "border-amber-400 ring-2 ring-amber-400/20 scale-[1.02] md:scale-[1.03]"
-                : "border-slate-200"
-            }`}
+            className={`relative rounded-3xl border bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between ${pkg.isPopular
+              ? "border-amber-400 ring-2 ring-amber-400/20 scale-[1.02] md:scale-[1.03]"
+              : "border-slate-200"
+              }`}
           >
             {pkg.isPopular && (
               <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-xs px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md">
@@ -992,7 +991,7 @@ function BuffPostsTab() {
               </div>
 
               <ul className="space-y-2.5 mb-6">
-                {pkg.features.map((feat, index) => (
+                {pkg.features.map((feat: string, index: number) => (
                   <li key={index} className="flex items-start gap-2 text-sm text-slate-600">
                     <span className={`text-base font-bold shrink-0 ${pkg.textColor}`}>✓</span>
                     <span className="leading-tight">{feat}</span>
@@ -1004,11 +1003,10 @@ function BuffPostsTab() {
             <button
               onClick={() => handleOpenConfirm(pkg)}
               type="button"
-              className={`w-full py-3 rounded-xl font-extrabold text-[15px] transition shadow-sm ${
-                pkg.isPopular
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-95 hover:shadow-[0_4px_14px_rgba(245,158,11,0.35)]"
-                  : "bg-slate-900 text-white hover:bg-slate-800"
-              }`}
+              className={`w-full py-3 rounded-xl font-extrabold text-[15px] transition shadow-sm ${pkg.isPopular
+                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-95 hover:shadow-[0_4px_14px_rgba(245,158,11,0.35)]"
+                : "bg-slate-900 text-white hover:bg-slate-800"
+                }`}
             >
               Kích hoạt ngay
             </button>
@@ -1020,7 +1018,7 @@ function BuffPostsTab() {
       {isConfirmOpen && activePackage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-6 w-full max-w-xl shadow-2xl border border-slate-100 flex flex-col gap-5 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
-            
+
             {!showQrCode ? (
               // STEP 1: Select Listing & Duration
               <>
@@ -1070,11 +1068,10 @@ function BuffPostsTab() {
                           key={days}
                           type="button"
                           onClick={() => setSelectedDuration(days)}
-                          className={`py-3.5 rounded-xl border text-sm font-bold transition flex flex-col items-center justify-center ${
-                            selectedDuration === days
-                              ? "border-[#0b7ea9] bg-[#effaff] text-[#0b7ea9]"
-                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                          }`}
+                          className={`py-3.5 rounded-xl border text-sm font-bold transition flex flex-col items-center justify-center ${selectedDuration === days
+                            ? "border-[#0b7ea9] bg-[#effaff] text-[#0b7ea9]"
+                            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                            }`}
                         >
                           <span>{days} ngày</span>
                           {days >= 15 && (
@@ -1170,7 +1167,7 @@ function BuffPostsTab() {
                       {process.env.NEXT_PUBLIC_VIETQR_BANK_NAME || "Techcombank"} ({process.env.NEXT_PUBLIC_VIETQR_BANK_ID || "TCB"})
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center pb-1.5 border-b border-slate-100/60">
                     <span className="text-slate-500">Số tài khoản</span>
                     <div className="flex items-center gap-1.5">
@@ -1300,11 +1297,10 @@ export function ProfilePage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition sm:text-base ${
-                    isActive
-                      ? "bg-[linear-gradient(96deg,#045a84_0%,#25c3c8_100%)] text-white shadow-[0_8px_18px_rgba(11,126,169,0.28)]"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
+                  className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition sm:text-base ${isActive
+                    ? "bg-[linear-gradient(96deg,#045a84_0%,#25c3c8_100%)] text-white shadow-[0_8px_18px_rgba(11,126,169,0.28)]"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
                 >
                   {tab.label}
                 </button>
