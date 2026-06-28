@@ -1,7 +1,22 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import http from "http";
 import { Server, Socket } from "socket.io";
+import mongoose from "mongoose";
+import ChatRoom from "../../../models/ChatRoom";
 
 const PORT = 3003;
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error("[Database] MONGODB_URI is not defined in .env");
+  process.exit(1);
+}
+
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log("[Database] Connected to MongoDB for WebSocket Chat"))
+  .catch((err) => console.error("[Database] MongoDB connection error:", err));
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });
@@ -10,7 +25,12 @@ const server = http.createServer((req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3002", "http://127.0.0.1:3002"],
+    origin: [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:3002",
+      "http://127.0.0.1:3002"
+    ],
     methods: ["GET", "POST"],
   },
 });
@@ -22,32 +42,28 @@ interface Message {
   timestamp: Date;
 }
 
-interface ChatRoom {
-  roomId: string;
-  clientName: string;
-  clientPhone: string;
-  isOnline: boolean;
-  unreadCount: number;
-  lastMessageAt: Date;
-  messages: Message[];
-}
-
-const rooms: Record<string, ChatRoom> = {};
 const adminSockets = new Set<Socket>();
+const onlineRooms: Record<string, boolean> = {};
 
-function broadcastActiveRooms() {
-  const roomsList = Object.values(rooms).map((r) => ({
-    roomId: r.roomId,
-    clientName: r.clientName,
-    clientPhone: r.clientPhone,
-    isOnline: r.isOnline,
-    unreadCount: r.unreadCount,
-    lastMessageAt: r.lastMessageAt,
-    latestMessage: r.messages[r.messages.length - 1] || null,
-  })).sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+async function broadcastActiveRooms() {
+  try {
+    const roomsFromDb = await ChatRoom.find().sort({ lastMessageAt: -1 }).lean();
+    
+    const roomsList = roomsFromDb.map((r: any) => ({
+      roomId: r.roomId,
+      clientName: r.clientName,
+      clientPhone: r.clientPhone,
+      isOnline: !!onlineRooms[r.roomId],
+      unreadCount: r.unreadCount,
+      lastMessageAt: r.lastMessageAt,
+      latestMessage: r.messages[r.messages.length - 1] || null,
+    }));
 
-  for (const adminSocket of adminSockets) {
-    adminSocket.emit("active-rooms-list", roomsList);
+    for (const adminSocket of adminSockets) {
+      adminSocket.emit("active-rooms-list", roomsList);
+    }
+  } catch (err) {
+    console.error("[Socket] Failed to broadcast active rooms:", err);
   }
 }
 
@@ -59,37 +75,52 @@ interface CustomSocket extends Socket {
 io.on("connection", (socket: CustomSocket) => {
   console.log(`[Socket] Connected: ${socket.id}`);
 
-  socket.on("client-join", ({ roomId, clientName, clientPhone }) => {
+  socket.on("client-join", async ({ roomId, clientName, clientPhone }) => {
     socket.join(roomId);
     socket.roomId = roomId;
     socket.role = "client";
+    onlineRooms[roomId] = true;
 
-    if (!rooms[roomId]) {
-      rooms[roomId] = {
-        roomId,
-        clientName: clientName || "Khách ẩn danh",
-        clientPhone: clientPhone || "Chưa cung cấp",
-        isOnline: true,
-        unreadCount: 0,
-        lastMessageAt: new Date(),
-        messages: [
-          {
-            id: "greeting",
-            sender: "staff",
-            text: "Xin chào! Cảm ơn bạn đã ghé thăm PhòngTốt. Mình có thể giúp gì cho bạn hôm nay? Hãy chọn một trong các gợi ý dưới đây hoặc nhắn tin cho mình nhé!",
-            timestamp: new Date(),
-          },
-        ],
-      };
-    } else {
-      rooms[roomId].isOnline = true;
-      if (clientName) rooms[roomId].clientName = clientName;
-      if (clientPhone) rooms[roomId].clientPhone = clientPhone;
+    try {
+      let room = await ChatRoom.findOne({ roomId });
+      if (!room) {
+        room = await ChatRoom.create({
+          roomId,
+          clientName: clientName || "Khách ẩn danh",
+          clientPhone: clientPhone || "Chưa cung cấp",
+          isOnline: true,
+          unreadCount: 0,
+          lastMessageAt: new Date(),
+          messages: [
+            {
+              id: "greeting",
+              sender: "staff",
+              text: "Xin chào! Cảm ơn bạn đã ghé thăm PhòngTốt. Mình có thể giúp gì cho bạn hôm nay? Hãy chọn một trong các gợi ý dưới đây hoặc nhắn tin cho mình nhé!",
+              timestamp: new Date(),
+            },
+          ],
+        });
+      } else {
+        let hasChanges = false;
+        if (clientName && clientName !== "Khách ẩn danh" && room.clientName !== clientName) {
+          room.clientName = clientName;
+          hasChanges = true;
+        }
+        if (clientPhone && clientPhone !== "Chưa cung cấp" && room.clientPhone !== clientPhone) {
+          room.clientPhone = clientPhone;
+          hasChanges = true;
+        }
+        if (hasChanges) {
+          await room.save();
+        }
+      }
+
+      console.log(`[Client] Joined room: ${roomId} (${room.clientName})`);
+      socket.emit("chat-history", room.messages);
+      broadcastActiveRooms();
+    } catch (err) {
+      console.error("[Socket] Error in client-join:", err);
     }
-
-    console.log(`[Client] Joined room: ${roomId} (${rooms[roomId].clientName})`);
-    socket.emit("chat-history", rooms[roomId].messages);
-    broadcastActiveRooms();
   });
 
   socket.on("admin-join", () => {
@@ -99,71 +130,92 @@ io.on("connection", (socket: CustomSocket) => {
     broadcastActiveRooms();
   });
 
-  socket.on("admin-select-room", (roomId) => {
+  socket.on("admin-select-room", async (roomId) => {
     socket.join(roomId);
     console.log(`[Admin] Viewing room: ${roomId}`);
 
-    if (rooms[roomId]) {
-      rooms[roomId].unreadCount = 0;
-      socket.emit("chat-history", rooms[roomId].messages);
-      broadcastActiveRooms();
+    try {
+      const room = await ChatRoom.findOne({ roomId });
+      if (room) {
+        room.unreadCount = 0;
+        await room.save();
+        socket.emit("chat-history", room.messages);
+        broadcastActiveRooms();
+      }
+    } catch (err) {
+      console.error("[Socket] Error in admin-select-room:", err);
     }
   });
 
-  socket.on("send-message", ({ roomId, text, sender }) => {
-    if (!rooms[roomId]) return;
+  socket.on("send-message", async ({ roomId, text, sender }) => {
+    try {
+      const room = await ChatRoom.findOne({ roomId });
+      if (!room) return;
 
-    const message: Message = {
-      id: Math.random().toString(36).substring(2, 9),
-      sender,
-      text,
-      timestamp: new Date(),
-    };
+      const message: Message = {
+        id: Math.random().toString(36).substring(2, 9),
+        sender,
+        text,
+        timestamp: new Date(),
+      };
 
-    rooms[roomId].messages.push(message);
-    rooms[roomId].lastMessageAt = new Date();
+      room.messages.push(message);
+      room.lastMessageAt = new Date();
 
-    if (sender === "user") {
-      rooms[roomId].unreadCount += 1;
-    }
+      if (sender === "user") {
+        room.unreadCount += 1;
+      }
 
-    io.to(roomId).emit("message", message);
-    broadcastActiveRooms();
-    console.log(`[Message] Room ${roomId} | ${sender}: ${text}`);
+      await room.save();
 
-    if (sender === "user" && adminSockets.size === 0) {
-      setTimeout(() => {
-        io.to(roomId).emit("typing", { isTyping: true, sender: "staff" });
-      }, 300);
+      io.to(roomId).emit("message", message);
+      broadcastActiveRooms();
+      console.log(`[Message] Room ${roomId} | ${sender}: ${text}`);
 
-      setTimeout(() => {
-        io.to(roomId).emit("typing", { isTyping: false, sender: "staff" });
+      if (sender === "user" && adminSockets.size === 0) {
+        setTimeout(() => {
+          io.to(roomId).emit("typing", { isTyping: true, sender: "staff" });
+        }, 300);
 
-        let replyText = "";
-        const textLower = text.toLowerCase();
-        
-        if (textLower.includes("tim phong") || textLower.includes("tìm phòng")) {
-          replyText = "Dạ! Hiện tại PhòngTốt đang có hàng ngàn tin đăng phòng trọ chính chủ tại Hà Nội và TP. Hồ Chí Minh. Bạn muốn tìm phòng ở khu vực Quận/Huyện nào, và mức tài chính tối đa khoảng bao nhiêu triệu để mình lọc giúp bạn nhé? 😉";
-        } else if (textLower.includes("dang tin") || textLower.includes("đăng tin")) {
-          replyText = "Dạ, để đăng tin cho thuê phòng, bạn hãy click vào nút **Đăng tin** màu vàng ở góc phải thanh menu phía trên (hoặc truy cập /post). Hệ thống hỗ trợ đăng tin thường miễn phí và các gói dịch vụ VIP nổi bật. Bạn đã đăng ký tài khoản chưa ạ?";
-        } else if (textLower.includes("bang gia") || textLower.includes("bảng giá") || textLower.includes("bao gia") || textLower.includes("báo giá")) {
-          replyText = "Dịch vụ đẩy tin & VIP của PhòngTốt gồm:\n• VIP 1 (Siêu Cấp): 50.000đ/ngày\n• VIP 2 (Nổi Bật): 30.000đ/ngày\n• VIP 3 (Tiết Kiệm): 15.000đ/ngày\nBạn cần hỗ trợ tư vấn chi tiết hơn về gói nào không ạ?";
-        } else {
-          replyText = "Cảm ơn bạn đã liên hệ PhòngTốt! Hiện tại các hỗ trợ viên đang bận hoặc ngoại tuyến. Bạn vui lòng liên hệ hotline **0888.022.821** hoặc để lại lời nhắn, chúng tôi sẽ phản hồi sớm nhất có thể ạ!";
-        }
+        setTimeout(async () => {
+          io.to(roomId).emit("typing", { isTyping: false, sender: "staff" });
 
-        const botMessage: Message = {
-          id: Math.random().toString(36).substring(2, 9),
-          sender: "staff",
-          text: replyText,
-          timestamp: new Date(),
-        };
+          let replyText = "";
+          const textLower = text.toLowerCase();
+          
+          if (textLower.includes("tim phong") || textLower.includes("tìm phòng")) {
+            replyText = "Dạ! Hiện tại PhòngTốt đang có hàng ngàn tin đăng phòng trọ chính chủ tại Hà Nội và TP. Hồ Chí Minh. Bạn muốn tìm phòng ở khu vực Quận/Huyện nào, và mức tài chính tối đa khoảng bao nhiêu triệu để mình lọc giúp bạn nhé? 😉";
+          } else if (textLower.includes("dang tin") || textLower.includes("đăng tin")) {
+            replyText = "Dạ, để đăng tin cho thuê phòng, bạn hãy click vào nút **Đăng tin** màu vàng ở góc phải thanh menu phía trên (hoặc truy cập /post). Hệ thống hỗ trợ đăng tin thường miễn phí và các gói dịch vụ VIP nổi bật. Bạn đã đăng ký tài khoản chưa ạ?";
+          } else if (textLower.includes("bang gia") || textLower.includes("bảng giá") || textLower.includes("bao gia") || textLower.includes("báo giá")) {
+            replyText = "Dịch vụ đẩy tin & VIP của PhòngTốt gồm:\n• VIP 1 (Siêu Cấp): 50.000đ/ngày\n• VIP 2 (Nổi Bật): 30.000đ/ngày\n• VIP 3 (Tiết Kiệm): 15.000đ/ngày\nBạn cần hỗ trợ tư vấn chi tiết hơn về gói nào không ạ?";
+          } else {
+            replyText = "Cảm ơn bạn đã liên hệ PhòngTốt! Hiện tại các hỗ trợ viên đang bận hoặc ngoại tuyến. Bạn vui lòng liên hệ hotline **0888.022.821** hoặc để lại lời nhắn, chúng tôi sẽ phản hồi sớm nhất có thể ạ!";
+          }
 
-        rooms[roomId].messages.push(botMessage);
-        rooms[roomId].lastMessageAt = new Date();
-        io.to(roomId).emit("message", botMessage);
-        broadcastActiveRooms();
-      }, 1500);
+          const botMessage: Message = {
+            id: Math.random().toString(36).substring(2, 9),
+            sender: "staff",
+            text: replyText,
+            timestamp: new Date(),
+          };
+
+          try {
+            const updatedRoom = await ChatRoom.findOne({ roomId });
+            if (updatedRoom) {
+              updatedRoom.messages.push(botMessage);
+              updatedRoom.lastMessageAt = new Date();
+              await updatedRoom.save();
+              io.to(roomId).emit("message", botMessage);
+              broadcastActiveRooms();
+            }
+          } catch (dbErr) {
+            console.error("[Socket] Error saving bot reply:", dbErr);
+          }
+        }, 1500);
+      }
+    } catch (err) {
+      console.error("[Socket] Error in send-message:", err);
     }
   });
 
@@ -178,11 +230,9 @@ io.on("connection", (socket: CustomSocket) => {
       adminSockets.delete(socket);
     } else if (socket.role === "client" && socket.roomId) {
       const rId = socket.roomId;
-      if (rooms[rId]) {
-        rooms[rId].isOnline = false;
-        console.log(`[Client] Offline: ${rId}`);
-        broadcastActiveRooms();
-      }
+      onlineRooms[rId] = false;
+      console.log(`[Client] Offline: ${rId}`);
+      broadcastActiveRooms();
     }
   });
 });

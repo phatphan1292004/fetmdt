@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { CurrentUser, UserMenu } from "./UserMenu";
 import Image from "next/image";
+import { toast } from "react-toastify";
 
 type HeaderLocation = {
   city: string;
@@ -19,6 +21,22 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
   const safeLocations = (locations ?? []).filter(
     (location) => location.city.trim().length > 0,
   );
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const loginSuccess = sessionStorage.getItem("login_success");
+      if (loginSuccess) {
+        toast.success("Đăng nhập thành công!");
+        sessionStorage.removeItem("login_success");
+      }
+
+      const logoutSuccess = sessionStorage.getItem("logout_success");
+      if (logoutSuccess) {
+        toast.success("Đăng xuất thành công!");
+        sessionStorage.removeItem("logout_success");
+      }
+    }
+  }, []);
 
 
   return (
@@ -116,6 +134,20 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
               Hotline:{" "}
               <span className="font-semibold text-slate-900">{hotline}</span>
             </p>
+            <Link
+              href="/search"
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-slate-500 whitespace-nowrap transition hover:bg-slate-100"
+            >
+              <svg
+                className="h-4 w-4 text-[#f7cd00]"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden
+              >
+                <path d="M9 3L3 9h4v6h4V9h4L9 3zm6 18l6-6h-4v-6h-4v6H9l6 6z" />
+              </svg>
+              So sánh
+            </Link>
             <Link
               href="/phong-da-luu"
               className="inline-flex shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-slate-500 whitespace-nowrap transition hover:bg-slate-100"

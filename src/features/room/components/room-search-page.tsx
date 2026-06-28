@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { GooglePlacesInput } from "@/src/components/GooglePlacesInput";
 import { buildRoomRouteFromSlug } from "../servers";
 import type { RoomDetailData } from "../types";
+import { SaveRoomButton } from "./save-room-button";
+import { RoomCompareModal } from "./room-compare-modal";
 
 type RangeOption = {
   id: string;
@@ -254,6 +256,48 @@ export function RoomSearchPage() {
     limit: 12,
   });
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(true);
+
+  // Compare state
+  const [selectedForCompare, setSelectedForCompare] = useState<RoomDetailData[]>([]);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+  useEffect(() => {
+    const loadCompareRooms = () => {
+      try {
+        const stored = localStorage.getItem("compareRooms");
+        if (stored) {
+          setSelectedForCompare(JSON.parse(stored));
+        }
+      } catch (e) {}
+    };
+    loadCompareRooms();
+
+    window.addEventListener("compareRoomsUpdated", loadCompareRooms);
+    return () => window.removeEventListener("compareRoomsUpdated", loadCompareRooms);
+  }, []);
+
+  const toggleCompare = (room: RoomDetailData) => {
+    setSelectedForCompare((prev) => {
+      let newRooms = [];
+      const isSelected = prev.some((r) => r.id === room.id);
+      if (isSelected) {
+        newRooms = prev.filter((r) => r.id !== room.id);
+      } else {
+        if (prev.length >= 3) {
+          alert("Chỉ được chọn tối đa 3 phòng để so sánh");
+          return prev;
+        }
+        newRooms = [...prev, room];
+      }
+      localStorage.setItem("compareRooms", JSON.stringify(newRooms));
+      return newRooms;
+    });
+  };
+
+  const clearCompare = () => {
+    setSelectedForCompare([]);
+    localStorage.removeItem("compareRooms");
+  };
 
   useEffect(() => {
     if (didInit.current) {
@@ -698,8 +742,9 @@ export function RoomSearchPage() {
               ? rooms.map((room) => (
                   <article
                     key={room.id}
-                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
+                    className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
                   >
+                    <SaveRoomButton roomId={room.id} />
                     <div className="grid md:grid-cols-[260px_1fr]">
                       <div
                         className="h-48 bg-cover bg-center md:h-full"
@@ -715,16 +760,28 @@ export function RoomSearchPage() {
                         </Link>
                         <p className="mt-1 text-[16px] text-slate-500">{room.address}</p>
                         <p className="mt-2 text-[17px] text-slate-700">{room.subtitle}</p>
-                        <div className="mt-3 flex flex-wrap gap-2 text-[14px]">
-                          <span className="rounded-full bg-[#fff1f1] px-3 py-1 font-bold text-[#f2483a]">
-                            {room.priceLabel}
-                          </span>
-                          <span className="rounded-full bg-[#ecf9ff] px-3 py-1 font-semibold text-[#0b7ea9]">
-                            {room.areaLabel}
-                          </span>
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
-                            {room.availableRoomsLabel}
-                          </span>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[14px]">
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-[#fff1f1] px-3 py-1 font-bold text-[#f2483a]">
+                              {room.priceLabel}
+                            </span>
+                            <span className="rounded-full bg-[#ecf9ff] px-3 py-1 font-semibold text-[#0b7ea9]">
+                              {room.areaLabel}
+                            </span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+                              {room.availableRoomsLabel}
+                            </span>
+                          </div>
+                          
+                          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 transition hover:bg-slate-50">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-slate-300 text-[#0b7ea9]"
+                              checked={selectedForCompare.some((r) => r.id === room.id)}
+                              onChange={() => toggleCompare(room)}
+                            />
+                            <span className="font-semibold text-slate-700">So sánh</span>
+                          </label>
                         </div>
                       </div>
                     </div>
@@ -768,6 +825,55 @@ export function RoomSearchPage() {
           </div>
         </section>
       </section>
+
+      {/* Floating Compare Bar */}
+      {selectedForCompare.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white p-4 shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
+          <div className="mx-auto flex max-w-400 items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="font-semibold text-slate-700">
+                Đã chọn {selectedForCompare.length}/3 phòng
+              </span>
+              <div className="hidden items-center gap-2 sm:flex">
+                {selectedForCompare.map((room) => (
+                  <div key={room.id} className="relative h-12 w-12 overflow-hidden rounded-lg border border-slate-200">
+                    <img src={room.imageUrls[0]} alt={room.title} className="h-full w-full object-cover" />
+                    <button
+                      onClick={() => toggleCompare(room)}
+                      className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center bg-black/50 text-white hover:bg-black/80"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={clearCompare}
+                className="rounded-xl border border-slate-300 px-4 py-2 font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Bỏ chọn
+              </button>
+              <button
+                onClick={() => setIsCompareModalOpen(true)}
+                disabled={selectedForCompare.length < 2}
+                className="rounded-xl bg-[#0b7ea9] px-6 py-2 font-bold text-white hover:brightness-110 disabled:opacity-50"
+              >
+                So sánh ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Compare Modal */}
+      {isCompareModalOpen && (
+        <RoomCompareModal
+          rooms={selectedForCompare}
+          onClose={() => setIsCompareModalOpen(false)}
+        />
+      )}
     </main>
   );
 }

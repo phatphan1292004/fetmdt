@@ -54,6 +54,39 @@ export type RoomPostDocument = {
 const DEFAULT_ROOM_IMAGE =
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1400&q=80";
 
+const FEATURE_TRANSLATIONS: Record<string, string> = {
+  "nha-mat-tien": "Nhà mặt tiền",
+  "hem-rong": "Hẻm rộng",
+  "gan-truong-cho": "Gần trường/chợ",
+  "phu-hop-gia-dinh": "Phù hợp gia đình",
+  "ban-cong": "Có ban công",
+  "view-dep": "View đẹp",
+  "view-thoang": "View thoáng",
+  "an-ninh-24-7": "An ninh 24/7",
+  "gan-thang-may": "Gần thang máy",
+  "co-gac": "Có gác",
+  "wc-rieng": "WC riêng",
+  "gio-giac-tu-do": "Giờ giấc tự do",
+  "gan-trung-tam": "Gần trung tâm",
+  "noi-that-cao-cap": "Nội thất cao cấp",
+  "can-goc-view-thoang": "Căn góc, view thoáng",
+  "nha-moi-vao-o-ngay": "Nhà mới, vào ở ngay",
+  "thang-may-khoa-van-tay": "Thang máy, khóa vân tay",
+  "tin-uu-tien": "Tin ưu tiên",
+  "noi-that-day-du": "Nội thất đầy đủ",
+  "phong-tro-cao-cap": "Phòng trọ cao cấp",
+  "cho-thue": "Cho thuê",
+};
+
+function formatFeature(feature?: string): string | undefined {
+  if (!feature) return undefined;
+  const trimmed = feature.trim();
+  if (!trimmed) return undefined;
+
+  const normalizedKey = trimmed.toLowerCase().replace(/_/g, "-").replace(/\s+/g, "-");
+  return FEATURE_TRANSLATIONS[normalizedKey] ?? trimmed;
+}
+
 function toTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -214,7 +247,7 @@ export function mapPostToRoomDetail(
   return {
     id: post._id,
     title,
-    subtitle: post.projectName ?? post.feature ?? "Thông tin đang cập nhật",
+    subtitle: post.projectName ?? formatFeature(post.feature) ?? "Thông tin đang cập nhật",
     districtSlug: toSlug(districtLabel),
     slug,
     address,

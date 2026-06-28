@@ -27,8 +27,39 @@ const DEFAULT_GALLERY_IMAGE =
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80";
 
 const FEATURE_TRANSLATIONS: Record<string, string> = {
+  // Features/subtitles from forms
+  "nha-mat-tien": "Nhà mặt tiền",
+  "hem-rong": "Hẻm rộng",
+  "gan-truong-cho": "Gần trường/chợ",
+  "phu-hop-gia-dinh": "Phù hợp gia đình",
+  "ban-cong": "Có ban công",
   "view-dep": "View đẹp",
   "view-thoang": "View thoáng",
+  "an-ninh-24-7": "An ninh 24/7",
+  "gan-thang-may": "Gần thang máy",
+  "co-gac": "Có gác",
+  "wc-rieng": "WC riêng",
+  "gio-giac-tu-do": "Giờ giấc tự do",
+  "gan-trung-tam": "Gần trung tâm",
+
+  // Legacy/Mock featured post subtitles/features
+  "noi-that-cao-cap": "Nội thất cao cấp",
+  "can-goc-view-thoang": "Căn góc, view thoáng",
+  "nha-moi-vao-o-ngay": "Nhà mới, vào ở ngay",
+  "thang-may-khoa-van-tay": "Thang máy, khóa vân tay",
+  "tin-uu-tien": "Tin ưu tiên",
+  "noi-that-day-du": "Nội thất đầy đủ",
+  "phong-tro-cao-cap": "Phòng trọ cao cấp",
+  "cho-thue": "Cho thuê",
+};
+
+const CATEGORY_TRANSLATIONS: Record<string, string> = {
+  "phong-tro": "Phòng trọ",
+  "nha-o": "Nhà ở",
+  "can-ho-mini": "Căn hộ mini",
+  "can-ho": "Căn hộ",
+  "studio": "Studio",
+  "nha-nguyen-can": "Nhà nguyên căn",
 };
 
 function isFeaturedPost(post: PostListingData): post is PostCardData {
@@ -123,6 +154,11 @@ function formatCategory(propertyType?: string, category?: string): string {
   const categoryLabel = asTrimmedString(category);
 
   if (categoryLabel) {
+    const normalizedKey = categoryLabel.toLowerCase().replace(/_/g, "-").replace(/\s+/g, "-");
+    const translated = CATEGORY_TRANSLATIONS[normalizedKey];
+    if (translated) {
+      return translated;
+    }
     return categoryLabel;
   }
 
@@ -135,6 +171,23 @@ function formatCategory(propertyType?: string, category?: string): string {
   }
 
   return "Phòng trọ";
+}
+
+function formatTagLabel(tag?: string): string {
+  const parsed = asTrimmedString(tag);
+  if (!parsed) {
+    return "Bài đăng mới";
+  }
+  const normalizedKey = parsed.toLowerCase().replace(/_/g, "-").replace(/\s+/g, "-");
+  return FEATURE_TRANSLATIONS[normalizedKey] ?? parsed;
+}
+
+function formatPostCountLabel(countLabel?: string): string {
+  const parsed = asTrimmedString(countLabel);
+  if (!parsed) {
+    return "1 tin đăng";
+  }
+  return parsed.replace(/tin\s+dang/gi, "tin đăng");
 }
 
 function formatPostStatus(status?: string): string {
@@ -227,15 +280,15 @@ function resolveCardData(post: PostListingData) {
     return {
       title: post.title,
       subtitle: formatSubtitle(post.subtitle),
-      categoryLabel: post.category,
+      categoryLabel: formatCategory(post.propertyType, post.category),
       statusLabel: post.availableLabel,
       priceLabel: post.priceLabel,
       areaLabel: normalizeAreaLabel(post.areaLabel),
       addressLabel: mergeAddress(post.address, post.city),
-      tagLabel: post.tagLabel,
+      tagLabel: formatTagLabel(post.tagLabel),
       authorName: post.authorName,
       authorAvatarUrl: post.authorAvatarUrl,
-      authorPostCountLabel: post.authorPostCountLabel,
+      authorPostCountLabel: formatPostCountLabel(post.authorPostCountLabel),
     };
   }
 
