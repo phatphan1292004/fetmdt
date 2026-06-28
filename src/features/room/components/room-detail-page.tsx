@@ -7,6 +7,116 @@ import { buildRoomRouteFromSlug } from "../servers";
 import { AMENITY_MAP } from "../constants/amenity-icons";
 import { toast } from "react-toastify";
 
+// Amenities Categories Icons
+function GraduationCapIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+      <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+      <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+    </svg>
+  );
+}
+
+function BusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+      <rect x="4" y="3" width="16" height="16" rx="2" />
+      <path d="M4 11h16" />
+      <path d="M12 3v8" />
+      <path d="m8 19-2 2" />
+      <path d="m16 19 2 2" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
+function StoreIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+      <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" />
+      <path d="m3 9 2.44-4A2 2 0 0 1 7.18 4h9.64a2 2 0 0 1 1.74 1l2.44 4" />
+      <path d="M12 9v12" />
+      <path d="M9 14h6" />
+    </svg>
+  );
+}
+
+function SupermarketIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+      <circle cx="8" cy="21" r="1" fill="currentColor" />
+      <circle cx="19" cy="21" r="1" fill="currentColor" />
+      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+    </svg>
+  );
+}
+
+function CafeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+      <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+      <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+      <line x1="6" y1="2" x2="6" y2="4" />
+      <line x1="10" y1="2" x2="10" y2="4" />
+      <line x1="14" y1="2" x2="14" y2="4" />
+    </svg>
+  );
+}
+
+function RestaurantIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+      <path d="M7 2v20" />
+      <path d="M21 15V2v0a5 5 0 0 0-5 5v8c0 1.1.9 2 2 2h3Z" />
+      <path d="M19 17v5" />
+    </svg>
+  );
+}
+
+function MedicalIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M12 8v8" />
+      <path d="M8 12h8" />
+    </svg>
+  );
+}
+
+function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371e3; // Earth radius in meters
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // in meters
+}
+
+const AMENITY_CATEGORIES = [
+  { id: "university", label: "Đại học", icon: GraduationCapIcon, query: "trường đại học", osmTag: "[amenity=university]" },
+  { id: "bus", label: "Bến xe buýt", icon: BusIcon, query: "bến xe buýt", osmTag: "[highway=bus_stop]" },
+  { id: "popular", label: "Điểm nổi bật", icon: StarIcon, query: "địa điểm nổi tiếng", osmTag: '[amenity~"tourism|monument|attraction|park|museum"]' },
+  { id: "convenience", label: "Cửa hàng tiện lợi", icon: StoreIcon, query: "Circle K, GS25, 7-Eleven", osmTag: '[shop=convenience][name~"Circle K|GS25|7-Eleven|7 Eleven|FamilyMart|Family Mart|Ministop|Mini Stop|B\'s Mart",i]' },
+  { id: "supermarket", label: "Siêu thị", icon: SupermarketIcon, query: "WinMart, Co.op Mart", osmTag: '[shop~"supermarket|convenience"][name~"WinMart|Winsmart|Co.op|Coop|Bách Hóa Xanh|Bach Hoa Xanh|Lotte|Aeon|Big C|Go!",i]' },
+  { id: "cafe", label: "Cafe", icon: CafeIcon, query: "quán cafe", osmTag: "[amenity=cafe]" },
+  { id: "restaurant", label: "Nhà hàng", icon: RestaurantIcon, query: "nhà hàng", osmTag: "[amenity=restaurant]" },
+  { id: "medical", label: "Y tế", icon: MedicalIcon, query: "bệnh viện phòng khám", osmTag: '[amenity~"hospital|clinic|pharmacy|doctors"]' },
+] as const;
+
 type RoomDetailPageProps = {
   room: RoomDetailData;
   relatedRooms: readonly RoomDetailData[];
@@ -73,6 +183,162 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
   const gallery = [...room.imageUrls];
   const contactPhoneHref = room.contact.phone.replace(/\D/g, "");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const [selectedCategory, setSelectedCategory] = useState<typeof AMENITY_CATEGORIES[number] | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    room.location.latitude && room.location.longitude
+      ? { lat: room.location.latitude, lng: room.location.longitude }
+      : null
+  );
+  const [nearbyAmenities, setNearbyAmenities] = useState<Array<{ name: string; lat: number; lng: number; distance: number }>>([]);
+  const [loadingAmenities, setLoadingAmenities] = useState<boolean>(false);
+  const [selectedPlace, setSelectedPlace] = useState<{ name: string; lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    setSelectedPlace(null);
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    if (coords) return;
+    let isMounted = true;
+    const geocode = async () => {
+      const cleanCity = room.city.replace(/TPHCM|TP\.HCM|tp\.hcm/gi, "Hồ Chí Minh");
+      
+      // Layer 1: Try full address query
+      try {
+        const query = `${room.address}, ${cleanCity}`;
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+          { headers: { "Accept-Language": "vi", "User-Agent": "TmdtTestApp/1.0" } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data[0] && isMounted) {
+            setCoords({
+              lat: parseFloat(data[0].lat),
+              lng: parseFloat(data[0].lon),
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Nominatim geocoding layer 1 error:", err);
+      }
+
+      // Layer 2: Cleanup address (strip house number/prefixes, use road + district + city)
+      try {
+        const parts = room.address.split(",").map(p => p.trim());
+        if (parts.length >= 2) {
+          let street = parts[0];
+          // Strip house numbers
+          street = street.replace(/^\d+[\/\w]*\s+/, "");
+          street = street.replace(/^(Số|Hẻm|Ngõ|Kiệt|Đường)\s+\d+[\/\w]*\s+/, "");
+          
+          const district = parts.length >= 3 ? parts[parts.length - 2] : parts[1];
+          const query = `${street}, ${district}, ${cleanCity}`;
+          
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+            { headers: { "Accept-Language": "vi", "User-Agent": "TmdtTestApp/1.0" } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data[0] && isMounted) {
+              setCoords({
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon),
+              });
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Nominatim geocoding layer 2 error:", err);
+      }
+
+      // Layer 3: Fallback to District + City
+      try {
+        const parts = room.address.split(",").map(p => p.trim());
+        const district = parts.length >= 3 ? parts[parts.length - 2] : (parts.length >= 2 ? parts[1] : "");
+        const query = `${district}, ${cleanCity}`;
+        
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+          { headers: { "Accept-Language": "vi", "User-Agent": "TmdtTestApp/1.0" } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data[0] && isMounted) {
+            setCoords({
+              lat: parseFloat(data[0].lat),
+              lng: parseFloat(data[0].lon),
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Nominatim geocoding layer 3 error:", err);
+      }
+    };
+    geocode();
+    return () => {
+      isMounted = false;
+    };
+  }, [room.address, room.city, coords]);
+
+  useEffect(() => {
+    if (!coords || !selectedCategory) {
+      setNearbyAmenities([]);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchAmenities = async () => {
+      setLoadingAmenities(true);
+      try {
+        const { lat, lng } = coords;
+        const radius = 1500;
+        const osmTag = selectedCategory.osmTag;
+        
+        const query = `[out:json];(node(around:${radius},${lat},${lng})${osmTag};way(around:${radius},${lat},${lng})${osmTag};);out center;`;
+        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Overpass API failed");
+        
+        const data = await res.json();
+        if (!isMounted) return;
+
+        const items = (data.elements || [])
+          .map((el: any) => {
+            const name = el.tags?.name || el.tags?.brand || el.tags?.operator || `${selectedCategory.label} lân cận`;
+            const itemLat = el.lat ?? el.center?.lat;
+            const itemLng = el.lon ?? el.center?.lon;
+            const distance = getDistanceInMeters(lat, lng, itemLat, itemLng);
+            return { name, lat: itemLat, lng: itemLng, distance };
+          })
+          .filter((item: any) => item.lat && item.lng)
+          .filter((item: any, idx: number, arr: any[]) => 
+            arr.findIndex((t) => t.name === item.name && Math.abs(t.distance - item.distance) < 50) === idx
+          )
+          .sort((a: any, b: any) => a.distance - b.distance)
+          .slice(0, 6);
+
+        setNearbyAmenities(items);
+      } catch (err) {
+        console.error("Overpass API fetch error:", err);
+      } finally {
+        if (isMounted) {
+          setLoadingAmenities(false);
+        }
+      }
+    };
+
+    fetchAmenities();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCategory, coords]);
 
   const renderPropertyDetails = () => {
     const details = room.details || {};
@@ -477,30 +743,134 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
             )}
 
             <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7">
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                  <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Vị trí & Tiện ích</h2>
+                  <p className="mt-1 text-[15px] text-slate-600">{room.location.districtLabel}</p>
+                </div>
+
+                <span className="rounded-full bg-[#ecfeff] px-4 py-2 text-[13px] font-semibold text-[#0b7ea9]">
+                  {room.location.mapLabel}
+                </span>
+              </div>
+
+              {/* Amenity Categories Tabs */}
+              <div className="mt-5 flex gap-2 overflow-x-auto pb-3 scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory(null)}
+                  className={`inline-flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold border transition ${
+                    selectedCategory === null
+                      ? "bg-[#0b7ea9] border-transparent text-white shadow-sm"
+                      : "bg-slate-50 border-slate-200 text-slate-700 hover:border-[#8cd7db] hover:bg-white"
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+                  Mặc định
+                </button>
+                {AMENITY_CATEGORIES.map((cat) => {
+                  const Icon = cat.icon;
+                  const isActive = selectedCategory?.id === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`inline-flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold border transition ${
+                        isActive
+                          ? "bg-[#0b7ea9] border-transparent text-white shadow-sm"
+                          : "bg-slate-50 border-slate-200 text-slate-700 hover:border-[#8cd7db] hover:bg-white"
+                      }`}
+                    >
+                      <Icon />
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Vị trí</h2>
-                      <p className="mt-1 text-[15px] text-slate-600">{room.location.districtLabel}</p>
+                  {selectedCategory ? (
+                    <div className="rounded-3xl bg-[#f6fcfd] border border-[#eaf6f7] p-5 md:p-6 shadow-sm">
+                      <div className="mb-4 flex items-center justify-between">
+                        <span className="text-[16px] font-bold text-[#0b5f89] md:text-[18px]">
+                          {selectedCategory.label} gần đây (1.5km)
+                        </span>
+                        {loadingAmenities && (
+                          <span className="text-xs text-[#0b7ea9] animate-pulse">Đang tìm kiếm...</span>
+                        )}
+                      </div>
+                      
+                      {loadingAmenities ? (
+                        <div className="space-y-3">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="h-14 animate-pulse rounded-2xl bg-slate-100 border border-slate-200/50" />
+                          ))}
+                        </div>
+                      ) : nearbyAmenities.length > 0 ? (
+                        <ul className="space-y-2.5">
+                          {nearbyAmenities.map((place, index) => {
+                            const distanceText = place.distance < 1000 
+                              ? `${Math.round(place.distance)} m` 
+                              : `${(place.distance / 1000).toFixed(1)} km`;
+                            const isSelected = selectedPlace?.name === place.name;
+                            return (
+                              <li 
+                                key={index} 
+                                onClick={() => setSelectedPlace(isSelected ? null : place)}
+                                className={`flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-[14px] shadow-sm border transition md:text-[15px] cursor-pointer ${
+                                  isSelected
+                                    ? "bg-[#effaff] border-[#0b7ea9] text-[#0b7ea9] font-bold"
+                                    : "bg-white border-slate-100 text-slate-700 hover:border-[#8cd7db]"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition ${
+                                    isSelected ? "bg-[#0b7ea9] text-white" : "bg-[#eaf9fa] text-[#0b7ea9]"
+                                  }`}>
+                                    <selectedCategory.icon />
+                                  </span>
+                                  <span className="truncate">{place.name}</span>
+                                </div>
+                                <span className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-full transition ${
+                                  isSelected ? "bg-[#0b7ea9]/15 text-[#0b7ea9]" : "bg-slate-100 text-slate-400"
+                                }`}>{distanceText}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <div className="text-center text-sm text-slate-500 py-8">
+                          Không tìm thấy {selectedCategory.label.toLowerCase()} nào gần đây.
+                        </div>
+                      )}
                     </div>
+                  ) : (
+                    <div>
+                      <div className="rounded-3xl bg-slate-50 p-5 md:p-6 shadow-sm border border-slate-100">
+                        <div className="mb-4 text-[16px] font-bold text-slate-700 md:text-[18px]">Mô tả vị trí</div>
+                        <p className="text-sm leading-6 text-slate-500">
+                          Nằm tại khu vực an ninh, giao thông thuận tiện. Bạn có thể sử dụng các tab tiện ích phía trên để tra cứu nhanh các dịch vụ công cộng và cơ sở hạ tầng xung quanh bài đăng này.
+                        </p>
+                      </div>
 
-                    <span className="rounded-full bg-[#ecfeff] px-4 py-2 text-[13px] font-semibold text-[#0b7ea9]">
-                      {room.location.mapLabel}
-                    </span>
-                  </div>
-
-                  {room.location.nearbyPlaces && room.location.nearbyPlaces.length > 0 && (
-                    <div className="mt-5 rounded-3xl bg-[#f6f6f6] p-5 md:p-7">
-                      <div className="mb-4 text-[16px] font-semibold text-slate-800 md:text-[18px]">Khu vực lân cận</div>
-                      <ul className="space-y-3">
-                        {room.location.nearbyPlaces.map((place) => (
-                          <li key={place} className="flex items-start gap-3 rounded-2xl bg-white px-4 py-3 text-[15px] text-slate-700 shadow-sm md:text-[17px]">
-                            <span className="mt-2 inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#25c3c8]" aria-hidden />
-                            <span className="leading-7">{place}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      {room.location.nearbyPlaces && room.location.nearbyPlaces.length > 0 && (
+                        <div className="mt-5 rounded-3xl bg-[#f6f6f6] p-5 md:p-7">
+                          <div className="mb-4 text-[16px] font-semibold text-slate-800 md:text-[18px]">Khu vực lân cận</div>
+                          <ul className="space-y-3">
+                            {room.location.nearbyPlaces.map((place) => (
+                              <li key={place} className="flex items-start gap-3 rounded-2xl bg-white px-4 py-3 text-[15px] text-slate-700 shadow-sm md:text-[17px]">
+                                <span className="mt-2 inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#25c3c8]" aria-hidden />
+                                <span className="leading-7">{place}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -508,7 +878,17 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                 <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-inner">
                   <div className="relative h-72 md:h-full md:min-h-[420px]">
                     <iframe
-                      src={`https://maps.google.com/maps?hl=vi&q=${encodeURIComponent(`${room.address}, ${room.city}`)}&z=15&output=embed`}
+                      src={
+                        selectedPlace && coords
+                          ? `https://maps.google.com/maps?hl=vi&saddr=${coords.lat},${coords.lng}&daddr=${selectedPlace.lat},${selectedPlace.lng}&z=15&output=embed`
+                          : `https://maps.google.com/maps?hl=vi&q=${encodeURIComponent(
+                              selectedCategory
+                                ? `${selectedCategory.query} gần ${coords ? `${coords.lat},${coords.lng}` : `${room.address}, ${room.city}`}`
+                                : coords
+                                  ? `${coords.lat},${coords.lng}`
+                                  : `${room.address}, ${room.city}`
+                            )}&z=15&output=embed`
+                      }
                       width="100%"
                       height="100%"
                       style={{ border: 0 }}

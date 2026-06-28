@@ -41,6 +41,10 @@ export type RoomPostDocument = {
   mediaUrls?: string[];
   allowPets?: boolean;
   status?: string;
+  location?: {
+    type: "Point";
+    coordinates: [number, number];
+  };
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -238,6 +242,8 @@ export function mapPostToRoomDetail(
       districtLabel,
       mapLabel: address,
       nearbyPlaces: [],
+      latitude: post.location?.coordinates?.[1],
+      longitude: post.location?.coordinates?.[0],
     },
     propertyType: post.propertyType,
     details: details,
