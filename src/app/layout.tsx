@@ -17,7 +17,7 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "PhòngTốt | Tìm phòng thông minh",
+  title: "Stayvia | Tìm phòng thông minh",
   description: "Nền tảng tìm phòng nhanh, tiện và tối ưu trải nghiệm trên mọi thiết bị.",
 };
 

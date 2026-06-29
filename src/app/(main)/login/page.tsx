@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LoginHero, LoginForm } from "@/src/features/login/components";
 
 export const metadata: Metadata = {
-	title: "Đăng nhập | PhòngTốt",
+	title: "Đăng nhập | Stayvia",
 	description: "Đăng nhập để lưu phòng trọ, theo dõi tin mới và quản lý lịch hẹn xem phòng.",
 };
 

@@ -1,7 +1,7 @@
 const FOOTER_COLUMNS = [
 	{
-		title: "Về PhòngTốt",
-		links: ["Giới thiệu", "Báo chí nói về PhòngTốt", "Tuyển dụng"],
+		title: "Về Stayvia",
+		links: ["Giới thiệu", "Báo chí nói về Stayvia", "Tuyển dụng"],
 	},
 	{
 		title: "Tài khoản",
@@ -9,7 +9,7 @@ const FOOTER_COLUMNS = [
 	},
 	{
 		title: "Hỗ trợ",
-		links: ["Số điện thoại: 0888.022.821", "Email: lienhe@phongtot.com", "Sitemap"],
+		links: ["Số điện thoại: 0888.022.821", "Email: lienhe@stayvia.com", "Sitemap"],
 	},
 ];
 
@@ -109,7 +109,7 @@ export function Footer({ hotline }: FooterProps) {
 						<section key={officeGroup.city} className="border-b border-slate-300 pb-6 last:border-b-0 last:pb-0">
 							<h3 className="mb-4 text-[20px] font-semibold text-slate-800 md:text-[22px]">
 								<span className="mr-2 text-base">⌃</span>
-								Xem văn phòng của PhòngTốt tại {officeGroup.city}
+								Xem văn phòng của Stayvia tại {officeGroup.city}
 							</h3>
 
 							<div className="grid gap-6 md:grid-cols-2">
@@ -126,7 +126,7 @@ export function Footer({ hotline }: FooterProps) {
 				</div>
 
 				<p className="mt-8 text-[14px] text-slate-500">
-					© 2023-2025. Bản quyền của Phòng tốt - Địa chỉ: Tòa nhà Imperia Garden, 143 Nguyễn Tuân, Quận
+					© 2023-2025. Bản quyền của Stayvia - Địa chỉ: Tòa nhà Imperia Garden, 143 Nguyễn Tuân, Quận
 					Thanh Xuân, TP Hà Nội. - Điện thoại: {hotline}.
 				</p>
 			</div>

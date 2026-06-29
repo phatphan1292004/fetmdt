@@ -3,7 +3,7 @@ import { ProfilePage } from "@/src/features/user";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: "Profile | PhongTot",
+  title: "Profile | Stayvia",
   description: "Quan ly thong tin ca nhan, tin dang da luu va tin dang cua ban.",
 };
 

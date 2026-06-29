@@ -20,7 +20,7 @@ mongoose.connect(MONGODB_URI)
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("PhòngTốt Live Chat Socket Server is running!\n");
+  res.end("Stayvia Live Chat Socket Server is running!\n");
 });
 
 const io = new Server(server, {
@@ -95,7 +95,7 @@ io.on("connection", (socket: CustomSocket) => {
             {
               id: "greeting",
               sender: "staff",
-              text: "Xin chào! Cảm ơn bạn đã ghé thăm PhòngTốt. Mình có thể giúp gì cho bạn hôm nay? Hãy chọn một trong các gợi ý dưới đây hoặc nhắn tin cho mình nhé!",
+              text: "Xin chào! Cảm ơn bạn đã ghé thăm Stayvia. Mình có thể giúp gì cho bạn hôm nay? Hãy chọn một trong các gợi ý dưới đây hoặc nhắn tin cho mình nhé!",
               timestamp: new Date(),
             },
           ],
@@ -184,13 +184,13 @@ io.on("connection", (socket: CustomSocket) => {
           const textLower = text.toLowerCase();
           
           if (textLower.includes("tim phong") || textLower.includes("tìm phòng")) {
-            replyText = "Dạ! Hiện tại PhòngTốt đang có hàng ngàn tin đăng phòng trọ chính chủ tại Hà Nội và TP. Hồ Chí Minh. Bạn muốn tìm phòng ở khu vực Quận/Huyện nào, và mức tài chính tối đa khoảng bao nhiêu triệu để mình lọc giúp bạn nhé? 😉";
+            replyText = "Dạ! Hiện tại Stayvia đang có hàng ngàn tin đăng phòng trọ chính chủ tại Hà Nội và TP. Hồ Chí Minh. Bạn muốn tìm phòng ở khu vực Quận/Huyện nào, và mức tài chính tối đa khoảng bao nhiêu triệu để mình lọc giúp bạn nhé? 😉";
           } else if (textLower.includes("dang tin") || textLower.includes("đăng tin")) {
             replyText = "Dạ, để đăng tin cho thuê phòng, bạn hãy click vào nút **Đăng tin** màu vàng ở góc phải thanh menu phía trên (hoặc truy cập /post). Hệ thống hỗ trợ đăng tin thường miễn phí và các gói dịch vụ VIP nổi bật. Bạn đã đăng ký tài khoản chưa ạ?";
           } else if (textLower.includes("bang gia") || textLower.includes("bảng giá") || textLower.includes("bao gia") || textLower.includes("báo giá")) {
-            replyText = "Dịch vụ đẩy tin & VIP của PhòngTốt gồm:\n• VIP 1 (Siêu Cấp): 50.000đ/ngày\n• VIP 2 (Nổi Bật): 30.000đ/ngày\n• VIP 3 (Tiết Kiệm): 15.000đ/ngày\nBạn cần hỗ trợ tư vấn chi tiết hơn về gói nào không ạ?";
+            replyText = "Dịch vụ đẩy tin & VIP của Stayvia gồm:\n• VIP 1 (Siêu Cấp): 50.000đ/ngày\n• VIP 2 (Nổi Bật): 30.000đ/ngày\n• VIP 3 (Tiết Kiệm): 15.000đ/ngày\nBạn cần hỗ trợ tư vấn chi tiết hơn về gói nào không ạ?";
           } else {
-            replyText = "Cảm ơn bạn đã liên hệ PhòngTốt! Hiện tại các hỗ trợ viên đang bận hoặc ngoại tuyến. Bạn vui lòng liên hệ hotline **0888.022.821** hoặc để lại lời nhắn, chúng tôi sẽ phản hồi sớm nhất có thể ạ!";
+            replyText = "Cảm ơn bạn đã liên hệ Stayvia! Hiện tại các hỗ trợ viên đang bận hoặc ngoại tuyến. Bạn vui lòng liên hệ hotline **0888.022.821** hoặc để lại lời nhắn, chúng tôi sẽ phản hồi sớm nhất có thể ạ!";
           }
 
           const botMessage: Message = {

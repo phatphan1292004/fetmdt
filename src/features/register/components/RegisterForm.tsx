@@ -68,7 +68,7 @@ export function RegisterForm() {
                     Đăng ký
                 </p>
                 <h1 className="mt-1 text-2xl font-extrabold text-slate-900 sm:text-[30px]">
-                    Bắt đầu cùng PhòngTốt
+                    Bắt đầu cùng Stayvia
                 </h1>
             </div>
 
@@ -224,7 +224,7 @@ export function RegisterForm() {
                         className="mt-0.5 h-4 w-4"
                     />
                     <span>
-                        Tôi đồng ý với Điều khoản sử dụng và Chính sách bảo mật của PhongTot.
+                        Tôi đồng ý với Điều khoản sử dụng và Chính sách bảo mật của Stayvia.
                     </span>
                 </label>
 

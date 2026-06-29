@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { RegisterForm, RegisterHero } from "@/src/features/register/components";
 
 export const metadata: Metadata = {
-	title: "Dang ky | PhongTot",
-	description: "Tao tai khoan PhongTot de dang tin nhanh va ket noi voi khach thue phu hop.",
+	title: "Dang ky | Stayvia",
+	description: "Tao tai khoan Stayvia de dang tin nhanh va ket noi voi khach thue phu hop.",
 };
 
 export default function RegisterPage() {
