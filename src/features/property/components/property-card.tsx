@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buildRoomRouteFromPropertyId } from "../../room/servers";
+import { buildRoomRouteFromSlug } from "../../room/servers";
 import type { PropertyCardData } from "../servers/get-home-data";
 
 type PropertyCardProps = {
@@ -7,7 +7,7 @@ type PropertyCardProps = {
 };
 
 export function PropertyCard({ property }: PropertyCardProps) {
-  const roomDetailHref = buildRoomRouteFromPropertyId(property.id);
+  const roomDetailHref = buildRoomRouteFromSlug(property.id);
 
   return (
     <article className="relative overflow-hidden rounded-[26px] bg-[#f8f8f8] shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
@@ -20,6 +20,10 @@ export function PropertyCard({ property }: PropertyCardProps) {
       <div className="relative h-60">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${property.imageUrl})` }} />
         <div className="absolute inset-0 bg-linear-to-t from-black/25 to-transparent" />
+
+        <span className="absolute left-4 top-4 z-20 rounded-full bg-[#0b7ea9]/95 px-3 py-1 text-[12px] font-bold text-white">
+          {property.category}
+        </span>
 
         <div className="absolute bottom-4 left-4 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[13px] font-bold text-[#f5a225]">
           <span aria-hidden>★</span>

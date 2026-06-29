@@ -1,4 +1,4 @@
-import { Footer, Header } from "@/src/components";
+import { Footer, Header, ChatWidget } from "@/src/components";
 import { getPropertyLandingData } from "@/src/features/property/servers";
 import { headers } from "next/headers";
 
@@ -17,6 +17,16 @@ type CurrentUser = {
 type MeResponse = {
   success: boolean;
   data?: CurrentUser;
+};
+
+type LocationsResponse = {
+  success: boolean;
+  data?: HeaderLocation[];
+};
+
+type HeaderLocation = {
+  city: string;
+  districts: string[];
 };
 
 async function getCurrentUser(): Promise<CurrentUser | null> {
@@ -59,18 +69,66 @@ async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 }
 
+async function getHeaderLocations(): Promise<HeaderLocation[]> {
+  try {
+    const headerStore = await headers();
+    const host =
+      headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+
+    if (!host) {
+      return [];
+    }
+
+    const protocol =
+      headerStore.get("x-forwarded-proto") ??
+      (process.env.NODE_ENV === "development" ? "http" : "https");
+
+    const cookieHeader = headerStore.get("cookie") ?? "";
+
+    const res = await fetch(`${protocol}://${host}/api/v1/locations`, {
+      method: "GET",
+      headers: {
+        cookie: cookieHeader,
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const data = (await res.json()) as LocationsResponse;
+
+    if (!data.success || !data.data) {
+      return [];
+    }
+
+    return data.data;
+  } catch {
+    return [];
+  }
+}
+
 export default async function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const currentUser = await getCurrentUser();
+  const [currentUser, locations] = await Promise.all([
+    getCurrentUser(),
+    getHeaderLocations(),
+  ]);
 
   return (
     <>
-      <Header hotline={landingData.hotline} currentUser={currentUser} />
+      <Header
+        hotline={landingData.hotline}
+        currentUser={currentUser}
+        locations={locations}
+      />
       {children}
       <Footer hotline={landingData.hotline} />
+      <ChatWidget />
     </>
   );
 }

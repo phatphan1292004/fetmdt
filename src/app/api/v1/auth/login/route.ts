@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "@/src/models/User";
+import UserActivity from "@/src/models/UserActivity";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
@@ -44,7 +45,7 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 *               type: string
 *               example: token=jwt_token_here; Path=/; HttpOnly; SameSite=Lax
 *       400:
-*         description: Sai thông tin đăng nhập hoặc tài khoản chưa xác thực
+*         description: Sai thông tin đăng nhập
 *       500:
 *         description: Lỗi server
 */
@@ -76,17 +77,6 @@ export async function POST(req: Request) {
                 {
                     success: false,
                     message: "Sai tài khoản hoặc mật khẩu",
-                    data: null,
-                },
-                { status: 400 }
-            );
-        }
-
-        if (!user.isVerified || user.status == "pending") {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: "Tài khoản chưa xác thực",
                     data: null,
                 },
                 { status: 400 }
@@ -135,6 +125,23 @@ export async function POST(req: Request) {
             },
             { status: 200 }
         );
+
+        try {
+            const userAgent = req.headers.get("user-agent") || "";
+            const forwardedFor = req.headers.get("x-forwarded-for");
+            const ip = forwardedFor ? forwardedFor.split(",")[0]?.trim() : null;
+
+            await UserActivity.create({
+                userId: user._id,
+                title: "Đăng nhập",
+                metadata: {
+                    userAgent,
+                    ip,
+                },
+            });
+        } catch {
+            // Ignore activity logging errors
+        }
 
         // 6. Set HttpOnly Cookie
         response.cookies.set({

@@ -40,6 +40,70 @@ const UserSchema = new mongoose.Schema(
             required: true,
         },
 
+        avatarUrl: {
+            type: String,
+            default: null,
+            trim: true,
+        },
+
+        identityCard: {
+            type: String,
+            default: null,
+            trim: true,
+        },
+
+        identityCardFrontUrl: {
+            type: String,
+            default: null,
+        },
+
+        identityCardBackUrl: {
+            type: String,
+            default: null,
+        },
+
+        hobbies: {
+            type: [String],
+            default: [],
+        },
+
+        occupation: {
+            type: String,
+            default: null,
+            trim: true,
+        },
+
+        preferredArea: {
+            type: String,
+            default: "",
+            trim: true,
+        },
+
+        followerCount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
+        followingCount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
+        walletBalance: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
+        responseRate: {
+            type: Number,
+            default: 0,
+            min: 0,
+            max: 100,
+        },
+
         isVerified: { // Đã xác minh tài khoản qua gmail hoặc phone hay chưa
             type: Boolean,
             default: false,

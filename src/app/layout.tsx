@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Sora } from "next/font/google";
-import { Footer, Header } from "@/src/components";
 import "@/src/app/globals.css";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
   variable: "--font-be-vietnam",
@@ -28,10 +29,12 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
+      suppressHydrationWarning
       className={`${beVietnamPro.variable} ${sora.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-[#f3f5f7] text-slate-700">
         {children}
+        <ToastContainer position="bottom-right" autoClose={3000} />
       </body>
     </html>
   );

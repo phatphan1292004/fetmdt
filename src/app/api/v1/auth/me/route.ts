@@ -43,6 +43,11 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
  *                       type: boolean
  *                     status:
  *                       type: string
+ *                     avatarUrl:
+ *                       type: string
+ *                       nullable: true
+ *                     preferredArea:
+ *                       type: string
  *       401:
  *         description: Chưa đăng nhập hoặc token không hợp lệ
  *       500:
@@ -97,6 +102,8 @@ export async function GET(req: Request) {
                 role: user.role,
                 isVerified: user.isVerified,
                 status: user.status,
+                avatarUrl: user.avatarUrl || null,
+                preferredArea: user.preferredArea || "",
             },
         });
     } catch (error: any) {

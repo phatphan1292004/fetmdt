@@ -1,3 +1,5 @@
+import "server-only";
+import { headers } from "next/headers";
 import { getPropertyLandingData } from "../../property/servers";
 import type { PropertyCardData } from "../../property/servers";
 
@@ -14,6 +16,50 @@ type PostMetaData = {
 };
 
 export type PostCardData = PropertyCardData & PostMetaData;
+
+type PopulatedPostOwner = {
+  _id: string;
+  fullName?: string;
+};
+
+export type RawNewestPostData = {
+  _id: string;
+  id?: string;
+  slug?: string;
+  ownerId?: string | PopulatedPostOwner;
+  ownerName?: string;
+  ownerPostCount?: number;
+  propertyType?: string;
+  listingType?: string;
+  projectName?: string;
+  address?: string;
+  showRoomCode?: boolean;
+  title?: string;
+  description?: string;
+  price?: number;
+  deposit?: number;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  width?: number;
+  length?: number;
+  floors?: number;
+  usableArea?: number;
+  mainDirection?: string;
+  legalStatus?: string;
+  interiorStatus?: string;
+  feature?: string;
+  details?: Record<string, unknown>;
+  ownerType?: string;
+  mediaUrls?: string[];
+  status?: string;
+  vipType?: string;
+  vipExpireAt?: Date | string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+};
+
+export type PostListingData = PostCardData | RawNewestPostData;
 
 function buildGallery(imageUrl: string): readonly string[] {
   return [
@@ -87,11 +133,56 @@ function getPostMetaData(property: PropertyCardData, index: number): PostMetaDat
   };
 }
 
-export function getFeaturedPostsData(): readonly PostCardData[] {
-  const propertyCards = getPropertyLandingData().properties;
+async function resolveApiBaseUrl(): Promise<{ baseUrl: string; cookieHeader: string } | null> {
+  const headerStore = await headers();
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
 
-  return propertyCards.map((property, index) => ({
-    ...property,
-    ...getPostMetaData(property, index),
-  }));
+  if (!host) {
+    return null;
+  }
+
+  const protocol =
+    headerStore.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "development" ? "http" : "https");
+
+  return {
+    baseUrl: `${protocol}://${host}`,
+    cookieHeader: headerStore.get("cookie") ?? "",
+  };
+}
+
+export async function getFeaturedPostsData(limit = 4): Promise<readonly PostListingData[]> {
+  try {
+    const apiContext = await resolveApiBaseUrl();
+
+    if (!apiContext) {
+      return [];
+    }
+
+    const response = await fetch(
+      `${apiContext.baseUrl}/api/v1/posts?section=featured&limit=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          cookie: apiContext.cookieHeader,
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const payload = (await response.json()) as { success: boolean; data?: PostListingData[] };
+
+    if (!payload.success || !Array.isArray(payload.data)) {
+      return [];
+    }
+
+    return payload.data;
+  } catch (error) {
+    console.error("[getFeaturedPostsData] Failed to load featured posts", error);
+    return [];
+  }
 }
