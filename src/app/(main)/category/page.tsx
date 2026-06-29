@@ -2,20 +2,37 @@
 import { PriceRangeFilter } from "@/src/features/category/components/price-range-filter";
 import { PostCard } from "@/src/features/post/components/post-card";
 import type { RawNewestPostData } from "@/src/features/post/servers/get-home-data";
-
+import { connectDB } from "@/src/lib/mongoose";
+import Location from "@/src/models/Location";
+import { LocationFilter } from "@/src/features/category/components/location-filter";
 type CategoryPageProps = {
   searchParams: Promise<{
     city?: string;
     district?: string;
+    page?: string;
+    priceRange?: string | string[];
+    propertyType?: string;
+    policies?: string | string[];
+    buildingAmenities?: string | string[];
+    furniture?: string | string[];
+    roomAmenities?: string | string[];
   }>;
 };
 
-type NewestPostsResponse = {
+type RoomsSearchResponse = {
   success: boolean;
   data?: RawNewestPostData[];
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
+  };
 };
 
-async function resolveApiBaseUrl(): Promise<{ baseUrl: string; cookieHeader: string } | null> {
+async function resolveApiBaseUrl(): Promise<{
+  baseUrl: string;
+  cookieHeader: string;
+} | null> {
   const headerStore = await headers();
   const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
 
@@ -36,69 +53,194 @@ async function resolveApiBaseUrl(): Promise<{ baseUrl: string; cookieHeader: str
 function asText(value?: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
+function asArray(value?: string | string[]): string[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
 
-function includesNormalized(value: string, keyword: string): boolean {
-  return value.toLowerCase().includes(keyword.toLowerCase());
+function buildFilterHref(
+  params: Awaited<CategoryPageProps["searchParams"]>,
+  updates: Record<string, string | undefined>,
+) {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (!value || key === "page") return;
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => query.append(key, item));
+    } else {
+      query.set(key, value);
+    }
+  });
+
+  Object.entries(updates).forEach(([key, value]) => {
+    query.delete(key);
+    if (value) query.set(key, value);
+  });
+
+  query.set("page", "1");
+
+  return `/category?${query.toString()}`;
+}
+
+function toggleFilterHref(
+  params: Awaited<CategoryPageProps["searchParams"]>,
+  key: string,
+  value: string,
+) {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([paramKey, paramValue]) => {
+    if (!paramValue || paramKey === "page") return;
+
+    if (Array.isArray(paramValue)) {
+      paramValue.forEach((item) => query.append(paramKey, item));
+    } else {
+      query.set(paramKey, paramValue);
+    }
+  });
+
+  const currentValues = query.getAll(key);
+  query.delete(key);
+
+  if (currentValues.includes(value)) {
+    currentValues
+      .filter((item) => item !== value)
+      .forEach((item) => query.append(key, item));
+  } else {
+    [...currentValues, value].forEach((item) => query.append(key, item));
+  }
+
+  query.set("page", "1");
+
+  return `/category?${query.toString()}`;
+}
+function asPage(value?: string): number {
+  const page = Number(value);
+
+  if (!Number.isFinite(page) || page < 1) {
+    return 1;
+  }
+
+  return Math.floor(page);
 }
 
 function FilterSection({
   title,
   items,
-  checkFirst = false,
+  activeItems,
+  filterKey,
+  params,
 }: {
   title: string;
-  items: readonly string[];
-  checkFirst?: boolean;
+  items: readonly { label: string; value: string }[];
+  activeItems: string[];
+  filterKey: string;
+  params: Awaited<CategoryPageProps["searchParams"]>;
 }) {
   return (
     <article className="border-t border-slate-200/80 pt-5 first:border-t-0 first:pt-0">
-      <h3 className="text-[26px] font-extrabold leading-none text-[#045a84]">{title}</h3>
+      <h3 className="text-[26px] font-extrabold leading-none text-[#045a84]">
+        {title}
+      </h3>
+
       <div className="mt-3 space-y-1.5">
-        {items.map((item, index) => (
-          <label
-            key={item}
-            className="group flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[15px] text-slate-700 transition hover:bg-slate-50"
-          >
-            <input
-              type="checkbox"
-              defaultChecked={index === 0 && checkFirst}
-              className="h-4 w-4 rounded-[4px] border-slate-400 accent-[#22c2c7]"
-            />
-            <span className="leading-snug">{item}</span>
-          </label>
-        ))}
+        {items.map((item) => {
+          const active = activeItems.includes(item.value);
+
+          return (
+            <a
+              key={item.value}
+              href={toggleFilterHref(params, filterKey, item.value)}
+              className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[15px] text-slate-700 hover:bg-slate-50"
+            >
+              <span
+                className={`flex h-4 w-4 items-center justify-center rounded border text-xs font-bold ${
+                  active
+                    ? "border-[#22c2c7] bg-[#22c2c7] text-white"
+                    : "border-slate-400 bg-white text-transparent"
+                }`}
+              >
+                ✓
+              </span>
+              <span>{item.label}</span>
+            </a>
+          );
+        })}
       </div>
     </article>
   );
 }
 
-export default async function CategoryPage({ searchParams }: CategoryPageProps) {
+export default async function CategoryPage({
+  searchParams,
+}: CategoryPageProps) {
   const params = await searchParams;
   const city = asText(params.city);
   const district = asText(params.district);
+  const priceRanges = asArray(params.priceRange);
+  const propertyType = asText(params.propertyType);
+  const policies = asArray(params.policies);
+  const buildingAmenities = asArray(params.buildingAmenities);
+  const furniture = asArray(params.furniture);
+  const roomAmenities = asArray(params.roomAmenities);
+  const page = asPage(params.page);
+  const limit = 5;
   const titleDistrict = district || "Khu vực";
+  await connectDB();
+
+  const locations = await Location.find({})
+    .select("city districts -_id")
+    .sort({ city: 1 })
+    .lean();
+
+  const plainLocations = locations.map((item) => ({
+    city: item.city,
+    districts: item.districts ?? [],
+  }));
 
   let posts: RawNewestPostData[] = [];
+  let total = 0;
 
   try {
     const apiContext = await resolveApiBaseUrl();
 
     if (apiContext) {
+      const query = new URLSearchParams();
+
+      if (city) query.set("city", city);
+      if (district) query.set("district", district);
+      if (propertyType) query.set("propertyType", propertyType);
+
+      priceRanges.forEach((item) => query.append("priceRange", item));
+      policies.forEach((item) => query.append("policies", item));
+      buildingAmenities.forEach((item) =>
+        query.append("buildingAmenities", item),
+      );
+      furniture.forEach((item) => query.append("furniture", item));
+      roomAmenities.forEach((item) => query.append("roomAmenities", item));
+
+      query.set("page", page.toString());
+      query.set("limit", limit.toString());
+
       const response = await fetch(
-        `${apiContext.baseUrl}/api/v1/posts?section=newest&limit=20`,
+        `${apiContext.baseUrl}/api/v1/rooms/search?${query.toString()}`,
         {
           method: "GET",
           headers: {
             cookie: apiContext.cookieHeader,
           },
           cache: "no-store",
-        }
+        },
       );
 
       if (response.ok) {
-        const payload = (await response.json()) as NewestPostsResponse;
+        const payload = (await response.json()) as RoomsSearchResponse;
+
         if (payload.success && Array.isArray(payload.data)) {
           posts = payload.data;
+          total = payload.meta?.total ?? payload.data.length;
         }
       }
     }
@@ -106,16 +248,8 @@ export default async function CategoryPage({ searchParams }: CategoryPageProps) 
     console.error("[CategoryPage] Failed to load posts", error);
   }
 
-  const filteredPosts = posts.filter((post) => {
-    const address = asText(post.address);
-    const postCity = asText((post as { city?: string }).city);
-    const textSource = `${address} ${postCity}`;
-
-    const matchCity = city ? includesNormalized(textSource, city) : true;
-    const matchDistrict = district ? includesNormalized(textSource, district) : true;
-
-    return matchCity && matchDistrict;
-  });
+  const filteredPosts = posts;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
     <main className="bg-[#f3f5f7] py-8">
@@ -135,59 +269,92 @@ export default async function CategoryPage({ searchParams }: CategoryPageProps) 
         </h1>
 
         <p className="mt-2 text-[18px] text-slate-600">
-          Có <span className="font-semibold text-[#0ea5b4]">{filteredPosts.length}</span> phòng đang hiển thị
+          Có <span className="font-semibold text-[#0ea5b4]">{total}</span> phòng
+          đang hiển thị
         </p>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
           <aside className="xl:sticky xl:top-26">
-            <div className="h-[calc(100vh-9.5rem)] overflow-y-auto rounded-[28px] border border-[#c8d8e3] bg-white/95 p-5 shadow-[0_18px_40px_rgba(4,90,132,0.12)] backdrop-blur-sm">
+            <div className="h-[calc(150vh-9.5rem)] overflow-y-auto rounded-[28px] border border-[#c8d8e3] bg-white/95 p-5 shadow-[0_18px_40px_rgba(4,90,132,0.12)] backdrop-blur-sm">
               <section>
-                <h3 className="text-[26px] font-extrabold leading-none text-[#045a84]">Khoảng giá</h3>
+                <h3 className="text-[26px] font-extrabold leading-none text-[#045a84]">
+                  Khoảng giá
+                </h3>
                 <PriceRangeFilter />
-
-                <div className="mt-3 space-y-1.5">
-                  {[
-                    "Tất cả mức giá",
-                    "Dưới 3 triệu",
-                    "3 - 5 triệu",
-                    "5 - 7 triệu",
-                    "7 - 10 triệu",
-                    "10 - 15 triệu",
-                    "Trên 15 triệu",
-                  ].map((label, index) => (
-                    <label
-                      key={label}
-                      className="group flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[15px] text-slate-700 transition hover:bg-slate-50"
-                    >
-                      <input
-                        type="checkbox"
-                        defaultChecked={index === 0}
-                        className="h-4 w-4 rounded-[4px] border-slate-400 accent-[#22c2c7]"
-                      />
-                      <span className="leading-snug">{label}</span>
-                    </label>
-                  ))}
-                </div>
               </section>
 
               <div className="mt-6 space-y-6">
-                <FilterSection title="Khu vực" items={["TP Hồ Chí Minh", "Hà Nội"]} checkFirst />
-                <FilterSection title="Loại phòng" items={["Loại phòng", "1 phòng ngủ", "2 phòng ngủ", "3 phòng ngủ", "Studio", "Duplex"]} />
-                <FilterSection title="Chính sách" items={["Nuôi thú cưng", "Giờ giấc tự do", "Thời gian thuê tối thiểu 3 tháng", "Chủ nhà không ở cùng"]} />
+                <LocationFilter
+                  city={city}
+                  district={district}
+                  locations={plainLocations}
+                  currentParams={params}
+                />
                 <FilterSection
-                  title="Tiện ích chung"
+                  title="Chính sách"
+                  activeItems={policies}
+                  filterKey="policies"
+                  params={params}
                   items={[
-                    "Khu cầu thang chung (*)",
-                    "Khu để xe (*)",
-                    "Phòng (*)",
-                    "Ô tô đỗ cửa",
-                    "Camera an ninh",
-                    "Khóa cổng thông minh",
-                    "Bảo vệ 24/7",
+                    { label: "Nuôi thú cưng", value: "pet-friendly" },
+                    { label: "Giờ giấc tự do", value: "free-hours" },
+                    {
+                      label: "Thời gian thuê tối thiểu 3 tháng",
+                      value: "min-3-months",
+                    },
+                    { label: "Chủ nhà không ở cùng", value: "owner-not-live" },
                   ]}
                 />
-                <FilterSection title="Nội thất" items={["Kệ tivi", "Giá giày dép", "Bàn làm việc", "Sofa", "Bàn ăn", "Tủ bếp trên", "Tủ bếp dưới"]} />
-                <FilterSection title="Tiện nghi" items={["Ban công", "Cửa sổ", "Gác lửng", "Khóa phòng thông minh", "Báo cháy phòng", "Dọn vệ sinh phòng", "Tivi"]} />
+                <FilterSection
+                  title="Tiện ích chung"
+                  activeItems={buildingAmenities}
+                  filterKey="buildingAmenities"
+                  params={params}
+                  items={[
+                    { label: "Khu cầu thang chung", value: "shared-stair" },
+                    { label: "Khu để xe", value: "parking" },
+                    { label: "Phòng", value: "private-room" },
+                    { label: "Ô tô đỗ cửa", value: "car-access" },
+                    { label: "Camera an ninh", value: "security-camera" },
+                    { label: "Khóa cổng thông minh", value: "smart-gate" },
+                    { label: "Bảo vệ 24/7", value: "security-24-7" },
+                  ]}
+                />
+
+                <FilterSection
+                  title="Nội thất"
+                  activeItems={furniture}
+                  filterKey="furniture"
+                  params={params}
+                  items={[
+                    { label: "Kệ tivi", value: "tv-shelf" },
+                    { label: "Giá giày dép", value: "shoe-rack" },
+                    { label: "Bàn làm việc", value: "desk" },
+                    { label: "Sofa", value: "sofa" },
+                    { label: "Bàn ăn", value: "dining-table" },
+                    { label: "Tủ bếp trên", value: "upper-kitchen-cabinet" },
+                    { label: "Tủ bếp dưới", value: "lower-kitchen-cabinet" },
+                  ]}
+                />
+
+                <FilterSection
+                  title="Tiện nghi"
+                  activeItems={roomAmenities}
+                  filterKey="roomAmenities"
+                  params={params}
+                  items={[
+                    { label: "Ban công", value: "balcony" },
+                    { label: "Cửa sổ", value: "window" },
+                    { label: "Gác lửng", value: "loft" },
+                    {
+                      label: "Khóa phòng thông minh",
+                      value: "smart-door-lock",
+                    },
+                    { label: "Báo cháy phòng", value: "fire-alarm" },
+                    { label: "Dọn vệ sinh phòng", value: "room-cleaning" },
+                    { label: "Tivi", value: "tv" },
+                  ]}
+                />
               </div>
             </div>
           </aside>
@@ -205,6 +372,40 @@ export default async function CategoryPage({ searchParams }: CategoryPageProps) 
                 Chưa có phòng phù hợp với khu vực đã chọn.
               </div>
             )}
+            {totalPages > 1 ? (
+              <div className="flex w-full items-center justify-center gap-3 pt-6">
+                {Array.from({ length: totalPages }).map((_, index) => {
+                  const pageNumber = index + 1;
+                  const hrefParams = new URLSearchParams();
+
+                  Object.entries(params).forEach(([key, value]) => {
+                    if (!value || key === "page") return;
+
+                    if (Array.isArray(value)) {
+                      value.forEach((item) => hrefParams.append(key, item));
+                    } else {
+                      hrefParams.set(key, value);
+                    }
+                  });
+
+                  hrefParams.set("page", pageNumber.toString());
+
+                  return (
+                    <a
+                      key={pageNumber}
+                      href={`/category?${hrefParams.toString()}`}
+                      className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
+                        pageNumber === page
+                          ? "border-[#045a84] bg-[#045a84] text-white"
+                          : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {pageNumber}
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

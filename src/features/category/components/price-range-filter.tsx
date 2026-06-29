@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-
+import { useRouter, useSearchParams } from "next/navigation";
 type PriceRangeFilterProps = {
   min?: number;
   max?: number;
@@ -18,24 +18,50 @@ function formatVnd(value: number): string {
   return `${value.toLocaleString("vi-VN")}\u0111`;
 }
 
-export function PriceRangeFilter({ min = 0, max = 20_000_000, step = 500_000 }: PriceRangeFilterProps) {
+export function PriceRangeFilter({
+  min = 0,
+  max = 20_000_000,
+  step = 500_000,
+}: PriceRangeFilterProps) {
   const [minValue, setMinValue] = useState(min);
   const [maxValue, setMaxValue] = useState(max);
 
-  const minPercent = useMemo(() => ((minValue - min) / (max - min)) * 100, [max, min, minValue]);
-  const maxPercent = useMemo(() => ((maxValue - min) / (max - min)) * 100, [max, min, maxValue]);
+  const minPercent = useMemo(
+    () => ((minValue - min) / (max - min)) * 100,
+    [max, min, minValue],
+  );
+  const maxPercent = useMemo(
+    () => ((maxValue - min) / (max - min)) * 100,
+    [max, min, maxValue],
+  );
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  function applyPriceFilter() {
+    const query = new URLSearchParams(searchParams.toString());
+
+    query.delete("priceRange");
+    query.set("priceRange", `${minValue}-${maxValue}`);
+    query.set("page", "1");
+
+    router.push(`/category?${query.toString()}`);
+  }
 
   return (
     <div className="mt-3 rounded-2xl border border-slate-200/90 bg-slate-50/60 p-3.5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{"Kho\u1ea3ng gi\u00e1"}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+          {"Kho\u1ea3ng gi\u00e1"}
+        </p>
         <span className="rounded-lg bg-[#19b38f]/12 px-2.5 py-1 text-[12px] font-semibold text-[#0f8f72]">
           {formatVndShort(minValue)} - {formatVndShort(maxValue)}
         </span>
       </div>
 
       <div className="mt-3 flex items-center justify-between text-[12px] font-semibold text-slate-500">
-        <span>{"Th\u1ea5p"}: {formatVndShort(min)}</span>
+        <span>
+          {"Th\u1ea5p"}: {formatVndShort(min)}
+        </span>
         <span>Cao: {formatVndShort(max)}</span>
       </div>
 
@@ -77,6 +103,13 @@ export function PriceRangeFilter({ min = 0, max = 20_000_000, step = 500_000 }: 
         <span>{formatVnd(minValue)}</span>
         <span>{formatVnd(maxValue)}+</span>
       </div>
+      <button
+        type="button"
+        onClick={applyPriceFilter}
+        className="mt-3 w-full rounded-xl bg-[#045a84] px-4 py-2 text-sm font-bold text-white hover:bg-[#034d70]"
+      >
+        Áp dụng khoảng giá
+      </button>
     </div>
   );
 }
