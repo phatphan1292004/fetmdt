@@ -562,6 +562,7 @@ function buildDetailsByPropertyType(
     normalized: {
       area: roomArea,
       usableArea: roomArea,
+      bedrooms: 1,
       bathrooms: hasPrivateWc ? 1 : 0,
       interiorStatus: toOptionalString(body.interiorStatus),
     },
