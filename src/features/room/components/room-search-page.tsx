@@ -311,10 +311,28 @@ export function RoomSearchPage() {
           alert("Chỉ được chọn tối đa 3 phòng để so sánh");
           return prev;
         }
-        newRooms = [...prev, room];
+        // Giảm dung lượng object để tránh lỗi QuotaExceededError
+        const minimalRoom = {
+          id: room.id,
+          title: room.title,
+          priceLabel: room.priceLabel,
+          areaLabel: room.areaLabel,
+          propertyType: room.propertyType,
+          address: room.address,
+          city: room.city,
+          location: room.location,
+          imageUrls: room.imageUrls && room.imageUrls.length > 0 ? [room.imageUrls[0]] : [],
+          amenities: room.amenities,
+        };
+        newRooms = [...prev, minimalRoom as any];
       }
-      localStorage.setItem("compareRooms", JSON.stringify(newRooms));
-      return newRooms;
+      try {
+        localStorage.setItem("compareRooms", JSON.stringify(newRooms));
+      } catch (error) {
+        console.error("Local storage limit exceeded:", error);
+        alert("Bộ nhớ đã đầy, không thể thêm phòng. Vui lòng thử lại sau.");
+      }
+      return newRooms as RoomDetailData[];
     });
   };
 
