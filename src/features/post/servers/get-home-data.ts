@@ -124,7 +124,7 @@ function getPostMetaData(property: PropertyCardData, index: number): PostMetaDat
     subtitle: mappedMeta?.subtitle ?? "Noi that cao cap",
     areaLabel: mappedMeta?.areaLabel ?? `${18 + index * 2} m2`,
     tagLabel: mappedMeta?.tagLabel ?? "Tin uu tien",
-    authorName: mappedMeta?.authorName ?? "PhongTot Staff",
+    authorName: mappedMeta?.authorName ?? "Stayvia Staff",
     authorAvatarUrl: mappedMeta?.authorAvatarUrl ?? DEFAULT_AUTHOR_AVATAR,
     authorPostCountLabel: mappedMeta?.authorPostCountLabel ?? "1 tin dang",
     imageUrls: mappedMeta?.imageUrls ?? buildGallery(property.imageUrl),

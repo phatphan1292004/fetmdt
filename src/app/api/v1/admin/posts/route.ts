@@ -97,7 +97,7 @@ export async function POST(req: Request) {
       landlord = await User.create({
         fullName: owner,
         phone,
-        email: `${phone}@phongtot.dev`,
+        email: `${phone}@stayvia.dev`,
         passwordHash,
         role: "nguoi_cho_thue_tro",
         status: "active",

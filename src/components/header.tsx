@@ -47,19 +47,19 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
             <Link
               href="/"
               className="inline-flex shrink-0 items-center gap-2.5"
-              aria-label="PhòngTốt"
+              aria-label="Stayvia"
             >
               <Image
                 src="/logo2.png"
-                alt="PhòngTốt"
+                alt="Stayvia"
                 width={100}
                 height={100}
                 priority
                 className="object-contain"
               />
               <span className="font-display -ml-8 text-[30px] font-black leading-none tracking-tight">
-                <span className="text-[#045a84]">Phong</span>
-                <span className="text-[#0a6e97]">Tot</span>
+                <span className="text-[#045a84]">Stay</span>
+                <span className="text-[#0a6e97]">via</span>
               </span>
             </Link>
 

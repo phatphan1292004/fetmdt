@@ -15,8 +15,8 @@ export default function SettingsPage() {
 
   // State quản lý thông tin cài đặt
   const [siteSettings, setSiteSettings] = useState({
-    siteName: "SyncRows - Nền tảng thuê phòng trọ",
-    contactEmail: "admin@syncrows.com",
+    siteName: "Stayvia - Nền tảng thuê phòng trọ",
+    contactEmail: "admin@stayvia.com",
     contactPhone: "024.7300.1234",
     moderationPolicy: "Duyệt thủ công toàn bộ tin đăng",
     vipPricePerDay: "50000",

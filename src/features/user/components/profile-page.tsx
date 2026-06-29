@@ -246,7 +246,6 @@ function ProfileInfoTab() {
   const avatarSrc = avatarPreview || profile?.avatarUrl || null;
   const followersCount = summary?.followersCount ?? 0;
   const followingCount = summary?.followingCount ?? 0;
-  const walletBalance = summary?.walletBalance ?? 0;
   const stats = summary?.stats;
   const profileStats = stats
     ? [
@@ -424,7 +423,7 @@ function ProfileInfoTab() {
         </p>
 
         <div className="mt-5 rounded-2xl bg-[#f5f7fa] p-4 text-left sm:p-5">
-          <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm text-slate-500">TK định danh</p>
               <p className="mt-1 text-base font-semibold text-slate-800">{accountId}</p>
@@ -436,18 +435,6 @@ function ProfileInfoTab() {
               </svg>
             </button>
           </div>
-
-          <div className="flex items-center justify-between pt-3">
-            <p className="font-semibold text-slate-800">Đồng Tốt</p>
-            <p className="font-extrabold text-slate-900">{formatNumber(walletBalance)}</p>
-          </div>
-
-          <button
-            type="button"
-            className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#f7cd00] text-base font-bold text-slate-900 transition hover:brightness-95"
-          >
-            Nạp ngay
-          </button>
         </div>
       </div>
 
@@ -821,6 +808,7 @@ function BuffPostsTab() {
   const [selectedDuration, setSelectedDuration] = useState(7); // 7 days default
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [activePackage, setActivePackage] = useState<any>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -876,7 +864,7 @@ function BuffPostsTab() {
     const bankName = process.env.NEXT_PUBLIC_VIETQR_BANK_NAME || "Techcombank";
     const accountNo = process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NO || "1273702222";
     const accountName = process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NAME || "PHAN VAN PHAT";
-    const prefix = process.env.NEXT_PUBLIC_VIETQR_TRANSFER_PREFIX || "PHONGTOT";
+    const prefix = process.env.NEXT_PUBLIC_VIETQR_TRANSFER_PREFIX || "STAYVIA";
     const template = "qr_only";
 
     const totalCost = activePackage.price * selectedDuration;
@@ -908,6 +896,8 @@ function BuffPostsTab() {
   };
 
   const handleFinishPayment = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       const response = await fetch("/api/v1/user/orders", {
         method: "POST",
@@ -934,6 +924,8 @@ function BuffPostsTab() {
     } catch (error: any) {
       console.error("Error creating order:", error);
       setToastMessage("Có lỗi xảy ra khi tạo đơn hàng. Vui lòng liên hệ hỗ trợ!");
+    } finally {
+      setSubmitting(false);
     }
 
     setIsConfirmOpen(false);
@@ -964,55 +956,83 @@ function BuffPostsTab() {
       </div>
 
       {/* Packages Grid */}
-      <div className="grid gap-6 md:grid-cols-3">
-        {packages.map((pkg) => (
-          <article
-            key={pkg._id || pkg.code || pkg.id}
-            className={`relative rounded-3xl border bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between ${pkg.isPopular
-              ? "border-amber-400 ring-2 ring-amber-400/20 scale-[1.02] md:scale-[1.03]"
-              : "border-slate-200"
-              }`}
-          >
-            {pkg.isPopular && (
-              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-xs px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md">
-                Khuyên Dùng
-              </span>
-            )}
-
-            <div>
-              <h3 className="font-extrabold text-xl text-slate-900 leading-snug">{pkg.name}</h3>
-              <p className="text-slate-500 text-xs mt-1.5 min-h-[32px]">{pkg.description}</p>
-
-              <div className="my-4 border-y border-slate-100 py-3 flex items-baseline gap-1">
-                <span className="text-2xl font-black text-slate-900">
-                  {pkg.price.toLocaleString("vi-VN")}đ
-                </span>
-                <span className="text-slate-500 text-xs font-semibold">/ ngày</span>
+      {loading ? (
+        <div className="grid gap-6 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="relative rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between animate-pulse"
+            >
+              <div>
+                <div className="h-6 w-2/3 bg-slate-200 rounded-md mb-2" />
+                <div className="h-4 w-5/6 bg-slate-100 rounded-md mb-4" />
+                <div className="my-4 border-y border-slate-100 py-3 flex items-baseline gap-1">
+                  <div className="h-8 w-1/2 bg-slate-200 rounded-md" />
+                </div>
+                <div className="space-y-2.5 mb-6">
+                  {[1, 2, 3].map((j) => (
+                    <div key={j} className="flex items-center gap-2">
+                      <div className="h-4 w-4 bg-slate-200 rounded-full" />
+                      <div className="h-4 w-3/4 bg-slate-100 rounded-md" />
+                    </div>
+                  ))}
+                </div>
               </div>
-
-              <ul className="space-y-2.5 mb-6">
-                {pkg.features.map((feat: string, index: number) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-slate-600">
-                    <span className={`text-base font-bold shrink-0 ${pkg.textColor}`}>✓</span>
-                    <span className="leading-tight">{feat}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="h-11 w-full bg-slate-200 rounded-xl" />
             </div>
-
-            <button
-              onClick={() => handleOpenConfirm(pkg)}
-              type="button"
-              className={`w-full py-3 rounded-xl font-extrabold text-[15px] transition shadow-sm ${pkg.isPopular
-                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-95 hover:shadow-[0_4px_14px_rgba(245,158,11,0.35)]"
-                : "bg-slate-900 text-white hover:bg-slate-800"
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-3">
+          {packages.map((pkg) => (
+            <article
+              key={pkg._id || pkg.code || pkg.id}
+              className={`relative rounded-3xl border bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between ${pkg.isPopular
+                ? "border-amber-400 ring-2 ring-amber-400/20 scale-[1.02] md:scale-[1.03]"
+                : "border-slate-200"
                 }`}
             >
-              Kích hoạt ngay
-            </button>
-          </article>
-        ))}
-      </div>
+              {pkg.isPopular && (
+                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-xs px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+                  Khuyên Dùng
+                </span>
+              )}
+
+              <div>
+                <h3 className="font-extrabold text-xl text-slate-900 leading-snug">{pkg.name}</h3>
+                <p className="text-slate-500 text-xs mt-1.5 min-h-[32px]">{pkg.description}</p>
+
+                <div className="my-4 border-y border-slate-100 py-3 flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-slate-900">
+                    {pkg.price.toLocaleString("vi-VN")}đ
+                  </span>
+                  <span className="text-slate-500 text-xs font-semibold">/ ngày</span>
+                </div>
+
+                <ul className="space-y-2.5 mb-6">
+                  {pkg.features.map((feat: string, index: number) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-slate-600">
+                      <span className={`text-base font-bold shrink-0 ${pkg.textColor}`}>✓</span>
+                      <span className="leading-tight">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <button
+                onClick={() => handleOpenConfirm(pkg)}
+                type="button"
+                className={`w-full py-3 rounded-xl font-extrabold text-[15px] transition shadow-sm ${pkg.isPopular
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-95 hover:shadow-[0_4px_14px_rgba(245,158,11,0.35)]"
+                  : "bg-slate-900 text-white hover:bg-slate-800"
+                  }`}
+              >
+                Kích hoạt ngay
+              </button>
+            </article>
+          ))}
+        </div>
+      )}
 
       {/* Confirmation & VietQR Purchase Modal */}
       {isConfirmOpen && activePackage && (
@@ -1242,17 +1262,22 @@ function BuffPostsTab() {
                 <div className="flex gap-3 mt-3">
                   <button
                     type="button"
+                    disabled={submitting}
                     onClick={() => setShowQrCode(false)}
-                    className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
+                    className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50"
                   >
                     Quay lại
                   </button>
                   <button
                     type="button"
+                    disabled={submitting}
                     onClick={handleFinishPayment}
-                    className="flex-1 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition shadow-md"
+                    className="flex-1 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Tôi đã chuyển khoản
+                    {submitting && (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    )}
+                    {submitting ? "Đang xử lý..." : "Tôi đã chuyển khoản"}
                   </button>
                 </div>
               </>
@@ -1278,14 +1303,18 @@ export function ProfilePage() {
   return (
     <main className="flex-1 bg-[#f3f5f7] pb-12 pt-6 sm:pt-8">
       <section className="mx-auto w-full max-w-6xl px-3 sm:px-4 lg:px-8">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-extrabold text-slate-900">Hồ sơ cá nhân</h1>
-          <Link
-            href="/"
-            className="inline-flex h-10 items-center rounded-xl bg-[#0b7ea9] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#09678a]"
-          >
-            Về trang chủ
+        <nav className="mb-3 flex items-center gap-2 text-[13px] text-slate-500 font-medium">
+          <Link href="/" className="hover:text-[#0b7ea9] transition flex items-center gap-1">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Trang chủ
           </Link>
+          <span className="text-slate-300">/</span>
+          <span className="text-slate-700">Hồ sơ cá nhân</span>
+        </nav>
+        <div className="mb-4">
+          <h1 className="text-2xl font-extrabold text-slate-900">Hồ sơ cá nhân</h1>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_10px_24px_rgba(15,23,42,0.06)] sm:p-4">
           <div className="flex flex-wrap gap-2">
