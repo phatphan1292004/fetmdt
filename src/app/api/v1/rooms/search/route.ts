@@ -316,6 +316,10 @@ export async function GET(req: Request) {
     const priceRanges = searchParams.getAll("priceRange");
     const areaRanges = searchParams.getAll("areaRange");
     const amenities = searchParams.getAll("amenities");
+    const policies = searchParams.getAll("policies");
+    const buildingAmenities = searchParams.getAll("buildingAmenities");
+    const furniture = searchParams.getAll("furniture");
+    const roomAmenities = searchParams.getAll("roomAmenities");
 
     const limit = normalizeLimit(searchParams.get("limit"));
     const page = normalizePage(searchParams.get("page"));
@@ -469,6 +473,30 @@ export async function GET(req: Request) {
         }
       });
     }
+
+    if (policies.length) {
+  andFilters.push({
+    policies: { $all: policies },
+  });
+}
+
+if (buildingAmenities.length) {
+  andFilters.push({
+    buildingAmenities: { $all: buildingAmenities },
+  });
+}
+
+if (furniture.length) {
+  andFilters.push({
+    furniture: { $all: furniture },
+  });
+}
+
+if (roomAmenities.length) {
+  andFilters.push({
+    roomAmenities: { $all: roomAmenities },
+  });
+}
 
     const query = andFilters.length === 1 ? andFilters[0] : { $and: andFilters };
 
