@@ -180,7 +180,7 @@ export function RoomCompareModal({
                   <td className="border-b border-r border-slate-200 p-3 font-semibold text-slate-700">Loại phòng</td>
                   {rooms.map((room) => (
                     <td key={room.id} className="border-b border-slate-200 p-3 text-slate-700">
-                      {PROPERTY_TYPE_MAP[room.propertyType] || room.propertyType || "Phòng trọ"}
+                      {room.propertyType ? (PROPERTY_TYPE_MAP[room.propertyType] || room.propertyType) : "Phòng trọ"}
                     </td>
                   ))}
                 </tr>
