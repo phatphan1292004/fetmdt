@@ -280,7 +280,7 @@ function resolveCardData(post: PostListingData) {
     return {
       title: post.title,
       subtitle: formatSubtitle(post.subtitle),
-      categoryLabel: formatCategory(post.propertyType, post.category),
+      categoryLabel: formatCategory(undefined, post.category),
       statusLabel: post.availableLabel,
       priceLabel: post.priceLabel,
       areaLabel: normalizeAreaLabel(post.areaLabel),

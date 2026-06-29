@@ -23,6 +23,33 @@ const AMENITY_FIELD_MAP: Readonly<Record<string, string>> = {
   balcony: "hasBalcony",
 };
 
+const EARTH_RADIUS_KM = 6378.1;
+const MAX_SEARCH_TERMS = 8;
+
+const VIETNAMESE_CHAR_GROUPS = [
+  "aàáảãạăằắẳẵặâầấẩẫậ",
+  "eèéẻẽẹêềếểễệ",
+  "iìíỉĩị",
+  "oòóỏõọôồốổỗộơờớởỡợ",
+  "uùúủũụưừứửữự",
+  "yỳýỷỹỵ",
+  "dđ",
+] as const;
+
+const LOCATION_STOP_WORDS = new Set([
+  "phuong",
+  "quan",
+  "huyen",
+  "thanh",
+  "pho",
+  "tp",
+  "thi",
+  "tran",
+  "tinh",
+  "viet",
+  "nam",
+]);
+
 type RangeFilter = {
   min?: number;
   max?: number;
@@ -37,14 +64,14 @@ function toOptionalString(value: unknown): string | undefined {
   return parsed.length ? parsed : undefined;
 }
 
-function toOptionalNumber(value: unknown): number | undefined {
+function toOptionalNumber(value: unknown, allowNegative = false): number | undefined {
   if (value === undefined || value === null || value === "") {
     return undefined;
   }
 
   const parsed = Number(value);
 
-  if (!Number.isFinite(parsed) || parsed < 0) {
+  if (!Number.isFinite(parsed) || (!allowNegative && parsed < 0)) {
     return undefined;
   }
 
@@ -74,7 +101,7 @@ function toOptionalCoordinate(
   min: number,
   max: number
 ): number | undefined {
-  const parsed = toOptionalNumber(value);
+  const parsed = toOptionalNumber(value, true);
 
   if (parsed === undefined) {
     return undefined;
@@ -109,6 +136,106 @@ function normalizePage(rawPage: string | null): number {
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function escapeRegexClass(value: string): string {
+  return value.replace(/[\\\]^]/g, "\\$&");
+}
+
+function buildVietnameseRegexClassMap(): Readonly<Record<string, string>> {
+  const entries = VIETNAMESE_CHAR_GROUPS.flatMap((group) => {
+    const chars = Array.from(new Set([...group, ...group.toUpperCase()]));
+    const regexClass = `[${escapeRegexClass(chars.join(""))}]`;
+
+    return chars.map((char) => [char.toLowerCase(), regexClass] as const);
+  });
+
+  return Object.fromEntries(entries);
+}
+
+const VIETNAMESE_REGEX_CLASS_BY_CHAR = buildVietnameseRegexClassMap();
+
+function normalizeVietnamese(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+}
+
+function buildAccentInsensitivePattern(value: string): string {
+  return Array.from(value.normalize("NFC"))
+    .map((char) => {
+      if (/\s/.test(char)) {
+        return "\\s+";
+      }
+
+      const regexClass = VIETNAMESE_REGEX_CLASS_BY_CHAR[char.toLowerCase()];
+
+      if (regexClass) {
+        return regexClass;
+      }
+
+      return escapeRegex(char);
+    })
+    .join("");
+}
+
+function cleanLocationPhrase(phrase: string): string {
+  const cleaned = phrase
+    .replace(/^(thành phố|thanh pho|tp\.?|quận|quan|q\.?|phường|phuong|p\.?|huyện|huyen|h\.?|tỉnh|tinh|thị xã|thi xa|tx\.?)\s+/i, "")
+    .trim();
+    
+  if (cleaned.toLowerCase() === "việt nam" || cleaned.toLowerCase() === "viet nam") {
+    return "";
+  }
+  
+  return cleaned;
+}
+
+function buildSearchRegex(value: string): RegExp {
+  let pattern = buildAccentInsensitivePattern(value);
+  
+  const normalizedValue = normalizeVietnamese(value);
+  if (normalizedValue === "ho chi minh" || normalizedValue === "thanh pho ho chi minh") {
+    pattern = `(${pattern}|tphcm|tp\\s*hcm|sài gòn|sai gon)`;
+  }
+  
+  return new RegExp(pattern, "i");
+}
+
+function splitSearchTerms(value: string, options?: { removeLocationStopWords?: boolean }): string[] {
+  const terms = value
+    .split(/[,;|/]+/)
+    .map((term) => term.trim())
+    .filter(Boolean)
+    .map((term) => (options?.removeLocationStopWords ? cleanLocationPhrase(term) : term))
+    .filter(Boolean);
+
+  return Array.from(new Set(terms)).slice(0, MAX_SEARCH_TERMS);
+}
+
+function buildTextSearchFilter(
+  value: string,
+  fields: readonly string[],
+  options?: { removeLocationStopWords?: boolean }
+): Record<string, unknown> | null {
+  const terms = splitSearchTerms(value, options);
+
+  if (!terms.length) {
+    return null;
+  }
+
+  return {
+    $and: terms.map((term) => {
+      const regex = buildSearchRegex(term);
+
+      return {
+        $or: fields.map((field) => ({ [field]: regex })),
+      };
+    }),
+  };
 }
 
 function parseRange(value: string): RangeFilter | null {
@@ -199,40 +326,71 @@ export async function GET(req: Request) {
     ];
 
     if (keyword) {
-      const keywordRegex = new RegExp(escapeRegex(keyword), "i");
+      const keywordFilter = buildTextSearchFilter(keyword, [
+        "title",
+        "description",
+        "address",
+        "projectName",
+        "city",
+        "district",
+      ]);
+
+      if (keywordFilter) {
+        andFilters.push(keywordFilter);
+      }
+    }
+
+    const hasRadiusSearch =
+      latitude !== undefined &&
+      longitude !== undefined &&
+      radiusKm !== undefined &&
+      radiusKm > 0;
+
+    if (hasRadiusSearch) {
       andFilters.push({
         $or: [
-          { title: keywordRegex },
-          { description: keywordRegex },
-          { address: keywordRegex },
-          { projectName: keywordRegex },
-        ],
+          {
+            location: {
+              $geoWithin: {
+                $centerSphere: [[longitude, latitude], radiusKm / EARTH_RADIUS_KM],
+              },
+            },
+          },
+          { location: { $exists: false } }
+        ]
       });
     }
 
-    if (locationText) {
-      const locationRegex = new RegExp(escapeRegex(locationText), "i");
-      andFilters.push({
-        $or: [
-          { address: locationRegex },
-          { city: locationRegex },
-          { district: locationRegex },
-        ],
-      });
+    if (locationText && !hasRadiusSearch) {
+      const locationFilter = buildTextSearchFilter(
+        locationText,
+        ["address", "city", "district"],
+        { removeLocationStopWords: true }
+      );
+
+      if (locationFilter) {
+        andFilters.push(locationFilter);
+      }
     }
 
     if (city) {
-      const cityRegex = new RegExp(escapeRegex(city), "i");
-      andFilters.push({
-        $or: [{ city: cityRegex }, { address: cityRegex }],
+      const cityFilter = buildTextSearchFilter(city, ["city", "address"], {
+        removeLocationStopWords: true,
       });
+
+      if (cityFilter) {
+        andFilters.push(cityFilter);
+      }
     }
 
     if (district) {
-      const districtRegex = new RegExp(escapeRegex(district), "i");
-      andFilters.push({
-        $or: [{ district: districtRegex }, { address: districtRegex }],
+      const districtFilter = buildTextSearchFilter(district, ["district", "address"], {
+        removeLocationStopWords: true,
       });
+
+      if (districtFilter) {
+        andFilters.push(districtFilter);
+      }
     }
 
     if (propertyType) {
@@ -312,25 +470,6 @@ export async function GET(req: Request) {
       });
     }
 
-    if (
-      latitude !== undefined &&
-      longitude !== undefined &&
-      radiusKm !== undefined &&
-      radiusKm > 0
-    ) {
-      andFilters.push({
-        location: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [longitude, latitude],
-            },
-            $maxDistance: radiusKm * 1000,
-          },
-        },
-      });
-    }
-
     const query = andFilters.length === 1 ? andFilters[0] : { $and: andFilters };
 
     await connectDB();
@@ -340,6 +479,13 @@ export async function GET(req: Request) {
       { vipExpireAt: { $lt: new Date() }, vipType: { $ne: "free" } },
       { $set: { vipType: "free", vipWeight: 0 } }
     );
+
+    // Keep the geospatial index ready without failing the search when old data is malformed.
+    try {
+      await Post.createIndexes();
+    } catch (indexError) {
+      console.warn("Could not create indexes (possibly invalid geo data):", indexError);
+    }
 
     const [posts, total] = await Promise.all([
       Post.find(query)
@@ -364,6 +510,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: unknown) {
+    console.error("Room search error:", error);
     return NextResponse.json(
       {
         success: false,
