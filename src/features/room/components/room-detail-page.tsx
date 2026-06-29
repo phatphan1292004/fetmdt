@@ -569,7 +569,20 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
           toast.warning("Chỉ có thể so sánh tối đa 3 phòng!");
           return;
         }
-        rooms.push(room);
+        // Giảm dung lượng object để tránh lỗi QuotaExceededError
+        const minimalRoom = {
+          id: room.id,
+          title: room.title,
+          priceLabel: room.priceLabel,
+          areaLabel: room.areaLabel,
+          propertyType: room.propertyType,
+          address: room.address,
+          city: room.city,
+          location: room.location,
+          imageUrls: room.imageUrls && room.imageUrls.length > 0 ? [room.imageUrls[0]] : [],
+          amenities: room.amenities,
+        };
+        rooms.push(minimalRoom as any);
         localStorage.setItem("compareRooms", JSON.stringify(rooms));
       }
       toast.success("Đã thêm vào danh sách so sánh. Trở về Trang chủ/Tìm kiếm để so sánh nhé!", {
@@ -579,6 +592,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
       window.dispatchEvent(new Event("compareRoomsUpdated"));
     } catch (e) {
       console.error("Failed to add to compare list", e);
+      toast.error("Bộ nhớ đã đầy, không thể thêm phòng. Vui lòng thử lại sau.");
     }
   };
 

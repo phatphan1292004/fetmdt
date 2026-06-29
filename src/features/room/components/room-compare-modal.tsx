@@ -18,6 +18,14 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return d;
 }
 
+const PROPERTY_TYPE_MAP: Record<string, string> = {
+  "phong_tro": "Phòng trọ",
+  "can_ho_chung_cu": "Căn hộ/Chung cư",
+  "nha_o": "Nhà ở",
+  "mat_bang": "Mặt bằng",
+  "van_phong": "Văn phòng"
+};
+
 export function RoomCompareModal({
   rooms,
   onClose,
@@ -171,7 +179,9 @@ export function RoomCompareModal({
                 <tr>
                   <td className="border-b border-r border-slate-200 p-3 font-semibold text-slate-700">Loại phòng</td>
                   {rooms.map((room) => (
-                    <td key={room.id} className="border-b border-slate-200 p-3 text-slate-700">{room.propertyType || "Phòng trọ"}</td>
+                    <td key={room.id} className="border-b border-slate-200 p-3 text-slate-700">
+                      {PROPERTY_TYPE_MAP[room.propertyType] || room.propertyType || "Phòng trọ"}
+                    </td>
                   ))}
                 </tr>
                 <tr>
