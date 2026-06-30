@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CurrentUser, UserMenu } from "./UserMenu";
 import Image from "next/image";
@@ -21,6 +21,35 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
   const safeLocations = (locations ?? []).filter(
     (location) => location.city.trim().length > 0,
   );
+
+  const [compareCount, setCompareCount] = useState(0);
+
+  const updateCompareCount = () => {
+    try {
+      const stored = localStorage.getItem("compareRooms");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setCompareCount(Array.isArray(parsed) ? parsed.length : 0);
+      } else {
+        setCompareCount(0);
+      }
+    } catch (e) {
+      setCompareCount(0);
+    }
+  };
+
+  useEffect(() => {
+    updateCompareCount();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("compareRoomsUpdated", updateCompareCount);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("compareRoomsUpdated", updateCompareCount);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -135,7 +164,7 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
               <span className="font-semibold text-slate-900">{hotline}</span>
             </p>
             <Link
-              href="/search"
+              href="/compare"
               className="inline-flex shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-slate-500 whitespace-nowrap transition hover:bg-slate-100"
             >
               <svg
@@ -146,7 +175,7 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
               >
                 <path d="M9 3L3 9h4v6h4V9h4L9 3zm6 18l6-6h-4v-6h-4v6H9l6 6z" />
               </svg>
-              So sánh
+              So sánh {compareCount > 0 && `(${compareCount})`}
             </Link>
             <Link
               href="/phong-da-luu"
