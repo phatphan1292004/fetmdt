@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { 
   LuEye, 
   LuSquarePen, 
@@ -11,11 +12,26 @@ import {
   LuMapPin,
   LuPhone,
   LuCalendarDays,
-  LuPlus
+  LuPlus,
+  LuCoins,
+  LuRuler,
+  LuBed,
+  LuBath,
+  LuLayers,
+  LuCompass,
+  LuShieldCheck,
+  LuSofa,
+  LuDog,
+  LuCrown,
+  LuHouse,
+  LuImage,
+  LuUser,
+  LuClock
 } from "react-icons/lu";
 import { toast } from "react-toastify";
 
 export default function PostManagementPage() {
+  const router = useRouter();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -25,9 +41,6 @@ export default function PostManagementPage() {
 
   // States quản lý Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<any>(null);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -98,13 +111,52 @@ export default function PostManagementPage() {
     const owner = formData.get("owner") as string;
     const phone = formData.get("phone") as string;
 
+    const propertyType = formData.get("propertyType") as string;
+    const listingType = formData.get("listingType") as string;
+    const projectName = formData.get("projectName") as string;
+    const deposit = formData.get("deposit") as string;
+    const area = formData.get("area") as string;
+    const bedrooms = formData.get("bedrooms") as string;
+    const bathrooms = formData.get("bathrooms") as string;
+    const width = formData.get("width") as string;
+    const length = formData.get("length") as string;
+    const floors = formData.get("floors") as string;
+    const usableArea = formData.get("usableArea") as string;
+    const mainDirection = formData.get("mainDirection") as string;
+    const legalStatus = formData.get("legalStatus") as string;
+    const interiorStatus = formData.get("interiorStatus") as string;
+    const allowPets = formData.get("allowPets") === "true";
+    const ownerType = formData.get("ownerType") as string;
+    const vipType = formData.get("vipType") as string;
+    const description = formData.get("description") as string;
+    const mediaUrls = formData.get("mediaUrls") as string;
+
     const payload = {
       title,
       price,
       status: mapFrontendToBackendStatus(frontendStatus),
       address,
       owner,
-      phone
+      phone,
+      propertyType,
+      listingType,
+      projectName,
+      deposit,
+      area,
+      bedrooms,
+      bathrooms,
+      width,
+      length,
+      floors,
+      usableArea,
+      mainDirection,
+      legalStatus,
+      interiorStatus,
+      allowPets,
+      ownerType,
+      vipType,
+      description,
+      mediaUrls
     };
 
     try {
@@ -127,36 +179,7 @@ export default function PostManagementPage() {
     }
   };
 
-  // --- LOGIC CHỈNH SỬA (EDIT) ---
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const payload = {
-      title: selectedPost.title,
-      price: selectedPost.price,
-      status: mapFrontendToBackendStatus(selectedPost.status),
-      address: selectedPost.address
-    };
 
-    try {
-      const res = await fetch(`/api/v1/admin/posts?id=${selectedPost._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success("Cập nhật tin đăng thành công!");
-        setIsEditModalOpen(false);
-        // Refresh local state without full reload
-        setPosts(prev => prev.map(p => p._id === selectedPost._id ? data.data : p));
-      } else {
-        toast.error(data.message || "Cập nhật thất bại");
-      }
-    } catch (error) {
-      console.error("Error updating post:", error);
-      toast.error("Cập nhật thất bại");
-    }
-  };
 
   // --- LOGIC XÓA (DELETE) ---
   const handleDelete = async (id: string) => {
@@ -252,29 +275,13 @@ export default function PostManagementPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-3">
                             <button 
-                              onClick={() => { 
-                                setSelectedPost({
-                                  ...post, 
-                                  status: displayStatus,
-                                  owner: post.ownerId?.fullName || "Quản trị viên",
-                                  phone: post.ownerId?.phone || "0888022821"
-                                }); 
-                                setIsViewModalOpen(true); 
-                              }}
+                              onClick={() => router.push(`/admin/posts/${post._id}`)}
                               className="text-slate-400 hover:text-blue-600 transition cursor-pointer" title="Xem chi tiết"
                             >
                               <LuEye size={18} />
                             </button>
                             <button 
-                              onClick={() => { 
-                                setSelectedPost({
-                                  ...post, 
-                                  status: displayStatus,
-                                  owner: post.ownerId?.fullName || "Quản trị viên",
-                                  phone: post.ownerId?.phone || "0888022821"
-                                }); 
-                                setIsEditModalOpen(true); 
-                              }}
+                              onClick={() => router.push(`/admin/posts/${post._id}?mode=edit`)}
                               className="text-slate-400 hover:text-emerald-600 transition cursor-pointer" title="Chỉnh sửa"
                             >
                               <LuSquarePen size={18} />
@@ -322,49 +329,174 @@ export default function PostManagementPage() {
       </div>
 
       {/* ================= MODAL: THÊM MỚI TIN ĐĂNG ================= */}
+      {/* ================= MODAL: THÊM MỚI TIN ĐĂNG ================= */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto flex flex-col">
             <div className="sticky top-0 bg-white flex items-center justify-between border-b border-slate-100 px-6 py-4 z-10">
               <h3 className="text-lg font-bold text-slate-800">Thêm tin đăng mới</h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
+              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition bg-slate-50 p-1.5 rounded-full cursor-pointer">
                 <LuX size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleAddSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleAddSubmit} className="p-6 space-y-5 overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Thông tin cơ bản */}
+                <div className="md:col-span-2 border-b border-slate-100 pb-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">1. Thông tin cơ bản</h4>
+                </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Tiêu đề phòng</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tiêu đề phòng *</label>
                   <input name="title" type="text" required placeholder="Vd: Phòng trọ khép kín mới xây..." className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Giá thuê (VNĐ/tháng)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Giá thuê (VNĐ/tháng) *</label>
                   <input name="price" type="number" required placeholder="Vd: 3500000" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Trạng thái duyệt</label>
-                  <select name="status" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tiền đặt cọc (VNĐ)</label>
+                  <input name="deposit" type="number" placeholder="Vd: 1500000" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Địa chỉ chi tiết *</label>
+                  <input name="address" type="text" required placeholder="Vd: Số 12 ngõ 34, Cầu Giấy, Hà Nội" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+
+                {/* Phân loại & Trạng thái */}
+                <div className="md:col-span-2 border-b border-slate-100 pb-2 pt-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">2. Phân loại & Trạng thái</h4>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Loại bất động sản</label>
+                  <select name="propertyType" defaultValue="phong_tro" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer">
+                    <option value="phong_tro">Phòng trọ</option>
+                    <option value="can_ho_chung_cu">Căn hộ chung cư</option>
+                    <option value="nha_o">Nhà ở</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Loại tin đăng</label>
+                  <select name="listingType" defaultValue="cho_thue" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer">
+                    <option value="cho_thue">Cho thuê</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Trạng thái duyệt *</label>
+                  <select name="status" defaultValue="Chờ duyệt" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer">
                     <option value="Chờ duyệt">Chờ duyệt</option>
                     <option value="Đang hiển thị">Duyệt và Hiển thị</option>
                     <option value="Đã ẩn">Đã ẩn</option>
                   </select>
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Địa chỉ chi tiết</label>
-                  <input name="address" type="text" required placeholder="Vd: Số 12 ngõ 34, Cầu Giấy, Hà Nội" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Gói tin (VIP)</label>
+                  <select name="vipType" defaultValue="free" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer">
+                    <option value="free">FREE</option>
+                    <option value="vip3">VIP3</option>
+                    <option value="vip2">VIP2</option>
+                    <option value="vip1">VIP1</option>
+                    <option value="supervip">SUPERVIP</option>
+                  </select>
+                </div>
+
+                {/* Thông số phòng */}
+                <div className="md:col-span-2 border-b border-slate-100 pb-2 pt-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Thông số phòng</h4>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Họ tên chủ trọ</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Diện tích (m²)</label>
+                  <input name="area" type="number" step="any" placeholder="Vd: 30" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Diện tích sử dụng (m²)</label>
+                  <input name="usableArea" type="number" step="any" placeholder="Vd: 30" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Chiều ngang (m)</label>
+                  <input name="width" type="number" step="any" placeholder="Vd: 4" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Chiều dài (m)</label>
+                  <input name="length" type="number" step="any" placeholder="Vd: 7.5" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Số phòng ngủ</label>
+                  <input name="bedrooms" type="number" placeholder="Vd: 1" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Số nhà vệ sinh</label>
+                  <input name="bathrooms" type="number" placeholder="Vd: 1" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Số tầng</label>
+                  <input name="floors" type="number" placeholder="Vd: 1" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Hướng chính</label>
+                  <input name="mainDirection" type="text" placeholder="Vd: Đông Nam" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+
+                {/* Tiện ích & Bổ sung */}
+                <div className="md:col-span-2 border-b border-slate-100 pb-2 pt-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">4. Tiện ích & Thông tin bổ sung</h4>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Pháp lý</label>
+                  <input name="legalStatus" type="text" placeholder="Vd: Sổ hồng / Hợp đồng" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tình trạng nội thất</label>
+                  <input name="interiorStatus" type="text" placeholder="Vd: Đầy đủ / Cơ bản" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tên dự án (nếu có)</label>
+                  <input name="projectName" type="text" placeholder="Vd: Vinhomes Grand Park" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Cho phép vật nuôi</label>
+                  <select name="allowPets" defaultValue="true" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer">
+                    <option value="true">Có</option>
+                    <option value="false">Không</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Loại người đăng</label>
+                  <select name="ownerType" defaultValue="ca_nhan" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer">
+                    <option value="ca_nhan">Cá nhân</option>
+                    <option value="moi_gioi">Môi giới</option>
+                  </select>
+                </div>
+                <div />
+
+                {/* Liên hệ */}
+                <div className="md:col-span-2 border-b border-slate-100 pb-2 pt-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">5. Chủ trọ & Liên hệ</h4>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Họ tên chủ trọ *</label>
                   <input name="owner" type="text" required placeholder="Vd: Nguyễn Văn A" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Số điện thoại</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Số điện thoại *</label>
                   <input name="phone" type="tel" required placeholder="Vd: 0901234567" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition" />
+                </div>
+
+                {/* Hình ảnh & Mô tả */}
+                <div className="md:col-span-2 border-b border-slate-100 pb-2 pt-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">6. Hình ảnh & Mô tả chi tiết</h4>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Danh sách link ảnh (phân tách bằng dấu phẩy)</label>
+                  <textarea name="mediaUrls" rows={2} placeholder="Vd: https://link1.jpg, https://link2.jpg" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition resize-y" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung mô tả chi tiết</label>
+                  <textarea name="description" rows={4} placeholder="Vd: Phòng sạch thế, an ninh tốt, đầy đủ nội thất..." className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition resize-y" />
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100 sticky bottom-0 bg-white z-10">
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">Hủy bỏ</button>
                 <button type="submit" className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm cursor-pointer">Tạo tin đăng</button>
               </div>
@@ -373,149 +505,7 @@ export default function PostManagementPage() {
         </div>
       )}
 
-      {/* ================= MODAL: CHỈNH SỬA (EDIT) ================= */}
-      {isEditModalOpen && selectedPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <h3 className="text-lg font-bold text-slate-800">Chỉnh sửa tin đăng <span className="text-blue-600">#{selectedPost._id.slice(-6).toUpperCase()}</span></h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
-                <LuX size={20} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tiêu đề phòng</label>
-                <input 
-                  type="text" value={selectedPost.title} required
-                  onChange={(e) => setSelectedPost({...selectedPost, title: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Địa chỉ</label>
-                <input 
-                  type="text" value={selectedPost.address} required
-                  onChange={(e) => setSelectedPost({...selectedPost, address: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Giá thuê (VNĐ)</label>
-                  <input 
-                    type="number" value={selectedPost.price} required
-                    onChange={(e) => setSelectedPost({...selectedPost, price: e.target.value})}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Trạng thái</label>
-                  <select 
-                    value={selectedPost.status}
-                    onChange={(e) => setSelectedPost({...selectedPost, status: e.target.value})}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer"
-                  >
-                    <option value="Đang hiển thị">Đang hiển thị</option>
-                    <option value="Chờ duyệt">Chờ duyệt</option>
-                    <option value="Đã ẩn">Đã ẩn</option>
-                  </select>
-                </div>
-              </div>
 
-              <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => setIsEditModalOpen(false)} className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">Hủy bỏ</button>
-                <button type="submit" className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm cursor-pointer">Lưu thay đổi</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODAL: XEM CHI TIẾT (VIEW) ================= */}
-      {isViewModalOpen && selectedPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                Chi tiết tin đăng <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-sm">#{selectedPost._id.slice(-6).toUpperCase()}</span>
-              </h3>
-              <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition bg-white rounded-full p-1 shadow-sm cursor-pointer">
-                <LuX size={20} />
-              </button>
-            </div>
-            
-            <div className="p-6">
-              <h2 className="text-xl font-bold text-slate-800 mb-4">{selectedPost.title}</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <LuMapPin className="text-slate-400" size={16} />
-                    <span>{selectedPost.address || "Chưa cập nhật địa chỉ"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <LuCalendarDays className="text-slate-400" size={16} />
-                    <span>Ngày đăng: {new Date(selectedPost.createdAt).toLocaleDateString("vi-VN")}</span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
-                      {selectedPost.owner.charAt(0).toUpperCase()}
-                    </div>
-                    <span>{selectedPost.owner}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <LuPhone className="text-slate-400" size={16} />
-                    <span className="font-medium text-slate-800">{selectedPost.phone || "Đang ẩn số"}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-slate-800 mb-2">Mô tả thêm:</h4>
-                <p className="text-sm text-slate-600 leading-relaxed bg-white border border-slate-100 p-3 rounded-lg">
-                  {selectedPost.description || "Người đăng không cung cấp mô tả chi tiết."}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
-                <div>
-                  <span className="text-sm text-slate-500 block">Mức giá:</span>
-                  <span className="text-xl font-bold text-rose-600">{Number(selectedPost.price).toLocaleString('vi-VN')} VNĐ/tháng</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm text-slate-500 block">Trạng thái hiện tại:</span>
-                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium mt-1 ${
-                    selectedPost.status === "Đang hiển thị" ? "bg-emerald-100 text-emerald-700" :
-                    selectedPost.status === "Chờ duyệt" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"
-                  }`}>
-                    {selectedPost.status}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Nút thao tác nhanh trong modal View */}
-            <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-200">
-              <button 
-                onClick={() => setIsViewModalOpen(false)}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 transition cursor-pointer"
-              >
-                Đóng
-              </button>
-              <button 
-                onClick={() => { setIsViewModalOpen(false); setIsEditModalOpen(true); }}
-                className="rounded-xl bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm cursor-pointer"
-              >
-                Chỉnh sửa tin này
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );

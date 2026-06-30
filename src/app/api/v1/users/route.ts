@@ -3,6 +3,10 @@ import { connectDB } from "@/src/lib/mongoose";
 import { verifyToken } from "@/src/lib/jwt";
 import bcrypt from "bcryptjs";
 import User from "@/src/models/User";
+import Post from "@/src/models/Post";
+import Order from "@/src/models/Order";
+import UserSavedPost from "@/src/models/UserSavedPost";
+import UserActivity from "@/src/models/UserActivity";
 import { NextResponse } from "next/server";
 
 export function getToken(req: Request) {
@@ -38,15 +42,46 @@ async function isAuthUser(req: Request) {
   }
 }
 
-// 1. GET: Fetch all users
+// 1. GET: Fetch all users or a single detailed user
 export async function GET(req: Request) {
   const caller = await isAuthUser(req);
   if (!caller) {
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
   try {
     await connectDB();
+
+    if (id) {
+      const user = await User.findById(id);
+      if (!user) {
+        return NextResponse.json({ success: false, message: "Không tìm thấy người dùng" }, { status: 404 });
+      }
+
+      // Fetch related collections in parallel
+      const [posts, orders, savedPosts, activities] = await Promise.all([
+        Post.find({ ownerId: id }).sort({ createdAt: -1 }),
+        Order.find({ userId: id }).populate("post").sort({ createdAt: -1 }),
+        UserSavedPost.find({ userId: id }).populate("postId").sort({ createdAt: -1 }),
+        UserActivity.find({ userId: id }).sort({ createdAt: -1 }).limit(20)
+      ]);
+
+      return NextResponse.json({
+        success: true,
+        message: "Get user detail successfully",
+        data: {
+          user,
+          posts,
+          orders,
+          savedPosts,
+          activities
+        }
+      });
+    }
+
     const users = await User.find().sort({ createdAt: -1 });
     return NextResponse.json({
       success: true,
