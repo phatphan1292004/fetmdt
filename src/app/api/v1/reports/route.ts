@@ -29,10 +29,34 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { postId, reason, description } = body;
 
-    // Cơ bản kiểm tra dữ liệu đầu vào (bước 3 sẽ thêm xác thực chi tiết hơn)
-    if (!postId || !reason) {
+    // Danh sách lý do hợp lệ
+    const validReasons = ["spam", "fake", "wrong_price", "scam", "other"];
+
+    // Xác thực dữ liệu đầu vào (Bước 3)
+    if (!postId || typeof postId !== "string" || postId.length !== 24) {
       return NextResponse.json(
-        { success: false, message: "Thiếu postId hoặc reason" },
+        { success: false, message: "Mã bài viết (postId) không hợp lệ" },
+        { status: 400 }
+      );
+    }
+
+    if (!reason || !validReasons.includes(reason)) {
+      return NextResponse.json(
+        { success: false, message: "Lý do báo cáo không hợp lệ" },
+        { status: 400 }
+      );
+    }
+
+    if (description && typeof description !== "string") {
+      return NextResponse.json(
+        { success: false, message: "Mô tả không hợp lệ" },
+        { status: 400 }
+      );
+    }
+
+    if (description && description.length > 500) {
+      return NextResponse.json(
+        { success: false, message: "Mô tả không được vượt quá 500 ký tự" },
         { status: 400 }
       );
     }
