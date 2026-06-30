@@ -1,4 +1,5 @@
 import { SearchPanel } from "./search-panel";
+import { SearchWithAI } from "./search-with-ai";
 
 type HeroSectionProps = {
   heroImageUrl: string;
@@ -39,6 +40,7 @@ export function HeroSection({
             areaOptions={areaOptions}
             roomTypeOptions={roomTypeOptions}
           />
+          <SearchWithAI />
         </div>
       </div>
     </section>

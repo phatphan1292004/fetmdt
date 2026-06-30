@@ -3,3 +3,5 @@ export { HeroSection } from "./hero-section";
 export { PropertyHomePage } from "./property-home-page";
 export { RentalByDistrictTabs } from "./rental-by-district-tabs"; 
 export { SearchPanel } from "./search-panel";
+export { SearchWithAI } from "./search-with-ai";
+
