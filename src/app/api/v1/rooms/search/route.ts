@@ -23,6 +23,33 @@ const AMENITY_FIELD_MAP: Readonly<Record<string, string>> = {
   balcony: "hasBalcony",
 };
 
+const EARTH_RADIUS_KM = 6378.1;
+const MAX_SEARCH_TERMS = 8;
+
+const VIETNAMESE_CHAR_GROUPS = [
+  "aàáảãạăằắẳẵặâầấẩẫậ",
+  "eèéẻẽẹêềếểễệ",
+  "iìíỉĩị",
+  "oòóỏõọôồốổỗộơờớởỡợ",
+  "uùúủũụưừứửữự",
+  "yỳýỷỹỵ",
+  "dđ",
+] as const;
+
+const LOCATION_STOP_WORDS = new Set([
+  "phuong",
+  "quan",
+  "huyen",
+  "thanh",
+  "pho",
+  "tp",
+  "thi",
+  "tran",
+  "tinh",
+  "viet",
+  "nam",
+]);
+
 type RangeFilter = {
   min?: number;
   max?: number;
@@ -37,14 +64,14 @@ function toOptionalString(value: unknown): string | undefined {
   return parsed.length ? parsed : undefined;
 }
 
-function toOptionalNumber(value: unknown): number | undefined {
+function toOptionalNumber(value: unknown, allowNegative = false): number | undefined {
   if (value === undefined || value === null || value === "") {
     return undefined;
   }
 
   const parsed = Number(value);
 
-  if (!Number.isFinite(parsed) || parsed < 0) {
+  if (!Number.isFinite(parsed) || (!allowNegative && parsed < 0)) {
     return undefined;
   }
 
@@ -74,7 +101,7 @@ function toOptionalCoordinate(
   min: number,
   max: number
 ): number | undefined {
-  const parsed = toOptionalNumber(value);
+  const parsed = toOptionalNumber(value, true);
 
   if (parsed === undefined) {
     return undefined;
@@ -109,6 +136,113 @@ function normalizePage(rawPage: string | null): number {
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function escapeRegexClass(value: string): string {
+  return value.replace(/[\\\]^]/g, "\\$&");
+}
+
+function buildVietnameseRegexClassMap(): Readonly<Record<string, string>> {
+  const entries = VIETNAMESE_CHAR_GROUPS.flatMap((group) => {
+    const chars = Array.from(new Set([...group, ...group.toUpperCase()]));
+    const regexClass = `[${escapeRegexClass(chars.join(""))}]`;
+
+    return chars.map((char) => [char.toLowerCase(), regexClass] as const);
+  });
+
+  return Object.fromEntries(entries);
+}
+
+const VIETNAMESE_REGEX_CLASS_BY_CHAR = buildVietnameseRegexClassMap();
+
+function normalizeVietnamese(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+}
+
+function buildAccentInsensitivePattern(value: string): string {
+  return Array.from(value.normalize("NFC"))
+    .map((char) => {
+      if (/\s/.test(char)) {
+        return "\\s+";
+      }
+
+      const regexClass = VIETNAMESE_REGEX_CLASS_BY_CHAR[char.toLowerCase()];
+
+      if (regexClass) {
+        return regexClass;
+      }
+
+      return escapeRegex(char);
+    })
+    .join("");
+}
+
+function cleanLocationPhrase(phrase: string): string {
+  const cleaned = phrase
+    .replace(/^(thành phố|thanh pho|tp\.?|quận|quan|q\.?|phường|phuong|p\.?|huyện|huyen|h\.?|tỉnh|tinh|thị xã|thi xa|tx\.?)\s+/i, "")
+    .trim();
+    
+  if (cleaned.toLowerCase() === "việt nam" || cleaned.toLowerCase() === "viet nam") {
+    return "";
+  }
+  
+  return cleaned;
+}
+
+function buildSearchRegex(value: string): RegExp {
+  let pattern = buildAccentInsensitivePattern(value);
+  
+  const normalizedValue = normalizeVietnamese(value);
+  if (normalizedValue === "ho chi minh" || normalizedValue === "thanh pho ho chi minh") {
+    pattern = `(${pattern}|tphcm|tp\\s*hcm|sài gòn|sai gon)`;
+  }
+  
+  if (/\d+$/.test(value)) {
+    pattern = `${pattern}\\b`;
+  }
+  if (/^\d+/.test(value)) {
+    pattern = `\\b${pattern}`;
+  }
+  
+  return new RegExp(pattern, "i");
+}
+
+function splitSearchTerms(value: string, options?: { removeLocationStopWords?: boolean }): string[] {
+  const terms = value
+    .split(/[,;|/]+/)
+    .map((term) => term.trim())
+    .filter(Boolean)
+    .map((term) => (options?.removeLocationStopWords ? cleanLocationPhrase(term) : term))
+    .filter(Boolean);
+
+  return Array.from(new Set(terms)).slice(0, MAX_SEARCH_TERMS);
+}
+
+function buildTextSearchFilter(
+  value: string,
+  fields: readonly string[],
+  options?: { removeLocationStopWords?: boolean }
+): Record<string, unknown> | null {
+  const terms = splitSearchTerms(value, options);
+
+  if (!terms.length) {
+    return null;
+  }
+
+  return {
+    $and: terms.map((term) => {
+      const regex = buildSearchRegex(term);
+
+      return {
+        $or: fields.map((field) => ({ [field]: regex })),
+      };
+    }),
+  };
 }
 
 function parseRange(value: string): RangeFilter | null {
@@ -189,6 +323,10 @@ export async function GET(req: Request) {
     const priceRanges = searchParams.getAll("priceRange");
     const areaRanges = searchParams.getAll("areaRange");
     const amenities = searchParams.getAll("amenities");
+    const policies = searchParams.getAll("policies");
+    const buildingAmenities = searchParams.getAll("buildingAmenities");
+    const furniture = searchParams.getAll("furniture");
+    const roomAmenities = searchParams.getAll("roomAmenities");
 
     const limit = normalizeLimit(searchParams.get("limit"));
     const page = normalizePage(searchParams.get("page"));
@@ -199,40 +337,71 @@ export async function GET(req: Request) {
     ];
 
     if (keyword) {
-      const keywordRegex = new RegExp(escapeRegex(keyword), "i");
+      const keywordFilter = buildTextSearchFilter(keyword, [
+        "title",
+        "description",
+        "address",
+        "projectName",
+        "city",
+        "district",
+      ]);
+
+      if (keywordFilter) {
+        andFilters.push(keywordFilter);
+      }
+    }
+
+    const hasRadiusSearch =
+      latitude !== undefined &&
+      longitude !== undefined &&
+      radiusKm !== undefined &&
+      radiusKm > 0;
+
+    if (hasRadiusSearch) {
       andFilters.push({
         $or: [
-          { title: keywordRegex },
-          { description: keywordRegex },
-          { address: keywordRegex },
-          { projectName: keywordRegex },
-        ],
+          {
+            location: {
+              $geoWithin: {
+                $centerSphere: [[longitude, latitude], radiusKm / EARTH_RADIUS_KM],
+              },
+            },
+          },
+          { location: { $exists: false } }
+        ]
       });
     }
 
-    if (locationText) {
-      const locationRegex = new RegExp(escapeRegex(locationText), "i");
-      andFilters.push({
-        $or: [
-          { address: locationRegex },
-          { city: locationRegex },
-          { district: locationRegex },
-        ],
-      });
+    if (locationText && !hasRadiusSearch) {
+      const locationFilter = buildTextSearchFilter(
+        locationText,
+        ["address", "city", "district"],
+        { removeLocationStopWords: true }
+      );
+
+      if (locationFilter) {
+        andFilters.push(locationFilter);
+      }
     }
 
     if (city) {
-      const cityRegex = new RegExp(escapeRegex(city), "i");
-      andFilters.push({
-        $or: [{ city: cityRegex }, { address: cityRegex }],
+      const cityFilter = buildTextSearchFilter(city, ["city", "address"], {
+        removeLocationStopWords: true,
       });
+
+      if (cityFilter) {
+        andFilters.push(cityFilter);
+      }
     }
 
     if (district) {
-      const districtRegex = new RegExp(escapeRegex(district), "i");
-      andFilters.push({
-        $or: [{ district: districtRegex }, { address: districtRegex }],
+      const districtFilter = buildTextSearchFilter(district, ["district", "address"], {
+        removeLocationStopWords: true,
       });
+
+      if (districtFilter) {
+        andFilters.push(districtFilter);
+      }
     }
 
     if (propertyType) {
@@ -312,22 +481,147 @@ export async function GET(req: Request) {
       });
     }
 
-    if (
-      latitude !== undefined &&
-      longitude !== undefined &&
-      radiusKm !== undefined &&
-      radiusKm > 0
-    ) {
-      andFilters.push({
-        location: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [longitude, latitude],
-            },
-            $maxDistance: radiusKm * 1000,
-          },
-        },
+    if (policies.length) {
+      policies.forEach((policy) => {
+        if (policy === "pet-friendly") {
+          andFilters.push({
+            $or: [
+              { allowPets: true },
+              { "details.allowPets": true },
+              {
+                propertyType: { $in: ["can_ho_chung_cu", "nha_o"] },
+                allowPets: { $ne: false },
+                "details.allowPets": { $ne: false }
+              }
+            ]
+          });
+        } else if (policy === "free-hours") {
+          andFilters.push({
+            $or: [
+              { "details.curfewFree": true },
+              { propertyType: { $in: ["can_ho_chung_cu", "nha_o"] } }
+            ]
+          });
+        } else if (policy === "owner-not-live") {
+          andFilters.push({
+            $or: [
+              { propertyType: { $in: ["can_ho_chung_cu", "nha_o"] } },
+              { "details.ownerNotLive": true },
+              { "details.ownerNotLive": { $exists: false } }
+            ]
+          });
+        }
+      });
+    }
+
+    if (buildingAmenities.length) {
+      buildingAmenities.forEach((amenity) => {
+        if (amenity === "parking") {
+          andFilters.push({
+            $or: [
+              { "details.hasParking": true },
+              { propertyType: { $in: ["can_ho_chung_cu", "nha_o"] } }
+            ]
+          });
+        } else if (amenity === "security-camera") {
+          const regex = /camera|an\s*ninh|security/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { feature: regex },
+              { propertyType: "can_ho_chung_cu" }
+            ]
+          });
+        } else if (amenity === "security-24-7") {
+          const regex = /bảo\s*vệ|bao\s*ve|24\/7|24h|an\s*ninh/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { feature: regex },
+              { propertyType: "can_ho_chung_cu" }
+            ]
+          });
+        }
+      });
+    }
+
+    if (furniture && furniture.length) {
+      furniture.forEach((item) => {
+        if (item === "desk") {
+          const regex = /bàn\s*làm\s*việc|ban\s*lam\s*viec|bàn\s*học|ban\s*hoc|desk/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { interiorStatus: regex },
+              { "details.interiorStatus": regex }
+            ]
+          });
+        } else if (item === "sofa") {
+          const regex = /sofa|salon|sa\s*lon/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { interiorStatus: regex },
+              { "details.interiorStatus": regex }
+            ]
+          });
+        } else if (item === "dining-table") {
+          const regex = /bàn\s*ăn|ban\s*an|dining/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { interiorStatus: regex },
+              { "details.interiorStatus": regex }
+            ]
+          });
+        }
+      });
+    }
+
+    if (roomAmenities.length) {
+      roomAmenities.forEach((amenity) => {
+        if (amenity === "balcony") {
+          const regex = /ban\s*công|ban\s*cong|balcony/i;
+          andFilters.push({
+            $or: [
+              { "details.hasBalcony": true },
+              { feature: /ban-cong|ban\s*công|ban\s*cong/i },
+              { title: regex },
+              { description: regex }
+            ]
+          });
+        } else if (amenity === "loft") {
+          const regex = /gác|gac|loft/i;
+          andFilters.push({
+            $or: [
+              { "details.hasLoft": true },
+              { title: regex },
+              { description: regex }
+            ]
+          });
+        } else if (amenity === "window") {
+          const regex = /cửa\s*sổ|cua\s*so|window/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { feature: /cua-so|cửa\s*sổ|cua\s*so/i }
+            ]
+          });
+        } else if (amenity === "smart-door-lock") {
+          const regex = /khóa\s*thông\s*minh|khoa\s*thong\s*minh|khóa\s*từ|khoa\s*tu|vân\s*tay|van\s*tay|smart\s*lock/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex }
+            ]
+          });
+        }
       });
     }
 
@@ -340,6 +634,13 @@ export async function GET(req: Request) {
       { vipExpireAt: { $lt: new Date() }, vipType: { $ne: "free" } },
       { $set: { vipType: "free", vipWeight: 0 } }
     );
+
+    // Keep the geospatial index ready without failing the search when old data is malformed.
+    try {
+      await Post.createIndexes();
+    } catch (indexError) {
+      console.warn("Could not create indexes (possibly invalid geo data):", indexError);
+    }
 
     const [posts, total] = await Promise.all([
       Post.find(query)
@@ -364,6 +665,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: unknown) {
+    console.error("Room search error:", error);
     return NextResponse.json(
       {
         success: false,

@@ -2,9 +2,10 @@ import Link from "next/link";
 import { CiLocationOn } from "react-icons/ci";
 import { buildRoomRouteFromSlug } from "@/src/features/room/servers";
 import type { PostCardData, PostListingData, RawNewestPostData } from "../servers/get-home-data";
+import type { RoomDetailData } from "@/src/features/room/types";
 
 type PostCardProps = {
-  post: PostListingData;
+  post: PostListingData | RoomDetailData;
 };
 
 type GalleryCellProps = {
@@ -62,8 +63,18 @@ const CATEGORY_TRANSLATIONS: Record<string, string> = {
   "nha-nguyen-can": "Nhà nguyên căn",
 };
 
-function isFeaturedPost(post: PostListingData): post is PostCardData {
-  return "priceLabel" in post && "areaLabel" in post && "authorAvatarUrl" in post;
+function isRoomDetail(post: unknown): post is RoomDetailData {
+  return typeof post === "object" && post !== null && "contact" in post;
+}
+
+function isFeaturedPost(post: unknown): post is PostCardData {
+  return (
+    typeof post === "object" &&
+    post !== null &&
+    "priceLabel" in post &&
+    "areaLabel" in post &&
+    "authorAvatarUrl" in post
+  );
 }
 
 function asTrimmedString(value: unknown): string | undefined {
@@ -249,7 +260,16 @@ function buildAvatarUrl(name: string): string {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0A6D97&color=fff`;
 }
 
-function getGalleryImages(post: PostListingData): { images: string[]; mediaCount: number; extraImageCount: number } {
+function getGalleryImages(post: PostListingData | RoomDetailData): { images: string[]; mediaCount: number; extraImageCount: number } {
+  if (isRoomDetail(post)) {
+    const images = post.imageUrls && post.imageUrls.length ? [...post.imageUrls] : [DEFAULT_GALLERY_IMAGE];
+    return {
+      images,
+      mediaCount: images.length,
+      extraImageCount: Math.max(images.length - 4, 0),
+    };
+  }
+
   if (isFeaturedPost(post)) {
     const featuredImages = post.imageUrls.filter((url) => asTrimmedString(url));
     const images = featuredImages.length ? [...featuredImages] : [post.imageUrl];
@@ -275,7 +295,23 @@ function getGalleryImages(post: PostListingData): { images: string[]; mediaCount
   };
 }
 
-function resolveCardData(post: PostListingData) {
+function resolveCardData(post: PostListingData | RoomDetailData) {
+  if (isRoomDetail(post)) {
+    return {
+      title: post.title,
+      subtitle: post.subtitle ?? "Thông tin đang cập nhật",
+      categoryLabel: formatCategory(post.propertyType, undefined),
+      statusLabel: post.availableRoomsLabel ?? "Còn phòng",
+      priceLabel: post.priceLabel,
+      areaLabel: post.areaLabel,
+      addressLabel: post.address,
+      tagLabel: post.vipType && post.vipType !== "free" ? "VIP" : "Bài đăng mới",
+      authorName: post.contact?.name ?? "Chủ trọ",
+      authorAvatarUrl: post.contact?.avatarUrl ?? buildAvatarUrl("Chủ trọ"),
+      authorPostCountLabel: post.contact?.responseTime ?? "Mới tham gia",
+    };
+  }
+
   if (isFeaturedPost(post)) {
     return {
       title: post.title,
@@ -348,99 +384,89 @@ export function PostCard({ post }: PostCardProps) {
   }
 
   return (
-    <article className={`overflow-hidden rounded-3xl bg-linear-to-b from-white to-slate-50 p-3 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.14)] md:p-4 ${getVipCardStyles()}`}>
+    <article className={`flex flex-col h-full overflow-hidden rounded-3xl bg-linear-to-b from-white to-slate-50 p-3 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.14)] md:p-4 ${getVipCardStyles()}`}>
       <Link
         href={detailHref}
-        className="block overflow-hidden rounded-2xl border border-slate-100 bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b7ea9]"
+        className="relative block overflow-hidden rounded-2xl border border-slate-100 bg-slate-200 aspect-[4/3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b7ea9]"
         aria-label={`Xem chi tiết ${cardData.title}`}
       >
-        <div className="grid h-58 grid-cols-[1.2fr_1fr_0.9fr] gap-0.5 md:h-72">
-          <GalleryCell imageUrl={galleryImages[0]}>
-            <div className="absolute inset-0 bg-linear-to-t from-black/40 via-black/10 to-transparent" />
-            <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-slate-700 md:text-[12px]">
-              {cardData.categoryLabel}
-            </span>
-            <span className="absolute bottom-2 left-2 rounded-full bg-emerald-600/95 px-2.5 py-1 text-[11px] font-semibold text-white md:text-[12px]">
-              {cardData.tagLabel}
-            </span>
-            {isVipActive && vipType && vipType !== "free" && (
-              <span className={`absolute right-2 top-2 rounded-full px-2.5 py-1 text-[10px] font-bold text-white uppercase tracking-wider shadow-sm z-10 ${
-                vipType === "supervip" 
-                  ? "bg-red-500" 
-                  : vipType === "vip1" 
-                    ? "bg-amber-500" 
-                    : vipType === "vip2" 
-                      ? "bg-emerald-500" 
-                      : "bg-sky-500"
-              }`}>
-                {vipType === "supervip" ? "🏆 Super VIP" : vipType === "vip1" ? "⭐ VIP 1" : vipType === "vip2" ? "✨ VIP 2" : "✔ VIP 3"}
-              </span>
-            )}
-          </GalleryCell>
- 
-          <GalleryCell imageUrl={galleryImages[1]} />
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${galleryImages[0]})` }} />
+        <div className="absolute inset-0 bg-linear-to-t from-black/40 via-black/10 to-transparent" />
+        
+        <span className="absolute left-2.5 top-2.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-slate-700 md:text-[12px]">
+          {cardData.categoryLabel}
+        </span>
+        <span className="absolute bottom-2.5 left-2.5 rounded-full bg-emerald-600/95 px-2.5 py-1 text-[11px] font-semibold text-white md:text-[12px]">
+          {cardData.tagLabel}
+        </span>
+        
+        {isVipActive && vipType && vipType !== "free" && (
+          <span className={`absolute right-2.5 top-2.5 rounded-full px-2.5 py-1 text-[10px] font-bold text-white uppercase tracking-wider shadow-sm z-10 ${
+            vipType === "supervip" 
+              ? "bg-red-500" 
+              : vipType === "vip1" 
+                ? "bg-amber-500" 
+                : vipType === "vip2" 
+                  ? "bg-emerald-500" 
+                  : "bg-sky-500"
+          }`}>
+            {vipType === "supervip" ? "🏆 Super VIP" : vipType === "vip1" ? "⭐ VIP 1" : vipType === "vip2" ? "✨ VIP 2" : "✔ VIP 3"}
+          </span>
+        )}
 
-          <div className="grid grid-rows-2 gap-0.5">
-            <GalleryCell imageUrl={galleryImages[2]} />
-            <div className="grid grid-cols-2 gap-0.5">
-              <GalleryCell imageUrl={galleryImages[3]} />
-              <GalleryCell imageUrl={galleryImages[4]}>
-                <div className="absolute inset-0 bg-black/35" />
-                <span className="absolute left-2 top-2 text-[13px] font-bold text-white md:text-[14px]">+{extraImageCount}</span>
-                <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-semibold text-white md:text-[12px]">
-                  <span aria-hidden>◧</span>
-                  {mediaCount}
-                  <span aria-hidden>▸</span>
-                </span>
-              </GalleryCell>
-            </div>
-          </div>
-        </div>
+        {mediaCount > 1 && (
+          <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white md:text-[12px]">
+            <span aria-hidden>◧</span>
+            {mediaCount}
+          </span>
+        )}
       </Link>
 
-      <div className="px-1 pb-1 pt-4 md:px-2">
-        <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex flex-col flex-1 px-1 pb-1 pt-4 md:px-2">
+        <div className="flex-1">
           <Link
             href={detailHref}
-            className="text-[22px] font-extrabold leading-tight text-slate-800 hover:text-[#0b7ea9] md:text-[30px]"
+            className="font-display block line-clamp-2 text-[16px] font-bold leading-snug text-slate-800 hover:text-[#0b7ea9] md:text-[18px] min-h-[44px] md:min-h-[48px]"
           >
             {cardData.title}
           </Link>
+          
+          <p className="mt-1 line-clamp-1 text-[13px] text-slate-500">{cardData.subtitle}</p>
+
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <p className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[15px] font-bold leading-none text-sky-700 md:text-[16px]">
+              {cardData.priceLabel} / tháng
+            </p>
+            <p className="rounded-full bg-sky-100/60 px-2.5 py-0.5 text-[12px] font-semibold leading-none text-sky-800">
+              {cardData.areaLabel}
+            </p>
+          </div>
+          
+          <p className="mt-3 flex items-center gap-1.5 line-clamp-1 text-[13px] text-slate-500">
+            <CiLocationOn size={16} className="shrink-0" />
+            <span className="truncate">{cardData.addressLabel}</span>
+          </p>
         </div>
 
-        <p className="mt-1 text-[14px] text-slate-600 md:text-[18px]">{cardData.subtitle}</p>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2 md:gap-3">
-          <p className="rounded-full bg-sky-50 px-3 py-1 text-[21px] font-extrabold leading-none text-sky-700 md:text-[20px]">
-            {cardData.priceLabel} / tháng
-          </p>
-          <p className="rounded-full bg-sky-100 px-3 py-1 text-[14px] font-semibold leading-none text-sky-800 md:text-[14px]">
-            {cardData.areaLabel}
-          </p>
-        </div>
-
-        <p className="mt-3 flex items-center gap-2 text-[14px] text-slate-600 md:text-[16px]">
-          <CiLocationOn size={18}/>
-          <span>{cardData.addressLabel}</span>
-        </p>
-
-        <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3">
-          <div className="flex items-center gap-2 md:gap-3">
+        <div className="mt-4 flex items-center justify-between border-t border-slate-200/60 pt-3">
+          <div className="flex items-center gap-2">
             <div
-              className="h-9 w-9 rounded-full border border-slate-200 bg-cover bg-center md:h-10 md:w-10"
+              className="h-8 w-8 rounded-full border border-slate-200 bg-cover bg-center"
               style={{ backgroundImage: `url(${cardData.authorAvatarUrl})` }}
               aria-hidden
             />
-            <p className="text-[13px] font-semibold text-slate-800 md:text-[15px]">{cardData.authorName}</p>
-            <p className="text-[12px] text-slate-500 md:text-[14px]">{cardData.authorPostCountLabel}</p>
+            <div>
+              <p className="text-[12px] font-semibold text-slate-800 leading-none">{cardData.authorName}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 leading-none">{cardData.authorPostCountLabel}</p>
+            </div>
           </div>
 
           <button
             type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-rose-300 hover:text-rose-500"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-rose-300 hover:text-rose-500"
             aria-label="Lưu bài đăng"
           >
-            <svg viewBox="0 0 24 24" className="h-6 w-6 md:h-7 md:w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12.1 20.3l-1.1-1C6 15 3 12.3 3 8.9 3 6.1 5.1 4 7.9 4c1.6 0 3.1.8 4.1 2.1C13 4.8 14.5 4 16.1 4 18.9 4 21 6.1 21 8.9c0 3.4-3 6.1-8 10.4l-.9 1z" />
             </svg>
           </button>

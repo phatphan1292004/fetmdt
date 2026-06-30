@@ -19,9 +19,9 @@ const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_NEWEST_POST_LIMIT = 6;
 const MAX_NEWEST_POST_LIMIT = 20;
 
-type PropertyType = (typeof PROPERTY_TYPES)[number];
-type ListingType = (typeof LISTING_TYPES)[number];
-type OwnerType = (typeof OWNER_TYPES)[number];
+export type PropertyType = (typeof PROPERTY_TYPES)[number];
+export type ListingType = (typeof LISTING_TYPES)[number];
+export type OwnerType = (typeof OWNER_TYPES)[number];
 
 type CreatePostPayload = {
   propertyType?: string;
@@ -120,7 +120,7 @@ type PublicPostApiData = {
   ownerPostCount: number;
 } & Omit<PublicPostDocument, "_id" | "ownerId">;
 
-class RequestValidationError extends Error {
+export class RequestValidationError extends Error {
   status: number;
 
   constructor(message: string, status = 400) {
@@ -147,16 +147,16 @@ function getToken(req: Request): string | null {
   );
 }
 
-function toTrimmedString(value: unknown): string {
+export function toTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function toOptionalString(value: unknown): string | undefined {
+export function toOptionalString(value: unknown): string | undefined {
   const parsed = toTrimmedString(value);
   return parsed.length ? parsed : undefined;
 }
 
-function toOptionalNumber(value: unknown): number | undefined {
+export function toOptionalNumber(value: unknown): number | undefined {
   if (value === undefined || value === null || value === "") {
     return undefined;
   }
@@ -170,7 +170,7 @@ function toOptionalNumber(value: unknown): number | undefined {
   return parsed;
 }
 
-function toBoolean(value: unknown): boolean {
+export function toBoolean(value: unknown): boolean {
   if (typeof value === "boolean") {
     return value;
   }
@@ -183,7 +183,7 @@ function toBoolean(value: unknown): boolean {
   return false;
 }
 
-function toOptionalBoolean(value: unknown): boolean | undefined {
+export function toOptionalBoolean(value: unknown): boolean | undefined {
   const normalized = toTrimmedString(value).toLowerCase();
 
   if (!normalized) {
@@ -201,7 +201,7 @@ function toOptionalBoolean(value: unknown): boolean | undefined {
   return undefined;
 }
 
-function toOptionalCoordinate(
+export function toOptionalCoordinate(
   value: unknown,
   min: number,
   max: number
@@ -219,7 +219,7 @@ function toOptionalCoordinate(
   return parsed;
 }
 
-function normalizeMediaUrls(value: unknown): string[] {
+export function normalizeMediaUrls(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -241,36 +241,16 @@ async function fileToDataUrl(file: File): Promise<string> {
   return `data:${mimeType};base64,${bytes.toString("base64")}`;
 }
 
-async function parsePostBody(req: Request): Promise<ParsedPostBody> {
+export async function parsePostBody(req: Request): Promise<ParsedPostBody> {
   const contentType = req.headers.get("content-type") ?? "";
 
   if (contentType.includes("multipart/form-data")) {
     const formData = await req.formData();
-    const imageFiles = formData
-      .getAll("images")
-      .filter((item): item is File => item instanceof File && item.size > 0);
 
-    if (imageFiles.length > MAX_IMAGE_COUNT) {
-      throw new RequestValidationError(
-        `Bạn chỉ có thể tải tối đa ${MAX_IMAGE_COUNT} ảnh`
-      );
-    }
-
-    for (const image of imageFiles) {
-      if (!image.type.startsWith("image/")) {
-        throw new RequestValidationError("Chỉ chấp nhận tệp hình ảnh");
-      }
-
-      if (image.size > MAX_IMAGE_SIZE_BYTES) {
-        throw new RequestValidationError(
-          "Mỗi ảnh phải nhỏ hơn hoặc bằng 5MB"
-        );
-      }
-    }
-
-    const uploadedImageDataUrls = await Promise.all(
-      imageFiles.map((image) => fileToDataUrl(image))
-    );
+    // Chỉ lấy danh sách URL (link Cloudinary) do Frontend truyền lên qua key "mediaUrls"
+    const mediaUrls = formData
+      .getAll("mediaUrls")
+      .filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 
     return {
       payload: {
@@ -316,8 +296,9 @@ async function parsePostBody(req: Request): Promise<ParsedPostBody> {
         allowPets: getFormString(formData, "allowPets"),
         latitude: getFormString(formData, "latitude"),
         longitude: getFormString(formData, "longitude"),
+        mediaUrls: mediaUrls, // Gắn trực tiếp mảng link ảnh vào payload
       },
-      uploadedImageDataUrls,
+      uploadedImageDataUrls: [], // Trả về mảng rỗng vì không còn dùng Base64
     };
   }
 
@@ -383,7 +364,7 @@ function requireBooleanChoice(value: unknown, message: string): boolean {
   return toBoolean(value);
 }
 
-function buildDetailsByPropertyType(
+export function buildDetailsByPropertyType(
   propertyType: PropertyType,
   body: CreatePostPayload
 ): BuildDetailsResult {
@@ -563,6 +544,7 @@ function buildDetailsByPropertyType(
     normalized: {
       area: roomArea,
       usableArea: roomArea,
+      bedrooms: 1,
       bathrooms: hasPrivateWc ? 1 : 0,
       interiorStatus: toOptionalString(body.interiorStatus),
     },
@@ -1099,6 +1081,8 @@ export async function POST(req: Request) {
       );
     }
 
+
+    // <<<<<<< HEAD
     let uploadedCloudinaryUrls: string[] = [];
     try {
       uploadedCloudinaryUrls = await Promise.all(
@@ -1120,6 +1104,23 @@ export async function POST(req: Request) {
       ...normalizeMediaUrls(body.mediaUrls),
       ...uploadedCloudinaryUrls,
     ];
+    // =======
+    //     const mediaUrls = normalizeMediaUrls(body.mediaUrls);
+
+    //     if (mediaUrls.length === 0) {
+    //       return NextResponse.json(
+    //         { success: false, message: "Vui lòng tải lên ít nhất 1 ảnh", data: null },
+    //         { status: 400 }
+    //       );
+    //     }
+
+    //     if (mediaUrls.length > MAX_IMAGE_COUNT) {
+    //       return NextResponse.json(
+    //         { success: false, message: `Bạn chỉ có thể đăng tối đa ${MAX_IMAGE_COUNT} ảnh`, data: null },
+    //         { status: 400 }
+    //       );
+    //     }
+    // >>>>>>> main
 
     if (mediaUrls.length === 0) {
       return NextResponse.json(

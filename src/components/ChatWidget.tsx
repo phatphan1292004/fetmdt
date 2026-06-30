@@ -54,10 +54,10 @@ export function ChatWidget() {
 
   // Initialize Room ID and Socket connection
   useEffect(() => {
-    let id = localStorage.getItem("phongtot_chat_room_id");
+    let id = localStorage.getItem("stayvia_chat_room_id");
     if (!id) {
       id = "room_" + Math.random().toString(36).substring(2, 15);
-      localStorage.setItem("phongtot_chat_room_id", id);
+      localStorage.setItem("stayvia_chat_room_id", id);
     }
     setRoomId(id);
 
@@ -129,11 +129,11 @@ export function ChatWidget() {
   const handleClearHistory = () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện này không?")) {
       setMessages([]);
-      localStorage.removeItem("phongtot_chat_history");
+      localStorage.removeItem("stayvia_chat_history");
       
       // We can reset room ID to start a completely fresh session
       const newId = "room_" + Math.random().toString(36).substring(2, 15);
-      localStorage.setItem("phongtot_chat_room_id", newId);
+      localStorage.setItem("stayvia_chat_room_id", newId);
       setRoomId(newId);
 
       if (socketRef.current) {
@@ -247,12 +247,12 @@ export function ChatWidget() {
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white font-black text-lg border border-white/20 select-none">
-                PT
+                SV
               </div>
               <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-[#045a84] animate-pulse"></span>
             </div>
             <div>
-              <h3 className="font-semibold text-[15px] leading-tight font-display">Hỗ Trợ PhòngTốt</h3>
+              <h3 className="font-semibold text-[15px] leading-tight font-display">Hỗ Trợ Stayvia</h3>
               <p className="text-[12px] text-teal-100 flex items-center gap-1">
                 <span>Trực tuyến 24/7</span>
               </p>

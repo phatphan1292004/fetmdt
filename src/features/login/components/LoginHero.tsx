@@ -13,7 +13,7 @@ export function LoginHero() {
 
             <h1 className="font-display text-3xl font-black leading-tight sm:text-4xl">
                 Chào mừng bạn quay lại với
-                <span className="block text-[#bff3f5]">PhòngTốt</span>
+                <span className="block text-[#bff3f5]">Stayvia</span>
             </h1>
 
             <p className="mt-4 max-w-lg text-base leading-relaxed text-cyan-50/95 sm:text-lg">

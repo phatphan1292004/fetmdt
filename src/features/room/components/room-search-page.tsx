@@ -154,6 +154,9 @@ function parseSearchParams(params: URLSearchParams): Filters {
 
 function buildQueryParams(filters: Filters): URLSearchParams {
   const params = new URLSearchParams();
+  const lat = Number(filters.lat);
+  const lng = Number(filters.lng);
+  const radiusKm = Number(filters.radiusKm);
 
   if (filters.keyword.trim()) {
     params.set("q", filters.keyword.trim());
@@ -171,30 +174,47 @@ function buildQueryParams(filters: Filters): URLSearchParams {
     params.set("district", filters.district.trim());
   }
 
-  if (filters.lat && filters.lng) {
-    params.set("lat", filters.lat);
-    params.set("lng", filters.lng);
-    if (filters.radiusKm) {
-      params.set("radiusKm", filters.radiusKm);
+  if (
+    Number.isFinite(lat) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    Number.isFinite(lng) &&
+    lng >= -180 &&
+    lng <= 180
+  ) {
+    params.set("lat", String(lat));
+    params.set("lng", String(lng));
+    if (Number.isFinite(radiusKm) && radiusKm > 0) {
+      params.set("radiusKm", String(radiusKm));
     }
   }
 
-  const minPrice = Number(filters.minPrice);
-  const maxPrice = Number(filters.maxPrice);
-  if (Number.isFinite(minPrice) && minPrice >= 0) {
-    params.set("minPrice", String(minPrice));
-  }
-  if (Number.isFinite(maxPrice) && maxPrice >= 0) {
-    params.set("maxPrice", String(maxPrice));
+  if (filters.minPrice.trim()) {
+    const minPrice = Number(filters.minPrice);
+    if (Number.isFinite(minPrice) && minPrice >= 0) {
+      params.set("minPrice", String(minPrice));
+    }
   }
 
-  const minArea = Number(filters.minArea);
-  const maxArea = Number(filters.maxArea);
-  if (Number.isFinite(minArea) && minArea >= 0) {
-    params.set("minArea", String(minArea));
+  if (filters.maxPrice.trim()) {
+    const maxPrice = Number(filters.maxPrice);
+    if (Number.isFinite(maxPrice) && maxPrice >= 0) {
+      params.set("maxPrice", String(maxPrice));
+    }
   }
-  if (Number.isFinite(maxArea) && maxArea >= 0) {
-    params.set("maxArea", String(maxArea));
+
+  if (filters.minArea.trim()) {
+    const minArea = Number(filters.minArea);
+    if (Number.isFinite(minArea) && minArea >= 0) {
+      params.set("minArea", String(minArea));
+    }
+  }
+
+  if (filters.maxArea.trim()) {
+    const maxArea = Number(filters.maxArea);
+    if (Number.isFinite(maxArea) && maxArea >= 0) {
+      params.set("maxArea", String(maxArea));
+    }
   }
 
   if (!params.has("minPrice") && !params.has("maxPrice")) {
@@ -238,6 +258,10 @@ function buildQueryParams(filters: Filters): URLSearchParams {
   }
 
   return params;
+}
+
+function resetPage(filters: Filters): Filters {
+  return { ...filters, page: "1" };
 }
 
 export function RoomSearchPage() {
@@ -287,10 +311,28 @@ export function RoomSearchPage() {
           alert("Chỉ được chọn tối đa 3 phòng để so sánh");
           return prev;
         }
-        newRooms = [...prev, room];
+        // Giảm dung lượng object để tránh lỗi QuotaExceededError
+        const minimalRoom = {
+          id: room.id,
+          title: room.title,
+          priceLabel: room.priceLabel,
+          areaLabel: room.areaLabel,
+          propertyType: room.propertyType,
+          address: room.address,
+          city: room.city,
+          location: room.location,
+          imageUrls: room.imageUrls && room.imageUrls.length > 0 ? [room.imageUrls[0]] : [],
+          amenities: room.amenities,
+        };
+        newRooms = [...prev, minimalRoom as any];
       }
-      localStorage.setItem("compareRooms", JSON.stringify(newRooms));
-      return newRooms;
+      try {
+        localStorage.setItem("compareRooms", JSON.stringify(newRooms));
+      } catch (error) {
+        console.error("Local storage limit exceeded:", error);
+        alert("Bộ nhớ đã đầy, không thể thêm phòng. Vui lòng thử lại sau.");
+      }
+      return newRooms as RoomDetailData[];
     });
   };
 
@@ -366,9 +408,11 @@ export function RoomSearchPage() {
   }, [mapQuery]);
 
   function applyFilters() {
-    const params = buildQueryParams(filters);
+    const nextFilters = resetPage(filters);
+    const params = buildQueryParams(nextFilters);
     router.replace(`/search?${params.toString()}`);
-    setAppliedFilters(filters);
+    setFilters(nextFilters);
+    setAppliedFilters(nextFilters);
   }
 
   function resetFilters() {
@@ -797,7 +841,9 @@ export function RoomSearchPage() {
                   onClick={() => {
                     const newPage = String(meta.page - 1);
                     setFilters((prev) => ({ ...prev, page: newPage }));
-                    setAppliedFilters((prev) => ({ ...prev, page: newPage }));
+                    const nextApplied = { ...appliedFilters, page: newPage };
+                    setAppliedFilters(nextApplied);
+                    router.replace(`/search?${buildQueryParams(nextApplied).toString()}`);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                   className="rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
@@ -813,7 +859,9 @@ export function RoomSearchPage() {
                   onClick={() => {
                     const newPage = String(meta.page + 1);
                     setFilters((prev) => ({ ...prev, page: newPage }));
-                    setAppliedFilters((prev) => ({ ...prev, page: newPage }));
+                    const nextApplied = { ...appliedFilters, page: newPage };
+                    setAppliedFilters(nextApplied);
+                    router.replace(`/search?${buildQueryParams(nextApplied).toString()}`);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                   className="rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
