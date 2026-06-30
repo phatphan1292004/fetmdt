@@ -66,7 +66,7 @@ export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSect
 
   return (
     <section className="bg-[#f3f5f7] py-20">
-      <div className="mx-auto w-full max-w-350 px-4 lg:px-8">
+      <div className="mx-auto w-full max-w-400 px-4 lg:px-8">
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-[30px] font-extrabold text-[#045a84] md:text-[36px]">Tòa nhà có phòng bán chạy</h2>
           <Link

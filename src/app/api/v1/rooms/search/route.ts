@@ -202,6 +202,13 @@ function buildSearchRegex(value: string): RegExp {
     pattern = `(${pattern}|tphcm|tp\\s*hcm|sài gòn|sai gon)`;
   }
   
+  if (/\d+$/.test(value)) {
+    pattern = `${pattern}\\b`;
+  }
+  if (/^\d+/.test(value)) {
+    pattern = `\\b${pattern}`;
+  }
+  
   return new RegExp(pattern, "i");
 }
 
@@ -475,28 +482,148 @@ export async function GET(req: Request) {
     }
 
     if (policies.length) {
-  andFilters.push({
-    policies: { $all: policies },
-  });
-}
+      policies.forEach((policy) => {
+        if (policy === "pet-friendly") {
+          andFilters.push({
+            $or: [
+              { allowPets: true },
+              { "details.allowPets": true },
+              {
+                propertyType: { $in: ["can_ho_chung_cu", "nha_o"] },
+                allowPets: { $ne: false },
+                "details.allowPets": { $ne: false }
+              }
+            ]
+          });
+        } else if (policy === "free-hours") {
+          andFilters.push({
+            $or: [
+              { "details.curfewFree": true },
+              { propertyType: { $in: ["can_ho_chung_cu", "nha_o"] } }
+            ]
+          });
+        } else if (policy === "owner-not-live") {
+          andFilters.push({
+            $or: [
+              { propertyType: { $in: ["can_ho_chung_cu", "nha_o"] } },
+              { "details.ownerNotLive": true },
+              { "details.ownerNotLive": { $exists: false } }
+            ]
+          });
+        }
+      });
+    }
 
-if (buildingAmenities.length) {
-  andFilters.push({
-    buildingAmenities: { $all: buildingAmenities },
-  });
-}
+    if (buildingAmenities.length) {
+      buildingAmenities.forEach((amenity) => {
+        if (amenity === "parking") {
+          andFilters.push({
+            $or: [
+              { "details.hasParking": true },
+              { propertyType: { $in: ["can_ho_chung_cu", "nha_o"] } }
+            ]
+          });
+        } else if (amenity === "security-camera") {
+          const regex = /camera|an\s*ninh|security/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { feature: regex },
+              { propertyType: "can_ho_chung_cu" }
+            ]
+          });
+        } else if (amenity === "security-24-7") {
+          const regex = /bảo\s*vệ|bao\s*ve|24\/7|24h|an\s*ninh/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { feature: regex },
+              { propertyType: "can_ho_chung_cu" }
+            ]
+          });
+        }
+      });
+    }
 
-if (furniture.length) {
-  andFilters.push({
-    furniture: { $all: furniture },
-  });
-}
+    if (furniture && furniture.length) {
+      furniture.forEach((item) => {
+        if (item === "desk") {
+          const regex = /bàn\s*làm\s*việc|ban\s*lam\s*viec|bàn\s*học|ban\s*hoc|desk/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { interiorStatus: regex },
+              { "details.interiorStatus": regex }
+            ]
+          });
+        } else if (item === "sofa") {
+          const regex = /sofa|salon|sa\s*lon/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { interiorStatus: regex },
+              { "details.interiorStatus": regex }
+            ]
+          });
+        } else if (item === "dining-table") {
+          const regex = /bàn\s*ăn|ban\s*an|dining/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { interiorStatus: regex },
+              { "details.interiorStatus": regex }
+            ]
+          });
+        }
+      });
+    }
 
-if (roomAmenities.length) {
-  andFilters.push({
-    roomAmenities: { $all: roomAmenities },
-  });
-}
+    if (roomAmenities.length) {
+      roomAmenities.forEach((amenity) => {
+        if (amenity === "balcony") {
+          const regex = /ban\s*công|ban\s*cong|balcony/i;
+          andFilters.push({
+            $or: [
+              { "details.hasBalcony": true },
+              { feature: /ban-cong|ban\s*công|ban\s*cong/i },
+              { title: regex },
+              { description: regex }
+            ]
+          });
+        } else if (amenity === "loft") {
+          const regex = /gác|gac|loft/i;
+          andFilters.push({
+            $or: [
+              { "details.hasLoft": true },
+              { title: regex },
+              { description: regex }
+            ]
+          });
+        } else if (amenity === "window") {
+          const regex = /cửa\s*sổ|cua\s*so|window/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex },
+              { feature: /cua-so|cửa\s*sổ|cua\s*so/i }
+            ]
+          });
+        } else if (amenity === "smart-door-lock") {
+          const regex = /khóa\s*thông\s*minh|khoa\s*thong\s*minh|khóa\s*từ|khoa\s*tu|vân\s*tay|van\s*tay|smart\s*lock/i;
+          andFilters.push({
+            $or: [
+              { title: regex },
+              { description: regex }
+            ]
+          });
+        }
+      });
+    }
 
     const query = andFilters.length === 1 ? andFilters[0] : { $and: andFilters };
 

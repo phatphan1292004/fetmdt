@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
 
 type LocationItem = {
   city: string;
@@ -50,57 +51,143 @@ export function LocationFilter({
   currentParams,
 }: LocationFilterProps) {
   const router = useRouter();
+  const [openCityDropdown, setOpenCityDropdown] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const selectedLocation = locations.find((item) => item.city === city);
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpenCityDropdown(null);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <article className="border-t border-slate-200/80 pt-5">
-      <h3 className="text-[26px] font-extrabold leading-none text-[#045a84]">
-        Khu vực
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-display text-lg font-semibold text-[#045a84]">
+          Khu vực
+        </h3>
+        {city && (
+          <button
+            type="button"
+            onClick={() => {
+              router.push(
+                buildHref(currentParams, {
+                  city: undefined,
+                  district: undefined,
+                }),
+              );
+              setOpenCityDropdown(null);
+            }}
+            className="text-xs font-semibold text-slate-400 hover:text-rose-500 hover:underline"
+          >
+            Tất cả khu vực
+          </button>
+        )}
+      </div>
 
-      <div className="mt-3 space-y-3">
-        <select
-          value={city}
-          onChange={(event) => {
-            router.push(
-              buildHref(currentParams, {
-                city: event.target.value || undefined,
-                district: undefined,
-              }),
-            );
-          }}
-          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-        >
-          <option value="">Tất cả tỉnh/thành</option>
+      <div ref={containerRef} className="mt-3 space-y-3">
+        {locations.map((loc) => {
+          const isCurrentCity = city === loc.city;
+          const isDropdownOpen = openCityDropdown === loc.city;
 
-          {locations.map((item) => (
-            <option key={item.city} value={item.city}>
-              {item.city}
-            </option>
-          ))}
-        </select>
+          return (
+            <div key={loc.city} className="relative">
+              <button
+                type="button"
+                onClick={() =>
+                  setOpenCityDropdown(isDropdownOpen ? null : loc.city)
+                }
+                className={`flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                  isCurrentCity
+                    ? "bg-[#045a84] text-white shadow-sm hover:bg-[#034d70]"
+                    : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <span>
+                  {isCurrentCity && district
+                    ? `${loc.city}: ${district}`
+                    : loc.city}
+                </span>
+                <svg
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    isDropdownOpen ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                  />
+                </svg>
+              </button>
 
-        <select
-          value={district}
-          disabled={!city}
-          onChange={(event) => {
-            router.push(
-              buildHref(currentParams, {
-                district: event.target.value || undefined,
-              }),
-            );
-          }}
-          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100"
-        >
-          <option value="">Tất cả quận/huyện</option>
+              {isDropdownOpen && (
+                <div className="absolute left-0 right-0 z-50 mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      router.push(
+                        buildHref(currentParams, {
+                          city: loc.city,
+                          district: undefined,
+                        }),
+                      );
+                      setOpenCityDropdown(null);
+                    }}
+                    className={`w-full text-left rounded-lg px-3 py-2 text-sm transition hover:bg-slate-50 ${
+                      isCurrentCity && !district
+                        ? "font-bold text-[#045a84] bg-slate-50"
+                        : "text-slate-600"
+                    }`}
+                  >
+                    Tất cả {loc.city}
+                  </button>
 
-          {selectedLocation?.districts.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
+                  {loc.districts.map((dist) => {
+                    const isCurrentDistrict =
+                      isCurrentCity && district === dist;
+                    return (
+                      <button
+                        key={dist}
+                        type="button"
+                        onClick={() => {
+                          router.push(
+                            buildHref(currentParams, {
+                              city: loc.city,
+                              district: dist,
+                            }),
+                          );
+                          setOpenCityDropdown(null);
+                        }}
+                        className={`w-full text-left rounded-lg px-3 py-2 text-sm transition hover:bg-slate-50 ${
+                          isCurrentDistrict
+                            ? "font-bold text-[#045a84] bg-slate-50"
+                            : "text-slate-600"
+                        }`}
+                      >
+                        {dist}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </article>
   );
