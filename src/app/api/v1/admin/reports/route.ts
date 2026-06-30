@@ -66,3 +66,61 @@ export async function GET(req: Request) {
     );
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    const token = getToken(req);
+    if (!token) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+
+    const decoded: any = verifyToken(token);
+    if (!decoded || !decoded.userId) {
+      return NextResponse.json({ success: false, message: "Invalid token" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { reportId, status } = body;
+
+    if (!reportId || !status) {
+      return NextResponse.json(
+        { success: false, message: "Thiếu reportId hoặc status" },
+        { status: 400 }
+      );
+    }
+
+    if (!["resolved", "rejected"].includes(status)) {
+      return NextResponse.json(
+        { success: false, message: "Trạng thái không hợp lệ" },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    const updatedReport = await Report.findByIdAndUpdate(
+      reportId,
+      { status },
+      { new: true }
+    );
+
+    if (!updatedReport) {
+      return NextResponse.json(
+        { success: false, message: "Không tìm thấy báo cáo" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Cập nhật trạng thái thành công",
+      data: updatedReport,
+    });
+  } catch (error: any) {
+    console.error("Lỗi khi cập nhật báo cáo:", error);
+    return NextResponse.json(
+      { success: false, message: "Lỗi hệ thống" },
+      { status: 500 }
+    );
+  }
+}
