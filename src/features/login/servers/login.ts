@@ -4,20 +4,18 @@ export type LoginPayload = {
 };
 
 export type LoginResponse = {
-    success: boolean;
-    message: string;
-    data?: {
-        token: string;
-        user: {
-            id: string;
-            fullName: string;
-            email: string;
-            phone: string;
-            role: string;
-            isVerified: boolean;
-            status: string;
-        };
-    };
+  success: boolean;
+  message: string;
+  token: string;
+  data: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    role: string;
+    isVerified: boolean;
+    status: string;
+  };
 };
 
 export async function loginApi(payload: LoginPayload): Promise<LoginResponse> {
