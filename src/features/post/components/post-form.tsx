@@ -4,6 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { GooglePlacesInput } from "@/src/components/GooglePlacesInput";
 import { createPostApi } from "../servers/create-post";
+import { uploadImageToCloudinary } from "@/src/lib/cloudinary";
 
 const PROPERTY_TYPES = [
     { value: "nha_o", label: "Nhà ở" },
@@ -156,7 +157,6 @@ export function PostForm() {
         const fetchPostDetails = async () => {
             try {
                 // Bạn hãy đảm bảo endpoint này trả về chi tiết tin đăng theo ID nhé
-                // const res = await fetch(`/api/v1/posts/${editId}`);
 				const res = await fetch(`/api/v1/user/posts/${editId}`);
                 const data = await res.json();
 
@@ -212,6 +212,8 @@ export function PostForm() {
         const title = getOptionalString(formData, "title") || "";
         const description = getOptionalString(formData, "description") || "";
         const price = getOptionalNumber(formData, "price");
+        
+        // 1. Lấy danh sách file ảnh mới do người dùng chọn
         const imageFiles = formData
             .getAll("images")
             .filter((item): item is File => item instanceof File && item.size > 0);
@@ -250,7 +252,7 @@ export function PostForm() {
             }
         }
 
-        // Cập nhật logic validate ảnh: Tính tổng ảnh cũ giữ lại + ảnh mới up
+        // Validate số lượng ảnh (Cũ + Mới)
         const totalImages = imageFiles.length + existingImages.length;
         if (totalImages === 0) {
             setFeedback({ type: "error", message: "Vui lòng tải lên hoặc giữ lại ít nhất 1 ảnh." }); return;
@@ -269,27 +271,44 @@ export function PostForm() {
         formData.set("listingType", "cho_thue");
         formData.set("ownerType", ownerType);
 
-        // Đẩy danh sách ảnh cũ (đã được lọc qua nút Xóa) vào formData
-        existingImages.forEach((url) => {
-            formData.append("mediaUrls", url);
-        });
-
         try {
             setSubmitting(true);
             setFeedback(null);
 
+            // ==========================================
+            // LOGIC UPLOAD CLOUDINARY
+            // ==========================================
+            
+            // Đẩy URL ảnh cũ vào FormData
+            existingImages.forEach((url) => {
+                formData.append("mediaUrls", url);
+            });
+
+            // Nếu có chọn ảnh mới -> Upload lên Cloudinary để lấy URL
+            if (imageFiles.length > 0) {
+                // Upload đồng loạt các ảnh lên Cloudinary
+                const uploadPromises = imageFiles.map((file) => uploadImageToCloudinary(file));
+                const uploadedUrls = await Promise.all(uploadPromises);
+
+                // Thêm URL mới vào formData
+                uploadedUrls.forEach((url) => {
+                    formData.append("mediaUrls", url);
+                });
+            }
+
+            // Xóa file vật lý khỏi formData để không gửi cục dữ liệu nặng lên Server
+            formData.delete("images");
+
             if (editId) {
-                // Gọi API PATCH sửa tin
                 const response = await fetch(`/api/v1/user/posts/${editId}`, {
                     method: "PATCH",
-                    body: formData,
+                    body: formData, // Lúc này formData chỉ chứa Text và URL ảnh (nhẹ tênh)
                 });
                 const result = await response.json();
                 if (!response.ok || !result.success) throw new Error(result.message || "Cập nhật thất bại.");
                 
                 setFeedback({ type: "success", message: "Cập nhật tin đăng thành công!" });
             } else {
-                // Đăng mới như cũ
                 const response = await createPostApi(formData);
                 setFeedback({ type: "success", message: response.message || "Đăng tin thành công." });
                 form.reset();
@@ -298,6 +317,7 @@ export function PostForm() {
                 setSelectedImageNames([]);
                 setAddressValue("");
                 setLocationMeta(null);
+                setExistingImages([]);
             }
         } catch (error: any) {
             setFeedback({

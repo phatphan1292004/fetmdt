@@ -245,31 +245,11 @@ export async function parsePostBody(req: Request): Promise<ParsedPostBody> {
 
   if (contentType.includes("multipart/form-data")) {
     const formData = await req.formData();
-    const imageFiles = formData
-      .getAll("images")
-      .filter((item): item is File => item instanceof File && item.size > 0);
 
-    if (imageFiles.length > MAX_IMAGE_COUNT) {
-      throw new RequestValidationError(
-        `Bạn chỉ có thể tải tối đa ${MAX_IMAGE_COUNT} ảnh`
-      );
-    }
-
-    for (const image of imageFiles) {
-      if (!image.type.startsWith("image/")) {
-        throw new RequestValidationError("Chỉ chấp nhận tệp hình ảnh");
-      }
-
-      if (image.size > MAX_IMAGE_SIZE_BYTES) {
-        throw new RequestValidationError(
-          "Mỗi ảnh phải nhỏ hơn hoặc bằng 5MB"
-        );
-      }
-    }
-
-    const uploadedImageDataUrls = await Promise.all(
-      imageFiles.map((image) => fileToDataUrl(image))
-    );
+    // Chỉ lấy danh sách URL (link Cloudinary) do Frontend truyền lên qua key "mediaUrls"
+    const mediaUrls = formData
+      .getAll("mediaUrls")
+      .filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 
     return {
       payload: {
@@ -315,8 +295,9 @@ export async function parsePostBody(req: Request): Promise<ParsedPostBody> {
         allowPets: getFormString(formData, "allowPets"),
         latitude: getFormString(formData, "latitude"),
         longitude: getFormString(formData, "longitude"),
+        mediaUrls: mediaUrls, // Gắn trực tiếp mảng link ảnh vào payload
       },
-      uploadedImageDataUrls,
+      uploadedImageDataUrls: [], // Trả về mảng rỗng vì không còn dùng Base64
     };
   }
 
@@ -615,9 +596,9 @@ function mapPublicPostForResponse(
 
   const serializedOwnerId = isPopulatedOwner(post.ownerId)
     ? {
-        _id: String(post.ownerId._id),
-        fullName: post.ownerId.fullName,
-      }
+      _id: String(post.ownerId._id),
+      fullName: post.ownerId.fullName,
+    }
     : String(post.ownerId);
 
   return {
@@ -659,19 +640,19 @@ async function getNewestPublicPosts(
 
   const ownerPostCounts = ownerObjectIds.length
     ? await Post.aggregate<{ _id: Types.ObjectId; count: number }>([
-        {
-          $match: {
-            ownerId: { $in: ownerObjectIds },
-            status: { $in: PUBLIC_POST_STATUSES },
-          },
+      {
+        $match: {
+          ownerId: { $in: ownerObjectIds },
+          status: { $in: PUBLIC_POST_STATUSES },
         },
-        {
-          $group: {
-            _id: "$ownerId",
-            count: { $sum: 1 },
-          },
+      },
+      {
+        $group: {
+          _id: "$ownerId",
+          count: { $sum: 1 },
         },
-      ])
+      },
+    ])
     : [];
 
   const ownerPostCountMap = new Map<string, number>(
@@ -715,19 +696,19 @@ async function getFeaturedPublicPosts(
 
   const ownerPostCounts = ownerObjectIds.length
     ? await Post.aggregate<{ _id: Types.ObjectId; count: number }>([
-        {
-          $match: {
-            ownerId: { $in: ownerObjectIds },
-            status: { $in: PUBLIC_POST_STATUSES },
-          },
+      {
+        $match: {
+          ownerId: { $in: ownerObjectIds },
+          status: { $in: PUBLIC_POST_STATUSES },
         },
-        {
-          $group: {
-            _id: "$ownerId",
-            count: { $sum: 1 },
-          },
+      },
+      {
+        $group: {
+          _id: "$ownerId",
+          count: { $sum: 1 },
         },
-      ])
+      },
+    ])
     : [];
 
   const ownerPostCountMap = new Map<string, number>(
@@ -1099,10 +1080,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const mediaUrls = [
-      ...normalizeMediaUrls(body.mediaUrls),
-      ...uploadedImageDataUrls,
-    ];
+    const mediaUrls = normalizeMediaUrls(body.mediaUrls);
+
+    if (mediaUrls.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "Vui lòng tải lên ít nhất 1 ảnh", data: null },
+        { status: 400 }
+      );
+    }
+
+    if (mediaUrls.length > MAX_IMAGE_COUNT) {
+      return NextResponse.json(
+        { success: false, message: `Bạn chỉ có thể đăng tối đa ${MAX_IMAGE_COUNT} ảnh`, data: null },
+        { status: 400 }
+      );
+    }
 
     if (mediaUrls.length === 0) {
       return NextResponse.json(
