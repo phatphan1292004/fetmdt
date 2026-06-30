@@ -20,6 +20,9 @@ export async function POST(req: Request) {
 
     const endpoint = process.env.LLM_ENDPOINT || "http://localhost:11434/api/chat";
     const model = process.env.OLLAMA_MODEL || "gpt-oss:20b";
+    const num_ctx = 16 * 1024
+    const keep_alive = -1
+    const temperature = 0
 
     // 1. Fetch all active room posts from DB
     await connectDB();
@@ -67,7 +70,11 @@ Trả về một đối tượng JSON duy nhất có cấu trúc sau (không kè
           { role: "user", content: prompt }
         ],
         stream: false,
-        options: { temperature: 0 },
+        options: {
+          temperature: temperature,
+          num_ctx: num_ctx,
+          keep_alive: keep_alive,
+        },
         format: "json"
       })
     });
