@@ -1,4 +1,5 @@
-﻿import { headers } from "next/headers";
+import { headers } from "next/headers";
+import Link from "next/link";
 import { PriceRangeFilter } from "@/src/features/category/components/price-range-filter";
 import { PostCard } from "@/src/features/post/components/post-card";
 import type { RawNewestPostData } from "@/src/features/post/servers/get-home-data";
@@ -141,7 +142,7 @@ function FilterSection({
 }) {
   return (
     <article className="border-t border-slate-200/80 pt-5 first:border-t-0 first:pt-0">
-      <h3 className="text-[26px] font-extrabold leading-none text-[#045a84]">
+      <h3 className="font-display text-lg font-semibold text-[#045a84]">
         {title}
       </h3>
 
@@ -150,7 +151,7 @@ function FilterSection({
           const active = activeItems.includes(item.value);
 
           return (
-            <a
+            <Link
               key={item.value}
               href={toggleFilterHref(params, filterKey, item.value)}
               className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[15px] text-slate-700 hover:bg-slate-50"
@@ -165,7 +166,7 @@ function FilterSection({
                 ✓
               </span>
               <span>{item.label}</span>
-            </a>
+            </Link>
           );
         })}
       </div>
@@ -253,7 +254,7 @@ export default async function CategoryPage({
 
   return (
     <main className="bg-[#f3f5f7] py-8">
-      <section className="mx-auto w-full max-w-350 px-4 lg:px-6">
+      <section className="mx-auto w-full max-w-400 px-4 lg:px-6">
         <p className="text-[14px] text-slate-500">
           Trang chủ <span className="mx-1">›</span>
           {city ? (
@@ -264,7 +265,7 @@ export default async function CategoryPage({
           <span className="font-semibold text-slate-700">{titleDistrict}</span>
         </p>
 
-        <h1 className="mt-2 text-[32px] font-extrabold leading-tight text-[#045a84]">
+        <h1 className="font-display mt-2 text-[32px] font-extrabold leading-tight text-[#045a84]">
           Cho thuê phòng trọ {titleDistrict}
         </h1>
 
@@ -273,11 +274,11 @@ export default async function CategoryPage({
           đang hiển thị
         </p>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+        <div className="mt-6 grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)] items-start">
           <aside className="xl:sticky xl:top-26">
             <div className="h-[calc(150vh-9.5rem)] overflow-y-auto rounded-[28px] border border-[#c8d8e3] bg-white/95 p-5 shadow-[0_18px_40px_rgba(4,90,132,0.12)] backdrop-blur-sm">
               <section>
-                <h3 className="text-[26px] font-extrabold leading-none text-[#045a84]">
+                <h3 className="font-display text-lg font-semibold text-[#045a84]">
                   Khoảng giá
                 </h3>
                 <PriceRangeFilter />
@@ -298,11 +299,7 @@ export default async function CategoryPage({
                   items={[
                     { label: "Nuôi thú cưng", value: "pet-friendly" },
                     { label: "Giờ giấc tự do", value: "free-hours" },
-                    {
-                      label: "Thời gian thuê tối thiểu 3 tháng",
-                      value: "min-3-months",
-                    },
-                    { label: "Chủ nhà không ở cùng", value: "owner-not-live" },
+                    { label: "Không chung chủ", value: "owner-not-live" },
                   ]}
                 />
                 <FilterSection
@@ -311,12 +308,8 @@ export default async function CategoryPage({
                   filterKey="buildingAmenities"
                   params={params}
                   items={[
-                    { label: "Khu cầu thang chung", value: "shared-stair" },
                     { label: "Khu để xe", value: "parking" },
-                    { label: "Phòng", value: "private-room" },
-                    { label: "Ô tô đỗ cửa", value: "car-access" },
                     { label: "Camera an ninh", value: "security-camera" },
-                    { label: "Khóa cổng thông minh", value: "smart-gate" },
                     { label: "Bảo vệ 24/7", value: "security-24-7" },
                   ]}
                 />
@@ -327,13 +320,9 @@ export default async function CategoryPage({
                   filterKey="furniture"
                   params={params}
                   items={[
-                    { label: "Kệ tivi", value: "tv-shelf" },
-                    { label: "Giá giày dép", value: "shoe-rack" },
                     { label: "Bàn làm việc", value: "desk" },
                     { label: "Sofa", value: "sofa" },
                     { label: "Bàn ăn", value: "dining-table" },
-                    { label: "Tủ bếp trên", value: "upper-kitchen-cabinet" },
-                    { label: "Tủ bếp dưới", value: "lower-kitchen-cabinet" },
                   ]}
                 />
 
@@ -350,16 +339,13 @@ export default async function CategoryPage({
                       label: "Khóa phòng thông minh",
                       value: "smart-door-lock",
                     },
-                    { label: "Báo cháy phòng", value: "fire-alarm" },
-                    { label: "Dọn vệ sinh phòng", value: "room-cleaning" },
-                    { label: "Tivi", value: "tv" },
                   ]}
                 />
               </div>
             </div>
           </aside>
 
-          <div className="space-y-5">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
             {filteredPosts.length ? (
               filteredPosts.map((post, index) => (
                 <PostCard
@@ -368,7 +354,7 @@ export default async function CategoryPage({
                 />
               ))
             ) : (
-              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600">
+              <div className="col-span-full rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600">
                 Chưa có phòng phù hợp với khu vực đã chọn.
               </div>
             )}
@@ -391,7 +377,7 @@ export default async function CategoryPage({
                   hrefParams.set("page", pageNumber.toString());
 
                   return (
-                    <a
+                    <Link
                       key={pageNumber}
                       href={`/category?${hrefParams.toString()}`}
                       className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
@@ -401,7 +387,7 @@ export default async function CategoryPage({
                       }`}
                     >
                       {pageNumber}
-                    </a>
+                    </Link>
                   );
                 })}
               </div>

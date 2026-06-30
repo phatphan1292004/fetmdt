@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 type PriceRangeFilterProps = {
   min?: number;
@@ -23,8 +23,43 @@ export function PriceRangeFilter({
   max = 20_000_000,
   step = 500_000,
 }: PriceRangeFilterProps) {
-  const [minValue, setMinValue] = useState(min);
-  const [maxValue, setMaxValue] = useState(max);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const priceRangeParam = searchParams.get("priceRange");
+
+  const initialMin = useMemo(() => {
+    if (priceRangeParam) {
+      const [minStr] = priceRangeParam.split("-");
+      const val = Number(minStr);
+      if (Number.isFinite(val)) return val;
+    }
+    return min;
+  }, [priceRangeParam, min]);
+
+  const initialMax = useMemo(() => {
+    if (priceRangeParam) {
+      const [, maxStr] = priceRangeParam.split("-");
+      const val = Number(maxStr);
+      if (Number.isFinite(val)) return val;
+    }
+    return max;
+  }, [priceRangeParam, max]);
+
+  const [minValue, setMinValue] = useState(initialMin);
+  const [maxValue, setMaxValue] = useState(initialMax);
+
+  useEffect(() => {
+    if (priceRangeParam) {
+      const [minStr, maxStr] = priceRangeParam.split("-");
+      const nextMin = Number(minStr);
+      const nextMax = Number(maxStr);
+      if (Number.isFinite(nextMin)) setMinValue(nextMin);
+      if (Number.isFinite(nextMax)) setMaxValue(nextMax);
+    } else {
+      setMinValue(min);
+      setMaxValue(max);
+    }
+  }, [priceRangeParam, min, max]);
 
   const minPercent = useMemo(
     () => ((minValue - min) / (max - min)) * 100,
@@ -34,8 +69,7 @@ export function PriceRangeFilter({
     () => ((maxValue - min) / (max - min)) * 100,
     [max, min, maxValue],
   );
-  const router = useRouter();
-  const searchParams = useSearchParams();
+
 
   function applyPriceFilter() {
     const query = new URLSearchParams(searchParams.toString());

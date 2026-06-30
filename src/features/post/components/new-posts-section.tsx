@@ -12,7 +12,7 @@ export function NewPostsSection({ posts }: NewPostsSectionProps) {
 
   return (
     <section className="bg-[#f3f5f7] py-16">
-      <div className="mx-auto w-full max-w-350 px-4 lg:px-6">
+      <div className="mx-auto w-full max-w-400 px-4 lg:px-6">
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-[26px] font-extrabold text-[#045a84] md:text-[32px]">Bài đăng mới nhất</h2>
           <button
@@ -24,7 +24,7 @@ export function NewPostsSection({ posts }: NewPostsSectionProps) {
           </button>
         </div>
 
-        <div className="space-y-5">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((post, index) => (
             <PostCard key={("id" in post && post.id) || ("_id" in post && post._id) || `post-${index}`} post={post} />
           ))}
