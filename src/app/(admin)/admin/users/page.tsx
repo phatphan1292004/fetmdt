@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { 
   LuBan, 
   LuSquarePen, 
@@ -19,6 +20,7 @@ import {
 import { toast } from "react-toastify";
 
 export default function UserManagementPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,11 +30,6 @@ export default function UserManagementPage() {
 
   // States Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  
-  // Selected user for View/Edit
-  const [selectedUser, setSelectedUser] = useState<any>(null);
 
   // Form state for creating a user
   const [newUser, setNewUser] = useState({
@@ -145,32 +142,7 @@ export default function UserManagementPage() {
     }
   };
 
-  // --- LOGIC CHỈNH SỬA ---
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(`/api/v1/users?id=${selectedUser._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: selectedUser.fullName,
-          phone: selectedUser.phone,
-          role: selectedUser.role
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success("Cập nhật thông tin thành công!");
-        setIsEditModalOpen(false);
-        setUsers(prev => prev.map(u => u._id === selectedUser._id ? { ...u, fullName: selectedUser.fullName, phone: selectedUser.phone, role: selectedUser.role } : u));
-      } else {
-        toast.error(data.message || "Cập nhật thất bại");
-      }
-    } catch (error) {
-      console.error("Error updating user:", error);
-      toast.error("Cập nhật thất bại");
-    }
-  };
+
 
   return (
     <div className="space-y-6">
@@ -254,18 +226,18 @@ export default function UserManagementPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-3">
-                          <button 
-                            onClick={() => { setSelectedUser(user); setIsViewModalOpen(true); }}
-                            className="text-slate-400 hover:text-blue-600 transition cursor-pointer" title="Xem chi tiết"
-                          >
-                            <LuEye size={18} />
-                          </button>
-                          <button 
-                            onClick={() => { setSelectedUser({...user}); setIsEditModalOpen(true); }}
-                            className="text-slate-400 hover:text-emerald-600 transition cursor-pointer" title="Chỉnh sửa"
-                          >
-                            <LuSquarePen size={18} />
-                          </button>
+                           <button 
+                             onClick={() => router.push(`/admin/users/${user._id}`)}
+                             className="text-slate-400 hover:text-blue-600 transition cursor-pointer" title="Xem chi tiết"
+                           >
+                             <LuEye size={18} />
+                           </button>
+                           <button 
+                             onClick={() => router.push(`/admin/users/${user._id}?mode=edit`)}
+                             className="text-slate-400 hover:text-emerald-600 transition cursor-pointer" title="Chỉnh sửa"
+                           >
+                             <LuSquarePen size={18} />
+                           </button>
                           <button 
                             onClick={() => handleToggleStatus(user._id, user.status)}
                             className={`transition cursor-pointer ${user.status === "active" ? "text-slate-400 hover:text-rose-600" : "text-rose-500 hover:text-emerald-600"}`} 
@@ -389,120 +361,7 @@ export default function UserManagementPage() {
         </div>
       )}
 
-      {/* ================= MODAL: CHỈNH SỬA (EDIT) ================= */}
-      {isEditModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <h3 className="text-lg font-bold text-slate-800">Chỉnh sửa thông tin</h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
-                <LuX size={20} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Họ và tên</label>
-                <input 
-                  type="text" required
-                  value={selectedUser.fullName}
-                  onChange={(e) => setSelectedUser({...selectedUser, fullName: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Số điện thoại</label>
-                  <input 
-                    type="tel" required
-                    value={selectedUser.phone}
-                    onChange={(e) => setSelectedUser({...selectedUser, phone: e.target.value})}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Vai trò</label>
-                  <select 
-                    value={selectedUser.role}
-                    onChange={(e) => setSelectedUser({...selectedUser, role: e.target.value})}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 transition cursor-pointer"
-                  >
-                    <option value="nguoi_tim_tro">Người thuê</option>
-                    <option value="nguoi_cho_thue_tro">Chủ trọ</option>
-                  </select>
-                </div>
-              </div>
 
-              <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => setIsEditModalOpen(false)} className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">Hủy bỏ</button>
-                <button type="submit" className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm cursor-pointer">Lưu thay đổi</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODAL: XEM CHI TIẾT (VIEW) ================= */}
-      {isViewModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-            {/* Header màu */}
-            <div className="relative h-24 bg-gradient-to-r from-blue-500 to-cyan-400">
-              <button onClick={() => setIsViewModalOpen(false)} className="absolute top-4 right-4 text-white hover:text-slate-200 transition bg-black/20 rounded-full p-1 cursor-pointer">
-                <LuX size={20} />
-              </button>
-            </div>
-            
-            <div className="px-6 pb-6">
-              {/* Profile details */}
-              <div className="flex items-end gap-4 -mt-12 mb-6">
-                <div className="h-24 w-24 shrink-0 rounded-full border-4 border-white bg-blue-100 flex items-center justify-center text-4xl font-bold text-blue-600 shadow-sm relative z-10">
-                  {selectedUser.fullName ? selectedUser.fullName.charAt(0).toUpperCase() : "?"}
-                </div>
-                <div className="mb-1">
-                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    {selectedUser.fullName}
-                    {selectedUser.role === "nguoi_cho_thue_tro" && <LuShieldCheck className="text-emerald-500" size={18} title="Chủ trọ đã xác thực" />}
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-0.5">Mã định danh: {selectedUser._id}</p>
-                </div>
-              </div>
-
-              {/* Contact info */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                    <LuMail size={16} />
-                  </div>
-                  <span>{selectedUser.email}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                    <LuPhone size={16} />
-                  </div>
-                  <span>{selectedUser.phone}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                    <LuCalendarDays size={16} />
-                  </div>
-                  <span>Tham gia: {new Date(selectedUser.createdAt).toLocaleDateString("vi-VN")}</span>
-                </div>
-              </div>
-
-              {/* Status labels */}
-              <div className="mt-6 flex items-center gap-2 border-t border-slate-100 pt-4">
-                <span className={`px-3 py-1 text-xs font-medium rounded-full ${selectedUser.role === "nguoi_cho_thue_tro" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
-                  {selectedUser.role === "nguoi_cho_thue_tro" ? "Chủ trọ" : "Người thuê"}
-                </span>
-                <span className={`px-3 py-1 text-xs font-medium rounded-full ${selectedUser.status === "active" ? "bg-emerald-100 text-emerald-700" : selectedUser.status === "blocked" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>
-                  Trạng thái: {selectedUser.status === "active" ? "Hoạt động" : selectedUser.status === "blocked" ? "Bị khóa" : "Chờ kích hoạt"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
