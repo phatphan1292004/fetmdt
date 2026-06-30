@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CurrentUser, UserMenu } from "./UserMenu";
+import { NotificationBell } from "./NotificationBell";
 import Image from "next/image";
 import { toast } from "react-toastify";
 
@@ -199,7 +200,10 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
               Đăng tin
             </Link>
             {currentUser ? (
-              <UserMenu currentUser={currentUser} />
+              <div className="flex items-center gap-3">
+                <NotificationBell />
+                <UserMenu currentUser={currentUser} />
+              </div>
             ) : (
               <>
                 <Link

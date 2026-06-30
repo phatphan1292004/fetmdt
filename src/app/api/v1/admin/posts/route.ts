@@ -2,6 +2,7 @@ import { connectDB } from "@/src/lib/mongoose";
 import { verifyToken } from "@/src/lib/jwt";
 import Post from "@/src/models/Post";
 import User from "@/src/models/User";
+import Notification from "@/src/models/Notification";
 import { NextResponse } from "next/server";
 
 export function getToken(req: Request) {
@@ -241,7 +242,32 @@ export async function PUT(req: Request) {
     const updateData: any = {};
     if (body.title !== undefined) updateData.title = body.title;
     if (body.price !== undefined) updateData.price = Number(body.price);
-    if (body.status !== undefined) updateData.status = body.status;
+    if (body.status !== undefined) {
+      updateData.status = body.status;
+      if (body.status !== post.status) {
+        try {
+          if (body.status === "published") {
+            await Notification.create({
+              userId: post.ownerId,
+              type: "post_approved",
+              title: "Tin đăng đã được duyệt",
+              message: `Tin đăng "${post.title}" của bạn đã được duyệt và đăng công khai.`,
+              link: `/phong-tro/${post.slug}`,
+            });
+          } else if (body.status === "rejected") {
+            await Notification.create({
+              userId: post.ownerId,
+              type: "post_rejected",
+              title: "Tin đăng bị từ chối",
+              message: `Tin đăng "${post.title}" của bạn đã bị từ chối phê duyệt.`,
+              link: "/post-manage",
+            });
+          }
+        } catch (err) {
+          console.error("Lỗi khi tạo thông báo bài viết:", err);
+        }
+      }
+    }
     if (body.address !== undefined) updateData.address = body.address;
     if (body.propertyType !== undefined) updateData.propertyType = body.propertyType;
     if (body.listingType !== undefined) updateData.listingType = body.listingType;

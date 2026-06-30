@@ -4,6 +4,7 @@ import { verifyToken } from "@/src/lib/jwt";
 import Report from "@/src/models/Report";
 import User from "@/src/models/User";
 import Post from "@/src/models/Post";
+import Notification from "@/src/models/Notification";
 
 function getToken(req: Request) {
   const auth = req.headers.get("authorization");
@@ -98,17 +99,42 @@ export async function PATCH(req: Request) {
 
     await connectDB();
 
+    const reportObj = await Report.findById(reportId).populate("postId");
+    if (!reportObj) {
+      return NextResponse.json(
+        { success: false, message: "Không tìm thấy báo cáo" },
+        { status: 404 }
+      );
+    }
+
     const updatedReport = await Report.findByIdAndUpdate(
       reportId,
       { status },
       { new: true }
     );
 
-    if (!updatedReport) {
-      return NextResponse.json(
-        { success: false, message: "Không tìm thấy báo cáo" },
-        { status: 404 }
-      );
+    // Tạo thông báo cho người báo cáo
+    try {
+      const postTitle = (reportObj.postId as any)?.title || "tin đăng";
+      if (status === "resolved") {
+        await Notification.create({
+          userId: reportObj.userId,
+          type: "report_resolved",
+          title: "Báo cáo đã được xử lý",
+          message: `Báo cáo của bạn về tin đăng "${postTitle}" đã được duyệt và xử lý thành công.`,
+          link: null,
+        });
+      } else if (status === "rejected") {
+        await Notification.create({
+          userId: reportObj.userId,
+          type: "report_rejected",
+          title: "Báo cáo bị từ chối",
+          message: `Báo cáo của bạn về tin đăng "${postTitle}" đã bị từ chối do chưa đủ căn cứ.`,
+          link: null,
+        });
+      }
+    } catch (err) {
+      console.error("Lỗi khi tạo thông báo báo cáo:", err);
     }
 
     return NextResponse.json({
