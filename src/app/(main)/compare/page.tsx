@@ -247,7 +247,7 @@ export default function ComparePage() {
 
         {/* Comparison Table Container */}
         <div className="overflow-x-auto rounded-[28px] border border-white/70 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-          <table className="w-full min-w-[700px] border-collapse text-left text-sm text-slate-600 font-sans">
+          <table className="w-full min-w-[700px] table-fixed border-collapse text-left text-sm text-slate-600 font-sans">
             
             {/* Headers row (Images & Actions) */}
             <thead>
