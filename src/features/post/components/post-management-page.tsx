@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { LandlordStats } from "./landlord-stats";
 
 const STATUS_TABS = [
   "DANG HIEN THI",
@@ -149,6 +150,7 @@ export function PostManagementPage() {
   return (
     <main className="flex-1 bg-[#f3f5f7] pb-12 pt-3">
       <section className="mx-auto w-full max-w-6xl px-3 sm:px-4 lg:px-8">
+        <LandlordStats />
         <article className="rounded-2xl border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
           <div className="border-b border-slate-100 px-4 pb-4 pt-4 sm:px-5">
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
