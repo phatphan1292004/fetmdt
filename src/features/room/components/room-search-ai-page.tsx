@@ -91,6 +91,183 @@ function renderMarkdown(text: string) {
   return <div className="space-y-1.5">{elements}</div>;
 }
 
+function generateMapSrcDoc(roomsList: RoomDetailData[]) {
+  const markers = roomsList
+    .map((room, idx) => {
+      const lat = room.location?.latitude;
+      const lng = room.location?.longitude;
+      if (lat === undefined || lat === null || lng === undefined || lng === null) {
+        return null;
+      }
+      return {
+        lat,
+        lng,
+        title: room.title,
+        price: room.priceLabel,
+        area: room.areaLabel,
+        address: room.address,
+        index: idx + 1,
+        imageUrl: room.imageUrls?.[0] || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500",
+        link: buildRoomRouteFromSlug(room.slug),
+      };
+    })
+    .filter(Boolean);
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body, html, #map {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #f1f5f9;
+    }
+    .custom-pin-container {
+      background: transparent;
+      border: none;
+    }
+    .custom-pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #0b7ea9 0%, #2cc3c8 100%);
+      border: 2px solid #ffffff;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+    .custom-pin-number {
+      transform: rotate(45deg);
+      color: white;
+      font-weight: 800;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 12px;
+    }
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      padding: 0;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .leaflet-popup-content {
+      margin: 0 !important;
+      width: 220px !important;
+    }
+    .popup-container {
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .popup-image {
+      width: 100%;
+      height: 100px;
+      background-size: cover;
+      background-position: center;
+    }
+    .popup-body {
+      padding: 10px;
+    }
+    .popup-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #1e293b;
+      margin: 0 0 4px 0;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .popup-title a {
+      text-decoration: none;
+      color: #1e293b;
+    }
+    .popup-title a:hover {
+      color: #0b7ea9;
+    }
+    .popup-price {
+      font-size: 13px;
+      font-weight: bold;
+      color: #10b981;
+      margin: 0 0 2px 0;
+    }
+    .popup-address {
+      font-size: 11px;
+      color: #64748b;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const markers = ${JSON.stringify(markers)};
+    
+    const map = L.map('map', {
+      zoomControl: true
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    const bounds = [];
+
+    markers.forEach(function(m) {
+      if (m.lat && m.lng) {
+        const markerPos = [m.lat, m.lng];
+        bounds.push(markerPos);
+
+        const customIcon = L.divIcon({
+          className: 'custom-pin-container',
+          html: '<div class="custom-pin"><span class="custom-pin-number">' + m.index + '</span></div>',
+          iconSize: [28, 28],
+          iconAnchor: [14, 28],
+          popupAnchor: [0, -28]
+        });
+
+        const popupHtml = 
+          '<div class="popup-container">' +
+            (m.imageUrl ? '<div class="popup-image" style="background-image: url(\\'' + m.imageUrl + '\\')"></div>' : '') +
+            '<div class="popup-body">' +
+              '<h4 class="popup-title"><a href="' + m.link + '" target="_parent">' + m.title + '</a></h4>' +
+              '<p class="popup-price">' + m.price + ' • ' + m.area + '</p>' +
+              '<p class="popup-address">' + m.address + '</p>' +
+            '</div>' +
+          '</div>';
+
+        L.marker(markerPos, { icon: customIcon })
+          .addTo(map)
+          .bindPopup(popupHtml);
+      }
+    });
+
+    if (bounds.length > 0) {
+      if (bounds.length === 1) {
+        map.setView(bounds[0], 15);
+      } else {
+        map.fitBounds(bounds, { padding: [40, 40] });
+      }
+    } else {
+      map.setView([10.87, 106.78], 13);
+    }
+  </script>
+</body>
+</html>
+`;
+}
+
 export function RoomSearchAIPage() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -130,10 +307,7 @@ export function RoomSearchAIPage() {
     }
   };
 
-  const firstRoom = rooms[0];
-  const mapUrl = firstRoom?.location?.latitude && firstRoom?.location?.longitude
-    ? `https://maps.google.com/maps?q=${firstRoom.location.latitude},${firstRoom.location.longitude}&z=15&output=embed`
-    : `https://maps.google.com/maps?q=Truong+Dai+Hoc+Nong+Lam+TPHCM&z=15&output=embed`;
+  // mapUrl is replaced by multi-marker srcDoc generator
 
   return (
     <div className="min-h-screen bg-[#f7fafc] py-12">
@@ -255,12 +429,10 @@ export function RoomSearchAIPage() {
 
                 {showMap ? (
                   <iframe
-                    src={mapUrl}
+                    srcDoc={generateMapSrcDoc(rooms)}
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
-                    allowFullScreen={false}
-                    loading="lazy"
                     title="Bản đồ tìm kiếm"
                   />
                 ) : (
