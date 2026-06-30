@@ -48,7 +48,11 @@ export async function GET(req: Request) {
 
 		await connectDB();
 
-		const post = await Post.findOne({ slug, status: { $in: PUBLIC_POST_STATUSES } })
+		const post = await Post.findOneAndUpdate(
+			{ slug, status: { $in: PUBLIC_POST_STATUSES } },
+			{ $inc: { views: 1 } },
+			{ new: true }
+		)
 			.populate("ownerId", "fullName phone avatarUrl responseRate")
 			.lean<RoomPostDocument | null>();
 
