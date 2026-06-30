@@ -12,11 +12,22 @@ export default function AdminReportsPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<any>(null);
 
-  // Bước 10 sẽ thực hiện gọi API ở đây
   const fetchReports = async () => {
     setLoading(true);
-    // TODO: implement fetch in step 10
-    setLoading(false);
+    try {
+      const res = await fetch("/api/v1/admin/reports");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setReports(data.data || []);
+      } else {
+        toast.error(data.message || "Không thể tải danh sách báo cáo");
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải báo cáo:", error);
+      toast.error("Đã xảy ra lỗi kết nối");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -24,8 +35,26 @@ export default function AdminReportsPage() {
   }, []);
 
   const handleUpdateStatus = async (reportId: string, status: string) => {
-    // TODO: implement PATCH API in step 10
-    console.log("Update status:", reportId, status);
+    try {
+      const res = await fetch("/api/v1/admin/reports", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportId, status }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success("Cập nhật trạng thái thành công");
+        // Cập nhật state nội bộ để UI tự render lại thay vì fetch toàn bộ
+        setReports((prev) =>
+          prev.map((r) => (r._id === reportId ? { ...r, status } : r))
+        );
+      } else {
+        toast.error(data.message || "Không thể cập nhật trạng thái");
+      }
+    } catch (error) {
+      console.error("Lỗi cập nhật:", error);
+      toast.error("Đã xảy ra lỗi kết nối");
+    }
   };
 
   const openDetailModal = (report: any) => {
