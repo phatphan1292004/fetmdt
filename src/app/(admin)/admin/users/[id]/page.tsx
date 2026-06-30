@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import {
@@ -22,12 +22,26 @@ import {
 } from "react-icons/lu";
 
 export default function AdminUserDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[400px] flex-col items-center justify-center py-20 text-slate-400">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <p className="mt-3 text-sm font-medium">Đang tải chi tiết người dùng...</p>
+      </div>
+    }>
+      <AdminUserDetailContent />
+    </Suspense>
+  );
+}
+
+function AdminUserDetailContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const id = params.id as string;
   const initialMode = searchParams.get("mode") === "edit" ? "edit" : "overview";
+
 
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
