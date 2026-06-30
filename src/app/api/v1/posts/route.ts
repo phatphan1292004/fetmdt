@@ -18,9 +18,9 @@ const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_NEWEST_POST_LIMIT = 6;
 const MAX_NEWEST_POST_LIMIT = 20;
 
-type PropertyType = (typeof PROPERTY_TYPES)[number];
-type ListingType = (typeof LISTING_TYPES)[number];
-type OwnerType = (typeof OWNER_TYPES)[number];
+export type PropertyType = (typeof PROPERTY_TYPES)[number];
+export type ListingType = (typeof LISTING_TYPES)[number];
+export type OwnerType = (typeof OWNER_TYPES)[number];
 
 type CreatePostPayload = {
   propertyType?: string;
@@ -119,7 +119,7 @@ type PublicPostApiData = {
   ownerPostCount: number;
 } & Omit<PublicPostDocument, "_id" | "ownerId">;
 
-class RequestValidationError extends Error {
+export class RequestValidationError extends Error {
   status: number;
 
   constructor(message: string, status = 400) {
@@ -146,16 +146,16 @@ function getToken(req: Request): string | null {
   );
 }
 
-function toTrimmedString(value: unknown): string {
+export function toTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function toOptionalString(value: unknown): string | undefined {
+export function toOptionalString(value: unknown): string | undefined {
   const parsed = toTrimmedString(value);
   return parsed.length ? parsed : undefined;
 }
 
-function toOptionalNumber(value: unknown): number | undefined {
+export function toOptionalNumber(value: unknown): number | undefined {
   if (value === undefined || value === null || value === "") {
     return undefined;
   }
@@ -169,7 +169,7 @@ function toOptionalNumber(value: unknown): number | undefined {
   return parsed;
 }
 
-function toBoolean(value: unknown): boolean {
+export function toBoolean(value: unknown): boolean {
   if (typeof value === "boolean") {
     return value;
   }
@@ -182,7 +182,7 @@ function toBoolean(value: unknown): boolean {
   return false;
 }
 
-function toOptionalBoolean(value: unknown): boolean | undefined {
+export function toOptionalBoolean(value: unknown): boolean | undefined {
   const normalized = toTrimmedString(value).toLowerCase();
 
   if (!normalized) {
@@ -200,7 +200,7 @@ function toOptionalBoolean(value: unknown): boolean | undefined {
   return undefined;
 }
 
-function toOptionalCoordinate(
+export function toOptionalCoordinate(
   value: unknown,
   min: number,
   max: number
@@ -218,7 +218,7 @@ function toOptionalCoordinate(
   return parsed;
 }
 
-function normalizeMediaUrls(value: unknown): string[] {
+export function normalizeMediaUrls(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -240,7 +240,7 @@ async function fileToDataUrl(file: File): Promise<string> {
   return `data:${mimeType};base64,${bytes.toString("base64")}`;
 }
 
-async function parsePostBody(req: Request): Promise<ParsedPostBody> {
+export async function parsePostBody(req: Request): Promise<ParsedPostBody> {
   const contentType = req.headers.get("content-type") ?? "";
 
   if (contentType.includes("multipart/form-data")) {
@@ -382,7 +382,7 @@ function requireBooleanChoice(value: unknown, message: string): boolean {
   return toBoolean(value);
 }
 
-function buildDetailsByPropertyType(
+export function buildDetailsByPropertyType(
   propertyType: PropertyType,
   body: CreatePostPayload
 ): BuildDetailsResult {
