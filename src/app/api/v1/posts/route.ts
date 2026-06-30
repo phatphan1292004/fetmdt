@@ -4,6 +4,7 @@ import User from "@/src/models/User";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { Types } from "mongoose";
 import { NextResponse } from "next/server";
+import { MediaStorage } from "@/src/lib/media-storage";
 
 export const runtime = "nodejs";
 
@@ -1098,9 +1099,26 @@ export async function POST(req: Request) {
       );
     }
 
+    let uploadedCloudinaryUrls: string[] = [];
+    try {
+      uploadedCloudinaryUrls = await Promise.all(
+        uploadedImageDataUrls.map((dataUrl) => MediaStorage.uploadImage(dataUrl))
+      );
+    } catch (uploadError) {
+      console.error("Cloudinary upload failed:", uploadError);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Lỗi tải ảnh lên Cloudinary. Vui lòng kiểm tra lại cấu hình hoặc thử lại sau.",
+          data: null,
+        },
+        { status: 500 }
+      );
+    }
+
     const mediaUrls = [
       ...normalizeMediaUrls(body.mediaUrls),
-      ...uploadedImageDataUrls,
+      ...uploadedCloudinaryUrls,
     ];
 
     if (mediaUrls.length === 0) {
