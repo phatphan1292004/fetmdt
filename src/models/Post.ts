@@ -45,6 +45,7 @@ export type PostDocument = {
   lastPushedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  views?: number;
 };
 
 const PostSchema = new Schema<PostDocument>(
@@ -213,6 +214,10 @@ const PostSchema = new Schema<PostDocument>(
       type: Date,
       default: Date.now,
       index: true,
+    },
+    views: {
+      type: Number,
+      default: 0,
     },
   },
   {
