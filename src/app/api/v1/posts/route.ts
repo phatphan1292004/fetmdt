@@ -614,9 +614,9 @@ function mapPublicPostForResponse(
 
   const serializedOwnerId = isPopulatedOwner(post.ownerId)
     ? {
-        _id: String(post.ownerId._id),
-        fullName: post.ownerId.fullName,
-      }
+      _id: String(post.ownerId._id),
+      fullName: post.ownerId.fullName,
+    }
     : String(post.ownerId);
 
   return {
@@ -629,7 +629,7 @@ function mapPublicPostForResponse(
   };
 }
 
-async function getNewestPublicPosts(
+export async function getNewestPublicPosts(
   limit: number
 ): Promise<PublicPostApiData[]> {
   await connectDB();
@@ -658,19 +658,19 @@ async function getNewestPublicPosts(
 
   const ownerPostCounts = ownerObjectIds.length
     ? await Post.aggregate<{ _id: Types.ObjectId; count: number }>([
-        {
-          $match: {
-            ownerId: { $in: ownerObjectIds },
-            status: { $in: PUBLIC_POST_STATUSES },
-          },
+      {
+        $match: {
+          ownerId: { $in: ownerObjectIds },
+          status: { $in: PUBLIC_POST_STATUSES },
         },
-        {
-          $group: {
-            _id: "$ownerId",
-            count: { $sum: 1 },
-          },
+      },
+      {
+        $group: {
+          _id: "$ownerId",
+          count: { $sum: 1 },
         },
-      ])
+      },
+    ])
     : [];
 
   const ownerPostCountMap = new Map<string, number>(
@@ -680,7 +680,7 @@ async function getNewestPublicPosts(
   return posts.map((post) => mapPublicPostForResponse(post, ownerPostCountMap));
 }
 
-async function getFeaturedPublicPosts(
+export async function getFeaturedPublicPosts(
   limit: number
 ): Promise<PublicPostApiData[]> {
   await connectDB();
@@ -714,19 +714,19 @@ async function getFeaturedPublicPosts(
 
   const ownerPostCounts = ownerObjectIds.length
     ? await Post.aggregate<{ _id: Types.ObjectId; count: number }>([
-        {
-          $match: {
-            ownerId: { $in: ownerObjectIds },
-            status: { $in: PUBLIC_POST_STATUSES },
-          },
+      {
+        $match: {
+          ownerId: { $in: ownerObjectIds },
+          status: { $in: PUBLIC_POST_STATUSES },
         },
-        {
-          $group: {
-            _id: "$ownerId",
-            count: { $sum: 1 },
-          },
+      },
+      {
+        $group: {
+          _id: "$ownerId",
+          count: { $sum: 1 },
         },
-      ])
+      },
+    ])
     : [];
 
   const ownerPostCountMap = new Map<string, number>(
