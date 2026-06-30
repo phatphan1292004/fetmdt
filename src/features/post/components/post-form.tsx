@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { GooglePlacesInput } from "@/src/components/GooglePlacesInput";
 import { createPostApi } from "../servers/create-post";
 import { uploadImageToCloudinary } from "@/src/lib/cloudinary";
@@ -128,18 +128,27 @@ function getOptionalNumber(formData: FormData, key: string): number | undefined 
     return parsed;
 }
 
+// Type mới cho việc quản lý Preview ảnh
+type ImagePreview = {
+    file: File;
+    previewUrl: string;
+};
+
 export function PostForm() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const editId = searchParams.get("edit");
 
     const [propertyType, setPropertyType] = useState<PropertyType>("phong_tro");
     const [ownerType, setOwnerType] = useState<OwnerType>("ca_nhan");
-    const [selectedImageNames, setSelectedImageNames] = useState<string[]>([]);
+    
+    // --- STATE QUẢN LÝ ẢNH ---
+    const [existingImages, setExistingImages] = useState<string[]>([]); // Ảnh cũ trên Cloudinary (Sửa tin)
+    const [newImages, setNewImages] = useState<ImagePreview[]>([]); // Ảnh mới upload có preview
     
     // Quản lý dữ liệu tin cũ
     const [isLoadingData, setIsLoadingData] = useState(!!editId);
     const [initialData, setInitialData] = useState<any>(null);
-    const [existingImages, setExistingImages] = useState<string[]>([]);
 
     const [submitting, setSubmitting] = useState(false);
     const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -150,14 +159,20 @@ export function PostForm() {
     const detailFields = FIELDS_BY_PROPERTY[propertyType].map((fieldName) => FIELD_CONFIGS[fieldName]);
     const featureOptions = FEATURE_OPTIONS_BY_PROPERTY[propertyType];
 
-    // Lấy dữ liệu tin cũ khi đang ở chế độ Sửa (editId có giá trị)
+    // Cleanup URLs để tránh memory leak
+    useEffect(() => {
+        return () => {
+            newImages.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+        };
+    }, [newImages]);
+
+    // Lấy dữ liệu tin cũ
     useEffect(() => {
         if (!editId) return;
 
         const fetchPostDetails = async () => {
             try {
-                // Bạn hãy đảm bảo endpoint này trả về chi tiết tin đăng theo ID nhé
-				const res = await fetch(`/api/v1/user/posts/${editId}`);
+                const res = await fetch(`/api/v1/user/posts/${editId}`);
                 const data = await res.json();
 
                 if (data.success && data.data) {
@@ -188,13 +203,39 @@ export function PostForm() {
         fetchPostDetails();
     }, [editId]);
 
+    // Hàm chọn ảnh mới -> Gán Preview
     const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(event.target.files ?? []);
-        setSelectedImageNames(files.map((file) => file.name));
+        
+        // Không cho phép upload quá 10 ảnh (cũ + mới)
+        if (existingImages.length + newImages.length + files.length > 10) {
+            setFeedback({ type: "error", message: "Bạn chỉ có thể tải tổng cộng tối đa 10 ảnh." });
+            return;
+        }
+
+        const newImagePreviews = files.map((file) => ({
+            file,
+            previewUrl: URL.createObjectURL(file),
+        }));
+
+        setNewImages((prev) => [...prev, ...newImagePreviews]);
+        // Reset input file để có thể chọn lại cùng 1 file nếu vừa xóa
+        event.target.value = ""; 
     };
 
+    // Xóa ảnh cũ (Đang lưu trên Cloudinary)
     const handleRemoveExistingImage = (indexToRemove: number) => {
         setExistingImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+    };
+
+    // Xóa ảnh mới (Đang nằm ở Local Preview)
+    const handleRemoveNewImage = (indexToRemove: number) => {
+        setNewImages((prev) => {
+            const newArray = [...prev];
+            URL.revokeObjectURL(newArray[indexToRemove].previewUrl); // Clear RAM
+            newArray.splice(indexToRemove, 1);
+            return newArray;
+        });
     };
 
     const handlePropertyTypeChange = (type: PropertyType) => {
@@ -212,11 +253,6 @@ export function PostForm() {
         const title = getOptionalString(formData, "title") || "";
         const description = getOptionalString(formData, "description") || "";
         const price = getOptionalNumber(formData, "price");
-        
-        // 1. Lấy danh sách file ảnh mới do người dùng chọn
-        const imageFiles = formData
-            .getAll("images")
-            .filter((item): item is File => item instanceof File && item.size > 0);
 
         if (!address) { setFeedback({ type: "error", message: "Vui lòng nhập địa chỉ cụ thể." }); return; }
         if (!title) { setFeedback({ type: "error", message: "Vui lòng nhập tiêu đề tin đăng." }); return; }
@@ -252,18 +288,18 @@ export function PostForm() {
             }
         }
 
-        // Validate số lượng ảnh (Cũ + Mới)
-        const totalImages = imageFiles.length + existingImages.length;
+        // Validate số lượng ảnh
+        const totalImages = newImages.length + existingImages.length;
         if (totalImages === 0) {
             setFeedback({ type: "error", message: "Vui lòng tải lên hoặc giữ lại ít nhất 1 ảnh." }); return;
         }
         if (totalImages > 10) {
             setFeedback({ type: "error", message: "Bạn chỉ có thể tải tối đa 10 ảnh (bao gồm cả ảnh cũ)." }); return;
         }
-        if (imageFiles.some((file) => !file.type.startsWith("image/"))) {
+        if (newImages.some((img) => !img.file.type.startsWith("image/"))) {
             setFeedback({ type: "error", message: "Chỉ chấp nhận tệp hình ảnh." }); return;
         }
-        if (imageFiles.some((file) => file.size > 5 * 1024 * 1024)) {
+        if (newImages.some((img) => img.file.size > 5 * 1024 * 1024)) {
             setFeedback({ type: "error", message: "Mỗi ảnh phải nhỏ hơn hoặc bằng 5MB." }); return;
         }
 
@@ -279,45 +315,48 @@ export function PostForm() {
             // LOGIC UPLOAD CLOUDINARY
             // ==========================================
             
-            // Đẩy URL ảnh cũ vào FormData
+            // 1. Đẩy URL ảnh cũ vào FormData
             existingImages.forEach((url) => {
                 formData.append("mediaUrls", url);
             });
 
-            // Nếu có chọn ảnh mới -> Upload lên Cloudinary để lấy URL
-            if (imageFiles.length > 0) {
-                // Upload đồng loạt các ảnh lên Cloudinary
-                const uploadPromises = imageFiles.map((file) => uploadImageToCloudinary(file));
+            // 2. Upload ảnh mới lên Cloudinary
+            if (newImages.length > 0) {
+                const uploadPromises = newImages.map((img) => uploadImageToCloudinary(img.file));
                 const uploadedUrls = await Promise.all(uploadPromises);
 
-                // Thêm URL mới vào formData
                 uploadedUrls.forEach((url) => {
                     formData.append("mediaUrls", url);
                 });
             }
 
-            // Xóa file vật lý khỏi formData để không gửi cục dữ liệu nặng lên Server
+            // Xóa file input giả (nếu form tự lấy) để không gửi rác lên server
             formData.delete("images");
 
+            // ==========================================
+            // GỌI API BACKEND
+            // ==========================================
             if (editId) {
                 const response = await fetch(`/api/v1/user/posts/${editId}`, {
                     method: "PATCH",
-                    body: formData, // Lúc này formData chỉ chứa Text và URL ảnh (nhẹ tênh)
+                    body: formData,
                 });
                 const result = await response.json();
                 if (!response.ok || !result.success) throw new Error(result.message || "Cập nhật thất bại.");
                 
                 setFeedback({ type: "success", message: "Cập nhật tin đăng thành công!" });
+                setTimeout(() => router.push("/profile?tab=manage"), 1500); // Chuyển hướng sau khi lưu thành công
             } else {
                 const response = await createPostApi(formData);
                 setFeedback({ type: "success", message: response.message || "Đăng tin thành công." });
                 form.reset();
                 setPropertyType("phong_tro");
                 setOwnerType("ca_nhan");
-                setSelectedImageNames([]);
+                setNewImages([]); // Xóa preview ảnh
                 setAddressValue("");
                 setLocationMeta(null);
                 setExistingImages([]);
+                setTimeout(() => router.push("/profile?tab=manage"), 1500); // Chuyển hướng sau khi đăng thành công
             }
         } catch (error: any) {
             setFeedback({
@@ -329,7 +368,6 @@ export function PostForm() {
         }
     };
 
-    // Hàm lấy giá trị cũ để điền vào các trường detail (tránh lỗi null/undefined)
     const getInitialDetailValue = (name: string) => {
         if (!initialData) return "";
         return initialData.details?.[name]?.toString() ?? initialData[name]?.toString() ?? "";
@@ -357,6 +395,7 @@ export function PostForm() {
                     </section>
 
                     <section className="space-y-4">
+                        {/* LOẠI BẤT ĐỘNG SẢN */}
                         <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] sm:p-5">
                             <label className="mb-3 block text-lg font-bold text-slate-900">Loại bất động sản *</label>
                             <div className="flex flex-wrap gap-2.5">
@@ -364,7 +403,7 @@ export function PostForm() {
                                     <button
                                         key={type.value}
                                         type="button"
-                                        disabled={!!editId} // Khóa không cho đổi loại BĐS nếu đang sửa tin
+                                        disabled={!!editId}
                                         onClick={() => handlePropertyTypeChange(type.value)}
                                         className={`inline-flex items-center rounded-full border px-4 py-2 text-[17px] font-semibold transition ${
                                             propertyType === type.value
@@ -389,35 +428,22 @@ export function PostForm() {
                             </div>
                         </article>
 
+                        {/* VỊ TRÍ */}
                         <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] sm:p-5">
                             <h2 className="mb-4 text-lg font-bold text-slate-900">Vị trí bất động sản</h2>
-
                             <div className="space-y-4">
                                 <div>
-                                    <label htmlFor="projectName" className="mb-1.5 block text-[15px] font-semibold text-slate-700">
-                                        Tên tòa nhà/khu dân cư/dự án
-                                    </label>
-                                    <input
-                                        id="projectName"
-                                        name="projectName"
-                                        type="text"
-                                        defaultValue={initialData?.projectName || ""}
-                                        placeholder="Tên tòa nhà/khu dân cư/dự án"
-                                        className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
-                                    />
+                                    <label htmlFor="projectName" className="mb-1.5 block text-[15px] font-semibold text-slate-700">Tên dự án</label>
+                                    <input id="projectName" name="projectName" type="text" defaultValue={initialData?.projectName || ""} placeholder="Tên dự án" className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] outline-none focus:border-[#0b7ea9]" />
                                 </div>
-
                                 <div>
                                     <GooglePlacesInput
                                         label="Địa chỉ cụ thể *"
                                         name="address"
                                         required
-                                        placeholder="Ví dụ: Số 20 ngõ 120 Hoàng Quốc Việt, Cầu Giấy, Hà Nội"
+                                        placeholder="Ví dụ: Số 20 ngõ 120 Hoàng Quốc Việt"
                                         value={addressValue}
-                                        onValueChange={(value) => {
-                                            setAddressValue(value);
-                                            setLocationMeta(null);
-                                        }}
+                                        onValueChange={(value) => { setAddressValue(value); setLocationMeta(null); }}
                                         onPlaceSelected={(place) => {
                                             if (!place) { setLocationMeta(null); return; }
                                             setAddressValue(place.address);
@@ -429,7 +455,6 @@ export function PostForm() {
                                     <input type="hidden" name="latitude" value={locationMeta?.lat ?? ""} />
                                     <input type="hidden" name="longitude" value={locationMeta?.lng ?? ""} />
                                 </div>
-
                                 <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 text-[15px] text-slate-700">
                                     Hiển thị mã căn trên tin đăng
                                     <input type="checkbox" name="showRoomCode" defaultChecked={initialData?.showRoomCode} className="h-5 w-5 rounded border-slate-300" />
@@ -437,6 +462,7 @@ export function PostForm() {
                             </div>
                         </article>
 
+                        {/* THÔNG TIN CHI TIẾT */}
                         <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] sm:p-5">
                             <h2 className="mb-1 text-lg font-bold text-slate-900">Thông tin {currentPropertyLabel.toLowerCase()}</h2>
                             <p className="mb-4 text-sm text-slate-600">{PROPERTY_HINT_BY_TYPE[propertyType]}</p>
@@ -444,217 +470,105 @@ export function PostForm() {
                                 {detailFields.map((field) => (
                                     <div key={field.name}>
                                         <label htmlFor={field.name} className="mb-1.5 block text-[15px] font-semibold text-slate-700">
-                                            {field.label}
-                                            {field.required ? " *" : ""}
+                                            {field.label} {field.required ? " *" : ""}
                                         </label>
                                         {field.type === "boolean" ? (
-                                            <div className="relative">
-                                                <select
-                                                    id={field.name}
-                                                    name={field.name}
-                                                    defaultValue={getInitialDetailValue(field.name)}
-                                                    className="h-12 w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-[17px] text-slate-700 outline-none transition focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
-                                                >
-                                                    <option value="" disabled>Chọn</option>
-                                                    <option value="true">Có</option>
-                                                    <option value="false">Không</option>
-                                                </select>
-                                                <span className="pointer-events-none absolute inset-y-0 right-4 inline-flex items-center text-slate-500">
-                                                    <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                                                        <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                </span>
-                                            </div>
+                                            <select id={field.name} name={field.name} defaultValue={getInitialDetailValue(field.name)} className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] outline-none focus:border-[#0b7ea9]">
+                                                <option value="" disabled>Chọn</option>
+                                                <option value="true">Có</option>
+                                                <option value="false">Không</option>
+                                            </select>
                                         ) : (
-                                            <input
-                                                id={field.name}
-                                                name={field.name}
-                                                type={field.type}
-                                                defaultValue={getInitialDetailValue(field.name)}
-                                                placeholder={field.placeholder}
-                                                required={field.required}
-                                                min={field.type === "number" ? 0 : undefined}
-                                                step={field.type === "number" ? field.step || "any" : undefined}
-                                                className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
-                                            />
+                                            <input id={field.name} name={field.name} type={field.type} defaultValue={getInitialDetailValue(field.name)} placeholder={field.placeholder} required={field.required} step={field.type === "number" ? field.step || "any" : undefined} className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] outline-none focus:border-[#0b7ea9]" />
                                         )}
-                                        {field.helperText ? <p className="mt-1 text-xs text-slate-500">{field.helperText}</p> : null}
                                     </div>
                                 ))}
-
                                 <div className="sm:col-span-2">
-                                    <label htmlFor="feature" className="mb-1.5 block text-[15px] font-semibold text-slate-700">
-                                        Đặc điểm
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            id="feature"
-                                            name="feature"
-                                            defaultValue={getInitialDetailValue("feature")}
-                                            className="h-12 w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-[17px] text-slate-500 outline-none transition focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
-                                        >
-                                            <option value="" disabled>Chọn đặc điểm phù hợp</option>
-                                            {featureOptions.map((option) => (
-                                                <option key={option.value} value={option.value}>{option.label}</option>
-                                            ))}
-                                        </select>
-                                        <span className="pointer-events-none absolute inset-y-0 right-4 inline-flex items-center text-slate-500">
-                                            <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                                                <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                            </svg>
-                                        </span>
-                                    </div>
+                                    <label htmlFor="feature" className="mb-1.5 block text-[15px] font-semibold text-slate-700">Đặc điểm</label>
+                                    <select id="feature" name="feature" defaultValue={getInitialDetailValue("feature")} className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] outline-none focus:border-[#0b7ea9]">
+                                        <option value="" disabled>Chọn đặc điểm phù hợp</option>
+                                        {featureOptions.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                         </article>
 
+                        {/* NỘI DUNG & ẢNH */}
                         <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] sm:p-5">
                             <h2 className="mb-4 text-lg font-bold text-slate-900">Nội dung tin đăng</h2>
-
                             <div className="space-y-4">
                                 <div>
-                                    <label htmlFor="images" className="mb-1.5 block text-[15px] font-semibold text-slate-700">Hình ảnh *</label>
+                                    <label className="mb-1.5 block text-[15px] font-semibold text-slate-700">Hình ảnh * (Tối đa 10 ảnh)</label>
                                     
-                                    {/* Danh sách ảnh CŨ (Chỉ hiện khi Sửa tin) */}
+                                    {/* Ảnh Cũ (chỉ hiện khi sửa tin) */}
                                     {existingImages.length > 0 && (
                                         <div className="mb-4">
-                                            <p className="mb-2 text-sm text-slate-600">Ảnh đã tải lên trước đó (nhấp để xóa):</p>
+                                            <p className="mb-2 text-sm text-slate-600">Ảnh đang có trên bài viết (Nhấp để xóa):</p>
                                             <div className="flex flex-wrap gap-3">
                                                 {existingImages.map((url, index) => (
-                                                    <div key={index} className="group relative h-20 w-20 overflow-hidden rounded-xl border border-slate-200">
+                                                    <div key={`old-${index}`} className="group relative h-24 w-24 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                                                         <img src={url} alt={`old-img-${index}`} className="h-full w-full object-cover" />
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => handleRemoveExistingImage(index)}
-                                                            className="absolute inset-0 flex items-center justify-center bg-black/60 text-xs font-bold text-white opacity-0 transition-opacity group-hover:opacity-100"
-                                                        >
-                                                            XÓA
-                                                        </button>
+                                                        <button type="button" onClick={() => handleRemoveExistingImage(index)} className="absolute inset-0 flex items-center justify-center bg-black/60 text-xs font-bold text-white opacity-0 transition-opacity group-hover:opacity-100">XÓA</button>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
 
-                                    <label
-                                        htmlFor="images"
-                                        className="flex h-40 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#f59e0b] bg-[#fff8db] px-4 text-center text-slate-700 transition hover:bg-[#fff3c4]"
-                                    >
-                                        <span className="text-lg font-bold">Chọn ảnh từ máy</span>
-                                        <span className="mt-1 text-sm text-slate-600">PNG, JPG, WEBP - tổng tối đa 10 ảnh, mỗi ảnh không quá 5MB</span>
-                                    </label>
-                                    <input
-                                        id="images"
-                                        name="images"
-                                        type="file"
-                                        accept="image/*"
-                                        multiple
-                                        onChange={handleImageChange}
-                                        className="sr-only"
-                                    />
-                                    {selectedImageNames.length ? (
-                                        <p className="mt-2 text-sm text-slate-600">Đã chọn thêm {selectedImageNames.length} ảnh mới: {selectedImageNames.join(", ")}</p>
-                                    ) : null}
+                                    {/* Ảnh Mới Vừa Chọn (Preview Tức Thì) */}
+                                    {newImages.length > 0 && (
+                                        <div className="mb-4">
+                                            <p className="mb-2 text-sm text-slate-600">Ảnh mới thêm (Chưa lưu):</p>
+                                            <div className="flex flex-wrap gap-3">
+                                                {newImages.map((img, index) => (
+                                                    <div key={`new-${index}`} className="group relative h-24 w-24 overflow-hidden rounded-xl border-2 border-emerald-400 bg-slate-50">
+                                                        <img src={img.previewUrl} alt={`new-img-${index}`} className="h-full w-full object-cover" />
+                                                        <button type="button" onClick={() => handleRemoveNewImage(index)} className="absolute inset-0 flex items-center justify-center bg-black/60 text-xs font-bold text-white opacity-0 transition-opacity group-hover:opacity-100">HỦY BỎ</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Khung Tải Ảnh */}
+                                    {existingImages.length + newImages.length < 10 && (
+                                        <>
+                                            <label htmlFor="images" className="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#0b7ea9] bg-[#effaff] px-4 text-center transition hover:bg-[#e0f4fc]">
+                                                <span className="text-lg font-bold text-[#0b7ea9]">+ Chọn thêm ảnh</span>
+                                                <span className="mt-1 text-sm text-slate-500">Còn có thể tải lên {10 - (existingImages.length + newImages.length)} ảnh</span>
+                                            </label>
+                                            <input id="images" type="file" accept="image/*" multiple onChange={handleImageChange} className="sr-only" />
+                                        </>
+                                    )}
                                 </div>
 
                                 <div>
                                     <label htmlFor="title" className="mb-1.5 block text-[15px] font-semibold text-slate-700">Tiêu đề tin đăng *</label>
-                                    <input
-                                        id="title"
-                                        name="title"
-                                        type="text"
-                                        defaultValue={initialData?.title || ""}
-                                        maxLength={70}
-                                        placeholder="Tiêu đề tin đăng"
-                                        className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
-                                    />
-                                    <p className="mt-2 text-sm text-slate-500">Tối đa 70 ký tự</p>
+                                    <input id="title" name="title" type="text" defaultValue={initialData?.title || ""} maxLength={70} placeholder="Tiêu đề" className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] outline-none focus:border-[#0b7ea9]" />
                                 </div>
 
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <div>
                                         <label htmlFor="price" className="mb-1.5 block text-[15px] font-semibold text-slate-700">Giá thuê *</label>
-                                        <div className="relative">
-                                            <input
-                                                id="price"
-                                                name="price"
-                                                type="number"
-                                                defaultValue={initialData?.price || ""}
-                                                min={0}
-                                                step="1000"
-                                                placeholder="Giá thuê"
-                                                className="h-12 w-full rounded-xl border border-slate-300 px-4 pr-9 text-[17px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
-                                            />
-                                            <span className="pointer-events-none absolute inset-y-0 right-4 inline-flex items-center text-[20px] text-slate-500">₫</span>
-                                        </div>
+                                        <input id="price" name="price" type="number" defaultValue={initialData?.price || ""} min={0} step="1000" placeholder="Giá thuê" className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] outline-none focus:border-[#0b7ea9]" />
                                     </div>
-
                                     <div>
                                         <label htmlFor="deposit" className="mb-1.5 block text-[15px] font-semibold text-slate-700">Số tiền cọc</label>
-                                        <div className="relative">
-                                            <input
-                                                id="deposit"
-                                                name="deposit"
-                                                type="number"
-                                                defaultValue={initialData?.deposit || ""}
-                                                min={0}
-                                                step="1000"
-                                                placeholder="Số tiền cọc"
-                                                className="h-12 w-full rounded-xl border border-slate-300 px-4 pr-9 text-[17px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
-                                            />
-                                            <span className="pointer-events-none absolute inset-y-0 right-4 inline-flex items-center text-[20px] text-slate-500">₫</span>
-                                        </div>
+                                        <input id="deposit" name="deposit" type="number" defaultValue={initialData?.deposit || ""} min={0} step="1000" placeholder="Số tiền cọc" className="h-12 w-full rounded-xl border border-slate-300 px-4 text-[17px] outline-none focus:border-[#0b7ea9]" />
                                     </div>
                                 </div>
 
                                 <div>
                                     <label htmlFor="description" className="mb-1.5 block text-[15px] font-semibold text-slate-700">Mô tả *</label>
-                                    <textarea
-                                        id="description"
-                                        name="description"
-                                        rows={8}
-                                        defaultValue={initialData?.description || ""}
-                                        maxLength={1500}
-                                        placeholder="Mô tả ưu điểm phòng, nội thất, giao thông và quy định thuê"
-                                        className="w-full rounded-xl border border-slate-300 px-4 py-3 text-[17px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b7ea9] focus:ring-4 focus:ring-[#25c3c8]/20"
-                                    />
-                                    <p className="mt-2 text-sm text-slate-500">Tối đa 1500 ký tự</p>
-                                </div>
-
-                                <div>
-                                    <label className="mb-2 block text-[15px] font-semibold text-slate-700">Bạn là *</label>
-                                    <div className="inline-flex rounded-full bg-slate-100 p-1.5">
-                                        <button
-                                            type="button"
-                                            onClick={() => setOwnerType("ca_nhan")}
-                                            className={`rounded-full px-5 py-1.5 text-[17px] font-semibold transition ${
-                                                ownerType === "ca_nhan" ? "bg-slate-900 text-white" : "text-slate-700"
-                                            }`}
-                                        >
-                                            Cá nhân
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setOwnerType("moi_gioi")}
-                                            className={`rounded-full px-5 py-1.5 text-[17px] font-semibold transition ${
-                                                ownerType === "moi_gioi" ? "bg-slate-900 text-white" : "text-slate-700"
-                                            }`}
-                                        >
-                                            Môi giới
-                                        </button>
-                                    </div>
+                                    <textarea id="description" name="description" rows={8} defaultValue={initialData?.description || ""} maxLength={1500} placeholder="Mô tả" className="w-full rounded-xl border border-slate-300 px-4 py-3 text-[17px] outline-none focus:border-[#0b7ea9]" />
                                 </div>
                             </div>
                         </article>
 
                         {feedback ? (
-                            <div
-                                className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-                                    feedback.type === "success"
-                                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                        : "border-rose-200 bg-rose-50 text-rose-700"
-                                }`}
-                            >
+                            <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${feedback.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-rose-200 bg-rose-50 text-rose-700"}`}>
                                 {feedback.message}
                             </div>
                         ) : null}
@@ -663,18 +577,7 @@ export function PostForm() {
 
                 <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-3 py-3 backdrop-blur sm:px-4">
                     <div className="mx-auto flex w-full max-w-6xl items-center gap-3">
-                        <button
-                            type="button"
-                            disabled={submitting}
-                            className="h-12 flex-1 rounded-xl border border-slate-300 bg-slate-100 text-lg font-bold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                            Xem trước
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="h-12 flex-1 rounded-xl bg-[#f7cd00] text-lg font-bold text-slate-900 shadow-[0_8px_20px_rgba(247,205,0,0.34)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
-                        >
+                        <button type="submit" disabled={submitting} className="h-12 flex-1 rounded-xl bg-[#f7cd00] text-lg font-bold text-slate-900 shadow-[0_8px_20px_rgba(247,205,0,0.34)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70">
                             {submitting ? "Đang xử lý..." : editId ? "Lưu thay đổi" : "Đăng tin"}
                         </button>
                     </div>
