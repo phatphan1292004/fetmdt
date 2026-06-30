@@ -1296,6 +1296,7 @@ export function ProfilePage() {
   useEffect(() => {
     const tabParam = searchParams.get("tab") as ProfileTabId;
     if (tabParam && ["info", "saved", "manage", "buff"].includes(tabParam)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab(tabParam);
     }
   }, [searchParams]);
