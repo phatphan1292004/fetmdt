@@ -41,7 +41,12 @@ type ContractHistory = {
   renterAddress?: string;
   landlordCccd?: string;
   landlordAddress?: string;
+  landlordName?: string;
+  landlordCccdIssuedPlace?: string;
+  renterName?: string;
+  status?: string;
 };
+
 
 type RentedRoomHistory = {
   id: string;
@@ -51,83 +56,6 @@ type RentedRoomHistory = {
   contracts: ContractHistory[];
 };
 
-const INITIAL_ROOM_HISTORY: RentedRoomHistory[] = [
-  {
-    id: "ROOM-001",
-    roomName: "Phòng 102 - Nhà trọ Linh Trung",
-    landlord: "Nguyễn Văn A",
-    address: "Số 12 Đường số 17, Linh Trung, Thủ Đức, TP.HCM",
-    contracts: [
-      {
-        id: "HD-DT-2026-002",
-        type: "electronic",
-        price: "3.600.000 đ/tháng",
-        priceText: "Ba triệu sáu trăm nghìn đồng",
-        deposit: "3.600.000 đ",
-        depositText: "Ba triệu sáu trăm nghìn đồng",
-        periodMonths: "12",
-        period: "01/07/2026 - 30/06/2027",
-        roomNumber: "102",
-        address: "Số 12 Đường số 17, Linh Trung, Thủ Đức, TP.HCM",
-        createdAt: "30/06/2026",
-        sha256: "9f82d7038cb123e42f9e4e69b0fa525287349ab902e4d0d082fa2c9e782a44cc",
-        signerA: "Nguyễn Văn A (Ký số Smart-ID - 30/06/2026 14:15)",
-        signerB: "",
-        renterCccd: "079096001234",
-        renterAddress: "Quận 1, TP.HCM",
-        landlordCccd: "079075005678",
-        landlordAddress: "Linh Trung, Thủ Đức, TP.HCM",
-      },
-      {
-        id: "HD-DT-2025-001",
-        type: "electronic",
-        price: "3.200.000 đ/tháng",
-        priceText: "Ba triệu hai trăm nghìn đồng",
-        deposit: "3.200.000 đ",
-        depositText: "Ba triệu hai trăm nghìn đồng",
-        periodMonths: "12",
-        period: "01/01/2025 - 31/12/2025",
-        roomNumber: "102",
-        address: "Số 12 Đường số 17, Linh Trung, Thủ Đức, TP.HCM",
-        createdAt: "01/01/2025",
-        sha256: "8e92f7038cb123e42f9e4e69b0fa525287349ab902e4d0d082fa2c9e782a44bb",
-        signerA: "Nguyễn Văn A (Ký số Smart-ID - 01/01/2025 09:15)",
-        signerB: "Nguyễn Văn B (Ký số Smart-ID - 01/01/2025 10:30)",
-        renterCccd: "079096001234",
-        renterAddress: "Quận 1, TP.HCM",
-        landlordCccd: "079075005678",
-        landlordAddress: "Linh Trung, Thủ Đức, TP.HCM",
-      },
-    ],
-  },
-  {
-    id: "ROOM-002",
-    roomName: "Phòng 304 - KTX Tư nhân Đông Hòa",
-    landlord: "Trần Thị B",
-    address: "Khu phố Tân Lập, Đông Hòa, Dĩ An, Bình Dương",
-    contracts: [
-      {
-        id: "HD-G-2024-098",
-        type: "paper",
-        price: "2.800.000 đ/tháng",
-        priceText: "Hai triệu tám trăm nghìn đồng",
-        deposit: "2.800.000 đ",
-        depositText: "Hai triệu tám trăm nghìn đồng",
-        periodMonths: "6",
-        period: "01/06/2024 - 31/12/2024",
-        roomNumber: "304",
-        address: "Khu phố Tân Lập, Đông Hòa, Dĩ An, Bình Dương",
-        createdAt: "01/06/2024",
-        paperImageTenant: null,
-        paperImageLandlord: null,
-        renterCccd: "079096001234",
-        renterAddress: "Quận 1, TP.HCM",
-        landlordCccd: "079075008912",
-        landlordAddress: "Đông Hòa, Dĩ An, Bình Dương",
-      },
-    ],
-  },
-];
 
 export function ContractViewTab() {
   const [roomHistory, setRoomHistory] = useState<RentedRoomHistory[]>([]);
@@ -221,7 +149,13 @@ export function ContractViewTab() {
   const selectedRoom = roomHistory.find((r) => r.id === selectedRoomId) || roomHistory[0] || null;
 
   const handleDownloadSigned = (roomName: string, landlord: string, contract: ContractHistory) => {
-    const fileContent = generateEContractDownloadText(contract, landlord);
+    const fileContent = generateEContractDownloadText(
+      {
+        ...contract,
+        renterName: contract.renterName || userName,
+      },
+      landlord
+    );
     const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

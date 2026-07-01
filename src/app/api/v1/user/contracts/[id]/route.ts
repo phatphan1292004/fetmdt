@@ -15,7 +15,7 @@ function getToken(req: Request) {
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = getToken(req);
@@ -28,7 +28,8 @@ export async function PATCH(
       return Response.json({ success: false, message: "Invalid token" }, { status: 401 });
     }
 
-    const contractId = params.id;
+    const resolvedParams = await params;
+    const contractId = resolvedParams.id;
     const body = await req.json();
     const { action, signerB, paperImageTenant } = body;
 

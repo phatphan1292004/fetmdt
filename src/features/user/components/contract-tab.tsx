@@ -75,6 +75,7 @@ const INITIAL_CONTRACTS: CreatedContract[] = [
     address: "Số 12 Đường số 17, Linh Trung, Thủ Đức, TP.HCM",
     price: "3.200.000 đ/tháng",
     deposit: "3.200.000 đ",
+    periodMonths: "12",
     period: "01/01/2025 - 31/12/2025",
     status: "Đã hết hạn",
     createdAt: "01/01/2025",
