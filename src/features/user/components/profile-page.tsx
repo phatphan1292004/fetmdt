@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { IoCopyOutline, IoQrCodeOutline, IoCloseOutline } from "react-icons/io5";
 import { useSearchParams } from "next/navigation";
+import { io } from "socket.io-client";
 
 import { ContractTab } from "./contract-tab";
 import { ContractViewTab } from "./contract-view-tab";
@@ -897,10 +898,24 @@ function BuffPostsTab() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [activePackage, setActivePackage] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch user profile info
+        try {
+          const meRes = await fetch("/api/v1/auth/me");
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            if (meData.success) {
+              setUserProfile(meData.data);
+            }
+          }
+        } catch (meErr) {
+          console.error("Error fetching user profile:", meErr);
+        }
+
         // Fetch posts
         const postsRes = await fetch("/api/v1/user/posts");
         const postsData = await postsRes.json();
@@ -1006,6 +1021,20 @@ function BuffPostsTab() {
 
       if (data.success) {
         setToastMessage("Hệ thống đã ghi nhận đơn hàng và đang kiểm tra giao dịch của bạn. Tin đăng sẽ được kích hoạt sau vài phút!");
+        
+        try {
+          const socket = io("http://localhost:3003");
+          socket.emit("payment-notify", {
+            orderId: data.data?._id || data.data?.id,
+            user: userProfile?.fullName || "Người dùng ẩn",
+            packageName: activePackage?.name,
+            amount: qrAmount,
+            date: new Date().toLocaleDateString("vi-VN"),
+          });
+          setTimeout(() => socket.disconnect(), 1000);
+        } catch (socketError) {
+          console.error("Socket notification error:", socketError);
+        }
       } else {
         setToastMessage(`Lỗi tạo đơn hàng: ${data.message || "Không xác định"}`);
       }

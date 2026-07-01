@@ -10,14 +10,14 @@ export function PropertyCard({ property }: PropertyCardProps) {
   const roomDetailHref = buildRoomRouteFromSlug(property.id);
 
   return (
-    <article className="relative overflow-hidden rounded-[26px] bg-[#f8f8f8] shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+    <article className="relative overflow-hidden rounded-[26px] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)] flex flex-col h-full">
       <Link
         href={roomDetailHref}
         className="absolute inset-0 z-10 rounded-[26px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b7ea9]"
-        aria-label={`Xem chi tiet ${property.title}`}
+        aria-label={`Xem chi tiết ${property.title}`}
       />
 
-      <div className="relative h-60">
+      <div className="relative h-60 shrink-0">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${property.imageUrl})` }} />
         <div className="absolute inset-0 bg-linear-to-t from-black/25 to-transparent" />
 
@@ -39,28 +39,34 @@ export function PropertyCard({ property }: PropertyCardProps) {
         </button>
       </div>
 
-      <div className="p-4">
-        <h3 className="text-[20px] font-bold leading-tight text-slate-700">{property.title}</h3>
-        <p className="mt-1 text-[16px] text-slate-500">
-          {property.address}, {property.city}
-        </p>
+      <div className="p-4 flex flex-col flex-1 justify-between">
+        <div>
+          <h3 className="text-[18px] font-bold leading-snug text-slate-700 line-clamp-2 min-h-[48px]" title={property.title}>
+            {property.title}
+          </h3>
+          <p className="mt-1 text-[14px] text-slate-500 line-clamp-1" title={`${property.address}${property.city ? `, ${property.city}` : ""}`}>
+            {property.address}
+            {property.city ? `, ${property.city}` : ""}
+          </p>
 
-        <div className="my-4 h-px bg-slate-200" />
+          <div className="my-3.5 h-px bg-slate-200" />
 
-        <ul className="space-y-2 text-[15px] text-slate-600">
-          {property.highlights.map((highlight) => (
-            <li key={highlight} className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#25c3c8]" aria-hidden />
-              {highlight}
-            </li>
-          ))}
-        </ul>
+          <ul className="space-y-1.5 text-[14px] text-slate-600">
+            {property.highlights.map((highlight) => (
+              <li key={highlight} className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full bg-[#25c3c8]" aria-hidden />
+                {highlight}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        <p className="mt-3 text-[18px] font-medium italic text-[#f2483a]">{property.availableLabel}</p>
-
-        <p className="mt-4 text-right text-[16px] text-slate-400">
-          từ <span className="text-[24px] font-extrabold text-[#25c3c8]">{property.priceLabel}</span>
-        </p>
+        <div className="mt-4">
+          <p className="text-[15px] font-semibold italic text-[#f2483a]">{property.availableLabel}</p>
+          <p className="mt-2 text-right text-[15px] text-slate-400">
+            từ <span className="text-[22px] font-extrabold text-[#25c3c8]">{property.priceLabel}</span>
+          </p>
+        </div>
       </div>
     </article>
   );

@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
+import { slugify } from "@/src/utils/slugify";
 
 type CityId = "hcm" | "hn";
 
@@ -261,7 +263,7 @@ export function RentalByDistrictTabs() {
   );
 
   return (
-    <section className="bg-[#f3f5f7] py-14">
+    <section className="bg-white py-14">
       <div className="mx-auto w-full max-w-400 px-4 lg:px-8">
         <div className="inline-flex items-center gap-3" role="tablist" aria-label="Chon thanh pho">
           {CITY_TABS.map((cityTab) => {
@@ -295,25 +297,34 @@ export function RentalByDistrictTabs() {
           role="tabpanel"
           className="mt-8 grid gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
         >
-          {activeTab.districts.map((district) => (
-            <article key={district.id} className="group relative overflow-hidden rounded-3xl">
-              <div className="relative aspect-square bg-slate-300">
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
-                  style={{ backgroundImage: `url(${district.imageUrl})` }}
-                />
-                <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/15 to-transparent" />
+          {activeTab.districts.map((district) => {
+            const cityQueryValue = activeCityId === "hcm" ? "TP. Hồ Chí Minh" : "Hà Nội";
+            const searchUrl = `/category?city=${slugify(cityQueryValue)}&district=${slugify(district.name)}`;
 
-                <span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[15px] font-bold text-[#0a6d97]">
-                  {district.listingCountLabel}
-                </span>
+            return (
+              <Link
+                key={district.id}
+                href={searchUrl}
+                className="group relative block overflow-hidden rounded-3xl cursor-pointer"
+              >
+                <div className="relative aspect-square bg-slate-300">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
+                    style={{ backgroundImage: `url(${district.imageUrl})` }}
+                  />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/15 to-transparent" />
 
-                <p className="absolute bottom-3 left-3 max-w-[85%] text-[18px] font-extrabold leading-tight text-white md:text-[32px]">
-                  {district.name}
-                </p>
-              </div>
-            </article>
-          ))}
+                  <span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[15px] font-bold text-[#0a6d97]">
+                    {district.listingCountLabel}
+                  </span>
+
+                  <p className="absolute bottom-3 left-3 max-w-[85%] text-[18px] font-extrabold leading-tight text-white md:text-[32px]">
+                    {district.name}
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

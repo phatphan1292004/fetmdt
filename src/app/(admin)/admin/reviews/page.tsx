@@ -190,12 +190,12 @@ export default function ReviewManagementPage() {
                         <LuEye size={18} />
                       </button>
 
-                      {/* 2. Nút Duyệt (Chỉ hiện khi trạng thái là Chờ duyệt) */}
-                      {review.status === "Chờ duyệt" ? (
+                      {/* 2. Nút Duyệt (Hiện khi trạng thái là Chờ duyệt hoặc Đã ẩn) */}
+                      {review.status === "Chờ duyệt" || review.status === "Đã ẩn" ? (
                         <button
                           onClick={() => handleApprove(review.id)}
                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-emerald-500 hover:bg-emerald-50 transition"
-                          title="Duyệt đánh giá này"
+                          title={review.status === "Đã ẩn" ? "Hiển thị lại đánh giá này" : "Duyệt đánh giá này"}
                         >
                           <LuCheck size={18} />
                         </button>
@@ -309,6 +309,13 @@ export default function ReviewManagementPage() {
             </div>
 
             <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-200">
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="rounded-xl bg-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-300 transition"
+              >
+                Đóng
+              </button>
+
               {/* Nút Ẩn đánh giá (Chỉ hiện khi chưa bị ẩn) */}
               {selectedReview.status !== "Đã ẩn" && (
                 <button
@@ -319,23 +326,16 @@ export default function ReviewManagementPage() {
                 </button>
               )}
 
-              {/* Nút Duyệt đánh giá (Chỉ hiện khi đang Chờ duyệt) */}
-              {selectedReview.status === "Chờ duyệt" && (
+              {/* Nút Duyệt / Hiển thị lại (Hiện khi đang Chờ duyệt hoặc Đã ẩn) */}
+              {(selectedReview.status === "Chờ duyệt" || selectedReview.status === "Đã ẩn") && (
                 <button
-                  onClick={() => handleApprove(selectedReview.id)}
+                  onClick={() => {
+                    handleApprove(selectedReview.id);
+                  }}
                   className="rounded-xl bg-emerald-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-600 transition shadow-sm flex items-center gap-2"
                 >
-                  <LuCheck size={16} /> Duyệt đánh giá
-                </button>
-              )}
-
-              {/* Thêm nút Đóng đơn giản nếu trạng thái đã ẩn để modal không bị trống trải */}
-              {selectedReview.status === "Đã ẩn" && (
-                <button
-                  onClick={() => setIsViewModalOpen(false)}
-                  className="rounded-xl bg-slate-200 px-6 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-300 transition"
-                >
-                  Đóng
+                  <LuCheck size={16} /> 
+                  {selectedReview.status === "Đã ẩn" ? "Hiển thị lại" : "Duyệt đánh giá"}
                 </button>
               )}
             </div>

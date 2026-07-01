@@ -31,7 +31,11 @@ export default function TransactionsPage() {
         const mapped = (result.data || []).map((tx: any) => ({
           id: tx._id,
           user: tx.userId?.fullName || "Người dùng ẩn",
-          package: `${tx.packageName} (${tx.duration} ngày) - Tin: ${tx.post?.title || "N/A"}`,
+          packageName: `${tx.packageName} (${tx.duration} ngày)`,
+          post: {
+            title: tx.post?.title || "N/A",
+            slug: tx.post?.slug || "",
+          },
           amount: tx.amount.toString(),
           method: "VietQR",
           status: tx.status === "completed" ? "Thành công" : tx.status === "cancelled" ? "Thất bại" : "Chờ duyệt",
@@ -164,7 +168,24 @@ export default function TransactionsPage() {
                 <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-medium text-slate-800">{tx.id}</td>
                   <td className="px-6 py-4 font-medium">{tx.user}</td>
-                  <td className="px-6 py-4 max-w-[200px] truncate" title={tx.package}>{tx.package}</td>
+                  <td className="px-6 py-4">
+                    <div>
+                      <p className="font-semibold text-slate-800">{tx.packageName}</p>
+                      {tx.post?.slug ? (
+                        <a 
+                          href={`/phong-tro/${tx.post.slug}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="mt-1 block text-xs text-blue-600 hover:text-blue-800 hover:underline max-w-[250px] truncate font-medium"
+                          title={`Xem bài viết: ${tx.post.title}`}
+                        >
+                          Bài đăng: {tx.post.title}
+                        </a>
+                      ) : (
+                        <p className="mt-1 text-xs text-slate-400">Tin đăng: N/A</p>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 font-bold text-blue-600">{Number(tx.amount).toLocaleString('vi-VN')}đ</td>
                   <td className="px-6 py-4">
                     <span className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
@@ -185,28 +206,30 @@ export default function TransactionsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      {/* Chỉ hiện nút xử lý duyệt tiền nếu trạng thái là Chờ duyệt */}
-                      {tx.status === "Chờ duyệt" ? (
-                        <>
-                          <button 
-                            onClick={() => handleUpdateStatus(tx.id, "Thành công")}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50 transition"
-                            title="Xác nhận đã nhận tiền"
-                          >
-                            <LuCheck size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleUpdateStatus(tx.id, "Thất bại")}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50 transition"
-                            title="Từ chối giao dịch"
-                          >
-                            <LuX size={18} />
-                          </button>
-                        </>
-                      ) : (
-                        /* Khối tàng hình giữ chỗ giúp các icon ở dòng khác không bị lệch hàng */
-                        <div className="h-8 w-52 shrink-0"></div>
-                      )}
+                      <button 
+                        onClick={() => tx.status !== "Thành công" && handleUpdateStatus(tx.id, "Thành công")}
+                        disabled={tx.status === "Thành công"}
+                        className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
+                          tx.status === "Thành công" 
+                            ? "bg-emerald-100 text-emerald-700 cursor-default" 
+                            : "text-emerald-600 hover:bg-emerald-50 active:bg-emerald-100"
+                        }`}
+                        title={tx.status === "Thành công" ? "Đã xác nhận thành công" : "Xác nhận đã nhận tiền"}
+                      >
+                        <LuCheck size={18} />
+                      </button>
+                      <button 
+                        onClick={() => tx.status !== "Thất bại" && handleUpdateStatus(tx.id, "Thất bại")}
+                        disabled={tx.status === "Thất bại"}
+                        className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
+                          tx.status === "Thất bại" 
+                            ? "bg-rose-100 text-rose-700 cursor-default" 
+                            : "text-rose-600 hover:bg-rose-50 active:bg-rose-100"
+                        }`}
+                        title={tx.status === "Thất bại" ? "Đã từ chối giao dịch" : "Từ chối giao dịch"}
+                      >
+                        <LuX size={18} />
+                      </button>
                     </div>
                   </td>
                 </tr>

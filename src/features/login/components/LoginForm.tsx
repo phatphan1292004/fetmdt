@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loginApi } from "../servers/login";
@@ -11,6 +11,27 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const checkLoggedIn = async () => {
+      try {
+        const res = await fetch("/api/v1/auth/me");
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.data) {
+            if (result.data.role === "admin") {
+              window.location.href = "/admin/dashboard";
+            } else {
+              window.location.href = "/";
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error checking auth status:", error);
+      }
+    };
+    checkLoggedIn();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -103,7 +124,7 @@ export function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               required
-              placeholder="Nhap mat khau"
+              placeholder="Nhập mật khẩu"
               className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#1dbdc2] focus:ring-4 focus:ring-[#22c2c7]/20"
             />
           </div>
