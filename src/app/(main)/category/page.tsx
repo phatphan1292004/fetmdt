@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
+import { slugify } from "@/src/utils/slugify";
 import { PriceRangeFilter } from "@/src/features/category/components/price-range-filter";
 import { PostCard } from "@/src/features/post/components/post-card";
 import type { RawNewestPostData } from "@/src/features/post/servers/get-home-data";
@@ -77,7 +78,13 @@ function buildFilterHref(
 
   Object.entries(updates).forEach(([key, value]) => {
     query.delete(key);
-    if (value) query.set(key, value);
+    if (value) {
+      if (key === "city" || key === "district") {
+        query.set(key, slugify(value));
+      } else {
+        query.set(key, value);
+      }
+    }
   });
 
   query.set("page", "1");
@@ -178,8 +185,37 @@ export default async function CategoryPage({
   searchParams,
 }: CategoryPageProps) {
   const params = await searchParams;
-  const city = asText(params.city);
-  const district = asText(params.district);
+  await connectDB();
+
+  const locations = await Location.find({})
+    .select("city districts -_id")
+    .sort({ city: 1 })
+    .lean();
+
+  const rawCity = asText(params.city);
+  const rawDistrict = asText(params.district);
+
+  // Build slug mapping
+  const cityLookup: Record<string, string> = {};
+  const districtLookup: Record<string, string> = {};
+
+  locations.forEach((item) => {
+    cityLookup[slugify(item.city)] = item.city;
+    if (item.districts) {
+      item.districts.forEach((d) => {
+        districtLookup[slugify(d)] = d;
+      });
+    }
+  });
+
+  const city = cityLookup[rawCity] || rawCity;
+  const district = districtLookup[rawDistrict] || rawDistrict;
+
+  const plainLocations = locations.map((item) => ({
+    city: item.city,
+    districts: item.districts ?? [],
+  }));
+
   const priceRanges = asArray(params.priceRange);
   const propertyType = asText(params.propertyType);
   const policies = asArray(params.policies);
@@ -189,17 +225,6 @@ export default async function CategoryPage({
   const page = asPage(params.page);
   const limit = 5;
   const titleDistrict = district || "Khu vực";
-  await connectDB();
-
-  const locations = await Location.find({})
-    .select("city districts -_id")
-    .sort({ city: 1 })
-    .lean();
-
-  const plainLocations = locations.map((item) => ({
-    city: item.city,
-    districts: item.districts ?? [],
-  }));
 
   let posts: RawNewestPostData[] = [];
   let total = 0;
