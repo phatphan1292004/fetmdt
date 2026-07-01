@@ -110,7 +110,7 @@ export function LoginForm() {
                 Mật khẩu
               </label>
               <Link
-                href="/register"
+                href="/forgot-password"
                 className="text-xs font-semibold text-[#0b7ea9] transition hover:text-[#045a84]"
               >
                 Quên mật khẩu?
