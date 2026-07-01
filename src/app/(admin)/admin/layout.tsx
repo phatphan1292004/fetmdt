@@ -53,10 +53,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#dfe7ee]">
-      <div className="flex min-h-screen w-full overflow-hidden bg-[#f8fafc]">
+    <div className="h-screen overflow-hidden bg-[#dfe7ee]">
+      <div className="flex h-full w-full overflow-hidden bg-[#f8fafc]">
         {/* Sidebar */}
-        <aside className="flex w-[340px] flex-col border-r border-slate-200/80 bg-[#fdfdfd] px-5 py-6">
+        <aside className="flex h-full w-[340px] flex-col border-r border-slate-200/80 bg-[#fdfdfd] px-5 py-6 overflow-y-auto">
           <div className="mb-8 flex items-center gap-3 px-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white">
               <LuHouse size={18} />
