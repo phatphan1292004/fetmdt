@@ -6,6 +6,7 @@ import {
   serializePost,
   type RoomPostDocument,
 } from "@/src/features/room/servers/room-mapper";
+import { GoogleGenAI } from "@google/genai";
 
 export const runtime = "nodejs";
 
@@ -20,18 +21,16 @@ export async function POST(req: Request) {
 
     const endpoint = process.env.LLM_ENDPOINT || "http://localhost:11434/api/chat";
     const model = process.env.OLLAMA_MODEL || "gpt-oss:20b";
-    const num_ctx = 16 * 1024
-    const keep_alive = -1
-    const temperature = 0
+    const num_ctx = 16 * 1024;
+    const keep_alive = -1;
+    const temperature = 0;
 
-    // 1. Fetch all active room posts from DB
     await connectDB();
     const allPosts = await Post.find({ status: { $in: PUBLIC_POST_STATUSES } })
       .populate("ownerId", "fullName phone avatarUrl responseRate")
       .sort({ createdAt: -1 })
       .lean<RoomPostDocument[]>();
 
-    // 2. Simplify room details to minimize token consumption
     const simplifiedRooms = allPosts.map((post) => {
       const room = mapPostToRoomDetail(serializePost(post));
       return {
@@ -47,7 +46,6 @@ export async function POST(req: Request) {
       };
     });
 
-    // 3. Construct prompt for Ollama
     const systemPrompt = `Bạn là trợ lý AI phân tích và tìm kiếm phòng trọ thông minh bằng tiếng Việt.
 Dưới đây là danh sách tất cả phòng trọ hiện có trong hệ thống dưới dạng JSON:
 ${JSON.stringify(simplifiedRooms, null, 2)}
@@ -60,39 +58,82 @@ Trả về một đối tượng JSON duy nhất có cấu trúc sau (không kè
   "aiResponse": string (Lời phản hồi thân thiện bằng tiếng Việt gửi tới người dùng: chào hỏi, tóm tắt tiêu chí lọc, giải thích ngắn gọn lý do chọn các phòng trọ đó, hoặc gợi ý nếu không tìm thấy phòng phù hợp)
 }`;
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt }
-        ],
-        stream: false,
-        options: {
-          temperature: temperature,
-          num_ctx: num_ctx,
-          keep_alive: keep_alive,
-        },
-        format: "json"
-      })
-    });
+    let parsed: { slugs?: string[]; aiResponse?: string } = {};
 
-    if (!response.ok) {
-      throw new Error(`Ollama returned status ${response.status}`);
+    try {
+      // Try Ollama first
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt }
+          ],
+          stream: false,
+          options: {
+            temperature: temperature,
+            num_ctx: num_ctx,
+            keep_alive: keep_alive,
+          },
+          format: "json"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ollama returned status ${response.status}`);
+      }
+
+      const resData = await response.json();
+      const jsonContent = resData.message?.content?.trim();
+      if (!jsonContent) {
+        throw new Error("Empty response from Ollama");
+      }
+
+      parsed = JSON.parse(jsonContent);
+    } catch (ollamaError: any) {
+      console.warn("Ollama failed, falling back to Gemini:", ollamaError.message);
+
+      try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+          throw new Error("GEMINI_API_KEY is not configured in environment variables");
+        }
+
+        const ai = new GoogleGenAI({ apiKey });
+        const interaction = await ai.interactions.create({
+          model: "gemini-3.5-flash",
+          system_instruction: systemPrompt,
+          input: prompt,
+        });
+
+        let jsonContent = interaction.output_text?.trim() || "";
+
+        // Remove markdown block wraps if present
+        if (jsonContent.startsWith("```json")) {
+          jsonContent = jsonContent.substring(7);
+        } else if (jsonContent.startsWith("```")) {
+          jsonContent = jsonContent.substring(3);
+        }
+        if (jsonContent.endsWith("```")) {
+          jsonContent = jsonContent.substring(0, jsonContent.length - 3);
+        }
+        jsonContent = jsonContent.trim();
+
+        if (!jsonContent) {
+          throw new Error("Empty output from Gemini interaction");
+        }
+
+        parsed = JSON.parse(jsonContent);
+      } catch (geminiError: any) {
+        console.error("Gemini fallback also failed:", geminiError.message);
+        throw new Error(`AI search failed. Ollama error: ${ollamaError.message}. Gemini error: ${geminiError.message}`);
+      }
     }
 
-    const resData = await response.json();
-    const jsonContent = resData.message?.content?.trim();
-    if (!jsonContent) {
-      throw new Error("Empty response from Ollama");
-    }
-
-    const parsed = JSON.parse(jsonContent);
     const slugs = Array.isArray(parsed.slugs) ? parsed.slugs : [];
 
-    // 4. Retrieve original posts matching selected slugs (keeps original imageUrls!)
     let matchedRooms: any[] = [];
     if (slugs.length > 0) {
       const matchedPosts = await Post.find({
@@ -102,11 +143,10 @@ Trả về một đối tượng JSON duy nhất có cấu trúc sau (không kè
         .populate("ownerId", "fullName phone avatarUrl responseRate")
         .lean<RoomPostDocument[]>();
 
-      // Sort matchedPosts according to the order returned by Ollama
       const postsMap = new Map(matchedPosts.map((p: RoomPostDocument) => [p.slug, p]));
       matchedRooms = slugs
         .map((slug: string) => postsMap.get(slug))
-        .filter(Boolean)
+        .filter((post): post is RoomPostDocument => !!post)
         .map((post: RoomPostDocument) => mapPostToRoomDetail(serializePost(post)));
     }
 

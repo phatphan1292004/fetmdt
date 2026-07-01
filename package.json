@@ -10,6 +10,7 @@
     "socket": "npx tsx src/app/api/socket/socket-server.ts"
   },
   "dependencies": {
+    "@google/genai": "^2.10.0",
     "bcryptjs": "^3.0.3",
     "docx": "^9.7.1",
     "dotenv": "^17.4.2",
