@@ -4,6 +4,7 @@ import User from "@/src/models/User";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { Types } from "mongoose";
 import { NextResponse } from "next/server";
+import { MediaStorage } from "@/src/lib/media-storage";
 
 export const runtime = "nodejs";
 
@@ -611,7 +612,7 @@ function mapPublicPostForResponse(
   };
 }
 
-async function getNewestPublicPosts(
+export async function getNewestPublicPosts(
   limit: number
 ): Promise<PublicPostApiData[]> {
   await connectDB();
@@ -662,7 +663,7 @@ async function getNewestPublicPosts(
   return posts.map((post) => mapPublicPostForResponse(post, ownerPostCountMap));
 }
 
-async function getFeaturedPublicPosts(
+export async function getFeaturedPublicPosts(
   limit: number
 ): Promise<PublicPostApiData[]> {
   await connectDB();
@@ -1080,21 +1081,46 @@ export async function POST(req: Request) {
       );
     }
 
-    const mediaUrls = normalizeMediaUrls(body.mediaUrls);
 
-    if (mediaUrls.length === 0) {
+    // <<<<<<< HEAD
+    let uploadedCloudinaryUrls: string[] = [];
+    try {
+      uploadedCloudinaryUrls = await Promise.all(
+        uploadedImageDataUrls.map((dataUrl) => MediaStorage.uploadImage(dataUrl))
+      );
+    } catch (uploadError) {
+      console.error("Cloudinary upload failed:", uploadError);
       return NextResponse.json(
-        { success: false, message: "Vui lòng tải lên ít nhất 1 ảnh", data: null },
-        { status: 400 }
+        {
+          success: false,
+          message: "Lỗi tải ảnh lên Cloudinary. Vui lòng kiểm tra lại cấu hình hoặc thử lại sau.",
+          data: null,
+        },
+        { status: 500 }
       );
     }
 
-    if (mediaUrls.length > MAX_IMAGE_COUNT) {
-      return NextResponse.json(
-        { success: false, message: `Bạn chỉ có thể đăng tối đa ${MAX_IMAGE_COUNT} ảnh`, data: null },
-        { status: 400 }
-      );
-    }
+    const mediaUrls = [
+      ...normalizeMediaUrls(body.mediaUrls),
+      ...uploadedCloudinaryUrls,
+    ];
+    // =======
+    //     const mediaUrls = normalizeMediaUrls(body.mediaUrls);
+
+    //     if (mediaUrls.length === 0) {
+    //       return NextResponse.json(
+    //         { success: false, message: "Vui lòng tải lên ít nhất 1 ảnh", data: null },
+    //         { status: 400 }
+    //       );
+    //     }
+
+    //     if (mediaUrls.length > MAX_IMAGE_COUNT) {
+    //       return NextResponse.json(
+    //         { success: false, message: `Bạn chỉ có thể đăng tối đa ${MAX_IMAGE_COUNT} ảnh`, data: null },
+    //         { status: 400 }
+    //       );
+    //     }
+    // >>>>>>> main
 
     if (mediaUrls.length === 0) {
       return NextResponse.json(

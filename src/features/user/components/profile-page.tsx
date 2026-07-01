@@ -3,11 +3,15 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
-import { IoCopyOutline } from "react-icons/io5";
+import { IoCopyOutline, IoQrCodeOutline, IoCloseOutline } from "react-icons/io5";
 import { useSearchParams } from "next/navigation";
 import { io } from "socket.io-client";
 
-type ProfileTabId = "info" | "saved" | "manage" | "buff";
+import { ContractTab } from "./contract-tab";
+import { ContractViewTab } from "./contract-view-tab";
+import { ResidencyTab } from "./residency-tab";
+
+type ProfileTabId = "info" | "saved" | "manage" | "buff" | "contract" | "contract-view" | "residency";
 
 type TabItem = {
   id: ProfileTabId;
@@ -66,6 +70,9 @@ const TABS: readonly TabItem[] = [
   { id: "saved", label: "Tin đăng đã lưu" },
   { id: "manage", label: "Quản lý tin đăng" },
   { id: "buff", label: "Dịch vụ đẩy tin" },
+  { id: "contract", label: "Tạo & Quản lý Hợp đồng" },
+  { id: "contract-view", label: "Lịch sử thuê trọ" },
+  { id: "residency", label: "Đăng ký tạm trú" },
 ];
 
 // Removed hardcoded SAVED_POSTS constant
@@ -158,6 +165,7 @@ function ProfileInfoTab() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showQrModal, setShowQrModal] = useState(false);
   const [formState, setFormState] = useState({
     fullName: "",
     email: "",
@@ -166,6 +174,8 @@ function ProfileInfoTab() {
     identityCard: "",
     occupation: "",
     hobbies: "",
+    identityCardIssuedPlace: "",
+    permanentAddress: "",
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -197,6 +207,8 @@ function ProfileInfoTab() {
           identityCard: data.data.identityCard || "",
           occupation: data.data.occupation || "",
           hobbies: data.data.hobbies?.join(", ") || "",
+          identityCardIssuedPlace: data.data.identityCardIssuedPlace || "",
+          permanentAddress: data.data.permanentAddress || "",
         });
       } catch (error: any) {
         if (!isMounted) return;
@@ -261,6 +273,8 @@ function ProfileInfoTab() {
     { key: "phone", label: "Số điện thoại", value: profile?.phone || "--", editable: true },
     { key: "email", label: "Email", value: profile?.email || "--", editable: true },
     { key: "identityCard", label: "Số CCCD", value: profile?.identityCard || "--", editable: true },
+    { key: "identityCardIssuedPlace", label: "Nơi cấp CCCD", value: (profile as any)?.identityCardIssuedPlace || "--", editable: true },
+    { key: "permanentAddress", label: "Địa chỉ thường trú", value: (profile as any)?.permanentAddress || "--", editable: true },
     { key: "occupation", label: "Nghề nghiệp", value: profile?.occupation || "--", editable: true },
     { key: "hobbies", label: "Sở thích", value: profile?.hobbies?.join(", ") || "--", editable: true },
     { key: "preferredArea", label: "Khu vực ưu tiên", value: profile?.preferredArea || "--", editable: true },
@@ -304,6 +318,8 @@ function ProfileInfoTab() {
       identityCard: profile.identityCard || "",
       occupation: profile.occupation || "",
       hobbies: profile.hobbies?.join(", ") || "",
+      identityCardIssuedPlace: (profile as any).identityCardIssuedPlace || "",
+      permanentAddress: (profile as any).permanentAddress || "",
     });
   };
 
@@ -321,6 +337,8 @@ function ProfileInfoTab() {
         identityCard: profile.identityCard || "",
         occupation: profile.occupation || "",
         hobbies: profile.hobbies?.join(", ") || "",
+        identityCardIssuedPlace: (profile as any).identityCardIssuedPlace || "",
+        permanentAddress: (profile as any).permanentAddress || "",
       });
     }
   };
@@ -345,6 +363,8 @@ function ProfileInfoTab() {
         formData.append("identityCard", formState.identityCard);
         formData.append("occupation", formState.occupation);
         formData.append("hobbies", formState.hobbies);
+        formData.append("identityCardIssuedPlace", formState.identityCardIssuedPlace);
+        formData.append("permanentAddress", formState.permanentAddress);
         formData.append("avatar", avatarFile);
 
         res = await fetch("/api/v1/user/profile", {
@@ -365,6 +385,8 @@ function ProfileInfoTab() {
             identityCard: formState.identityCard,
             occupation: formState.occupation,
             hobbies: formState.hobbies.split(",").map((s) => s.trim()).filter(Boolean),
+            identityCardIssuedPlace: formState.identityCardIssuedPlace,
+            permanentAddress: formState.permanentAddress,
           }),
         });
       }
@@ -439,14 +461,16 @@ function ProfileInfoTab() {
         </div>
       </div>
 
-      <div className="mx-auto mt-6 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {profileStats.map((item) => (
-          <article key={item.label} className="rounded-2xl border border-slate-200 bg-white p-3.5 text-left shadow-sm">
-            <p className="text-sm text-slate-500">{item.label}</p>
-            <p className="mt-1 text-2xl font-extrabold text-slate-900">{item.value}</p>
-          </article>
-        ))}
-      </div>
+      {profile?.role !== "nguoi_tim_tro" && (
+        <div className="mx-auto mt-6 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {profileStats.map((item) => (
+            <article key={item.label} className="rounded-2xl border border-slate-200 bg-white p-3.5 text-left shadow-sm">
+              <p className="text-sm text-slate-500">{item.label}</p>
+              <p className="mt-1 text-2xl font-extrabold text-slate-900">{item.value}</p>
+            </article>
+          ))}
+        </div>
+      )}
 
       <div className="mx-auto mt-4 grid max-w-4xl gap-4 lg:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -516,6 +540,70 @@ function ProfileInfoTab() {
           </button>
         </article>
       </div>
+
+      {/* Personal QR Code Card in Profile Tab */}
+      <div className="mx-auto mt-4 max-w-4xl rounded-2xl border border-blue-150 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5 text-left">
+        <div className="space-y-2.5">
+          <h3 className="text-base font-extrabold text-blue-900 flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Mã QR định danh cá nhân của bạn
+          </h3>
+          <p className="text-xs text-blue-700 font-medium leading-relaxed">
+            Mã QR này được tự động tạo dựa trên số điện thoại liên hệ của bạn (`{profile?.phone || "Chưa có SĐT"}`). Hãy đưa cho Chủ trọ quét khi tạo hợp đồng trọ để tự động điền hồ sơ của bạn vào hệ thống.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowQrModal(true)}
+            className="inline-flex h-8 px-3.5 items-center gap-1.5 rounded-lg bg-[#0b7ea9] hover:bg-[#096b90] text-white text-[10px] font-bold transition shadow-xs"
+          >
+            <IoQrCodeOutline className="h-3.5 w-3.5" /> Hiển thị mã QR phóng to
+          </button>
+        </div>
+        <div 
+          onClick={() => setShowQrModal(true)}
+          className="flex flex-col items-center gap-1 bg-white p-2 rounded-xl border border-blue-100 shadow-xs shrink-0 cursor-pointer hover:bg-slate-50 transition group"
+        >
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(profile?.phone || profile?.email || "Chưa có thông tin")}`}
+            alt="Mã QR định danh người dùng"
+            className="w-24 h-24 group-hover:scale-105 transition duration-200"
+          />
+          <span className="text-[10px] font-bold text-slate-400">SĐT: {profile?.phone || "Chưa có"}</span>
+        </div>
+      </div>
+
+      {/* QR Code Enlarged Modal */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl relative animate-scale-up text-center space-y-4">
+            <button
+              onClick={() => setShowQrModal(false)}
+              type="button"
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+            >
+              <IoCloseOutline className="h-5 w-5" />
+            </button>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-extrabold text-slate-900">Mã QR Định Danh</h3>
+              <p className="text-xs text-slate-500">Đưa mã QR này cho Chủ trọ quét để liên kết hồ sơ</p>
+            </div>
+
+            <div className="mx-auto p-4 bg-white rounded-2xl border border-slate-150 shadow-inner w-fit">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(profile?.phone || profile?.email || "Chưa có thông tin")}`}
+                alt="Mã QR định danh người dùng phóng to"
+                className="w-64 h-64 mx-auto"
+              />
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3 text-xs text-slate-650 font-medium">
+              <p>Khách thuê: <span className="font-bold text-slate-800">{profile?.fullName}</span></p>
+              <p>Số điện thoại: <span className="font-bold text-slate-800">{profile?.phone}</span></p>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -1321,14 +1409,74 @@ function BuffPostsTab() {
 export function ProfilePage() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<ProfileTabId>("info");
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("/api/v1/user/profile");
+        const data = await res.json();
+        if (res.ok && data.data && isMounted) {
+          setUserRole(data.data.role);
+        }
+      } catch (error) {
+        console.error("Error fetching user profile for tabs:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    fetchProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const tabParam = searchParams.get("tab") as ProfileTabId;
-    if (tabParam && ["info", "saved", "manage", "buff"].includes(tabParam)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setActiveTab(tabParam);
+    if (tabParam) {
+      if (!loading) {
+        if (userRole === "nguoi_tim_tro" && ["manage", "buff", "contract"].includes(tabParam)) {
+          setActiveTab("info");
+        } else if (userRole !== "nguoi_tim_tro" && ["contract-view", "residency"].includes(tabParam)) {
+          setActiveTab("info");
+        } else {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setActiveTab(tabParam);
+        }
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, loading, userRole]);
+
+  useEffect(() => {
+    if (!loading) {
+      if (userRole === "nguoi_tim_tro" && ["manage", "buff", "contract"].includes(activeTab)) {
+        setActiveTab("info");
+      } else if (userRole !== "nguoi_tim_tro" && ["contract-view", "residency"].includes(activeTab)) {
+        setActiveTab("info");
+      }
+    }
+  }, [loading, userRole, activeTab]);
+
+  const filteredTabs = TABS.filter((tab) => {
+    if (userRole === "nguoi_tim_tro") {
+      return tab.id !== "manage" && tab.id !== "buff" && tab.id !== "contract";
+    }
+    return tab.id !== "contract-view" && tab.id !== "residency";
+  });
+
+  if (loading) {
+    return (
+      <main className="flex-1 bg-[#f3f5f7] pb-12 pt-6 sm:pt-8">
+        <div className="mx-auto w-full max-w-6xl px-3 sm:px-4 lg:px-8 text-center text-slate-500 py-12">
+          Đang tải hồ sơ...
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex-1 bg-[#f3f5f7] pb-12 pt-6 sm:pt-8">
@@ -1348,7 +1496,7 @@ export function ProfilePage() {
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_10px_24px_rgba(15,23,42,0.06)] sm:p-4">
           <div className="flex flex-wrap gap-2">
-            {TABS.map((tab) => {
+            {filteredTabs.map((tab) => {
               const isActive = tab.id === activeTab;
 
               return (
@@ -1373,6 +1521,9 @@ export function ProfilePage() {
           {activeTab === "saved" && <SavedPostsTab />}
           {activeTab === "manage" && <ManagedPostsTab />}
           {activeTab === "buff" && <BuffPostsTab />}
+          {activeTab === "contract" && <ContractTab />}
+          {activeTab === "contract-view" && <ContractViewTab />}
+          {activeTab === "residency" && <ResidencyTab />}
         </div>
       </section>
     </main>

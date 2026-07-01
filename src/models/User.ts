@@ -79,6 +79,18 @@ const UserSchema = new mongoose.Schema(
             trim: true,
         },
 
+        identityCardIssuedPlace: {
+            type: String,
+            default: "Cục Cảnh sát Quản lý hành chính về trật tự xã hội",
+            trim: true,
+        },
+
+        permanentAddress: {
+            type: String,
+            default: "",
+            trim: true,
+        },
+
         followerCount: {
             type: Number,
             default: 0,

@@ -66,6 +66,8 @@ export async function PATCH(req: Request) {
         preferredArea: formData.get("preferredArea") || undefined,
         identityCard: formData.get("identityCard") || undefined,
         occupation: formData.get("occupation") || undefined,
+        identityCardIssuedPlace: formData.get("identityCardIssuedPlace") || undefined,
+        permanentAddress: formData.get("permanentAddress") || undefined,
       };
       const hobbiesStr = formData.get("hobbies") as string;
       if (hobbiesStr) {
@@ -77,7 +79,7 @@ export async function PATCH(req: Request) {
       if (avatarFile && typeof avatarFile !== "string") {
         const bytes = await avatarFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-
+ 
         const filename = `${Date.now()}-${avatarFile.name.replace(/\s+/g, '_')}`;
         const uploadDir = path.join(process.cwd(), "public", "uploads");
         await fs.mkdir(uploadDir, { recursive: true });
@@ -94,7 +96,8 @@ export async function PATCH(req: Request) {
     // Only allow updating specific fields to prevent mass assignment
     const allowedFields = [
       "fullName", "avatarUrl", "identityCard", "identityCardFrontUrl", 
-      "identityCardBackUrl", "hobbies", "occupation", "preferredArea"
+      "identityCardBackUrl", "hobbies", "occupation", "preferredArea",
+      "identityCardIssuedPlace", "permanentAddress"
     ];
     
     const updateData: any = {};

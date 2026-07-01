@@ -184,6 +184,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
   const gallery = [...room.imageUrls];
   const contactPhoneHref = room.contact.phone.replace(/\D/g, "");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [showZaloMenu, setShowZaloMenu] = useState(false);
 
   // Reviews states
   const [reviews, setReviews] = useState<any[]>([]);
@@ -268,7 +269,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
     let isMounted = true;
     const geocode = async () => {
       const cleanCity = room.city.replace(/TPHCM|TP\.HCM|tp\.hcm/gi, "Hồ Chí Minh");
-      
+
       // Layer 1: Try full address query
       try {
         const query = `${room.address}, ${cleanCity}`;
@@ -298,10 +299,10 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
           // Strip house numbers
           street = street.replace(/^\d+[\/\w]*\s+/, "");
           street = street.replace(/^(Số|Hẻm|Ngõ|Kiệt|Đường)\s+\d+[\/\w]*\s+/, "");
-          
+
           const district = parts.length >= 3 ? parts[parts.length - 2] : parts[1];
           const query = `${street}, ${district}, ${cleanCity}`;
-          
+
           const res = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
             { headers: { "Accept-Language": "vi", "User-Agent": "TmdtTestApp/1.0" } }
@@ -326,7 +327,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
         const parts = room.address.split(",").map(p => p.trim());
         const district = parts.length >= 3 ? parts[parts.length - 2] : (parts.length >= 2 ? parts[1] : "");
         const query = `${district}, ${cleanCity}`;
-        
+
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
           { headers: { "Accept-Language": "vi", "User-Agent": "TmdtTestApp/1.0" } }
@@ -364,13 +365,13 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
         const { lat, lng } = coords;
         const radius = 1500;
         const osmTag = selectedCategory.osmTag;
-        
+
         const query = `[out:json];(node(around:${radius},${lat},${lng})${osmTag};way(around:${radius},${lat},${lng})${osmTag};);out center;`;
         const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-        
+
         const res = await fetch(url);
         if (!res.ok) throw new Error("Overpass API failed");
-        
+
         const data = await res.json();
         if (!isMounted) return;
 
@@ -383,7 +384,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
             return { name, lat: itemLat, lng: itemLng, distance };
           })
           .filter((item: any) => item.lat && item.lng)
-          .filter((item: any, idx: number, arr: any[]) => 
+          .filter((item: any, idx: number, arr: any[]) =>
             arr.findIndex((t) => t.name === item.name && Math.abs(t.distance - item.distance) < 50) === idx
           )
           .sort((a: any, b: any) => a.distance - b.distance)
@@ -420,16 +421,16 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
             {details.apartmentFloor !== undefined && <DetailItem label="Tầng số" value={`Tầng ${details.apartmentFloor}`} />}
             {details.buildingFloors !== undefined && <DetailItem label="Tổng số tầng" value={`${details.buildingFloors} tầng`} />}
             {details.hasBalcony !== undefined && (
-              <DetailItem 
-                label="Ban công" 
-                value={details.hasBalcony ? `Có (${details.balconyDirection || "chưa rõ"})` : "Không"} 
+              <DetailItem
+                label="Ban công"
+                value={details.hasBalcony ? `Có (${details.balconyDirection || "chưa rõ"})` : "Không"}
               />
             )}
             {details.interiorStatus && <DetailItem label="Nội thất" value={details.interiorStatus} />}
             {details.managementFee !== undefined && (
-              <DetailItem 
-                label="Phí quản lý" 
-                value={details.managementFee > 0 ? `${details.managementFee.toLocaleString("vi-VN")}đ/tháng` : "Miễn phí"} 
+              <DetailItem
+                label="Phí quản lý"
+                value={details.managementFee > 0 ? `${details.managementFee.toLocaleString("vi-VN")}đ/tháng` : "Miễn phí"}
               />
             )}
           </div>
@@ -681,11 +682,10 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                   type="button"
                   onClick={handleToggleSave}
                   disabled={checkingSave}
-                  className={`inline-flex shrink-0 whitespace-nowrap items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition ${
-                    isSaved
-                      ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-[#8cd7db] hover:text-[#0b7ea9]"
-                  }`}
+                  className={`inline-flex shrink-0 whitespace-nowrap items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition ${isSaved
+                    ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-[#8cd7db] hover:text-[#0b7ea9]"
+                    }`}
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -953,11 +953,10 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                 <button
                   type="button"
                   onClick={() => setSelectedCategory(null)}
-                  className={`inline-flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold border transition ${
-                    selectedCategory === null
-                      ? "bg-[#0b7ea9] border-transparent text-white shadow-sm"
-                      : "bg-slate-50 border-slate-200 text-slate-700 hover:border-[#8cd7db] hover:bg-white"
-                  }`}
+                  className={`inline-flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold border transition ${selectedCategory === null
+                    ? "bg-[#0b7ea9] border-transparent text-white shadow-sm"
+                    : "bg-slate-50 border-slate-200 text-slate-700 hover:border-[#8cd7db] hover:bg-white"
+                    }`}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
                     <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -973,11 +972,10 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                       key={cat.id}
                       type="button"
                       onClick={() => setSelectedCategory(cat)}
-                      className={`inline-flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold border transition ${
-                        isActive
-                          ? "bg-[#0b7ea9] border-transparent text-white shadow-sm"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:border-[#8cd7db] hover:bg-white"
-                      }`}
+                      className={`inline-flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold border transition ${isActive
+                        ? "bg-[#0b7ea9] border-transparent text-white shadow-sm"
+                        : "bg-slate-50 border-slate-200 text-slate-700 hover:border-[#8cd7db] hover:bg-white"
+                        }`}
                     >
                       <Icon />
                       {cat.label}
@@ -998,7 +996,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                           <span className="text-xs text-[#0b7ea9] animate-pulse">Đang tìm kiếm...</span>
                         )}
                       </div>
-                      
+
                       {loadingAmenities ? (
                         <div className="space-y-3">
                           {[1, 2, 3].map((i) => (
@@ -1008,31 +1006,28 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                       ) : nearbyAmenities.length > 0 ? (
                         <ul className="space-y-2.5">
                           {nearbyAmenities.map((place, index) => {
-                            const distanceText = place.distance < 1000 
-                              ? `${Math.round(place.distance)} m` 
+                            const distanceText = place.distance < 1000
+                              ? `${Math.round(place.distance)} m`
                               : `${(place.distance / 1000).toFixed(1)} km`;
                             const isSelected = selectedPlace?.name === place.name;
                             return (
-                              <li 
-                                key={index} 
+                              <li
+                                key={index}
                                 onClick={() => setSelectedPlace(isSelected ? null : place)}
-                                className={`flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-[14px] shadow-sm border transition md:text-[15px] cursor-pointer ${
-                                  isSelected
-                                    ? "bg-[#effaff] border-[#0b7ea9] text-[#0b7ea9] font-bold"
-                                    : "bg-white border-slate-100 text-slate-700 hover:border-[#8cd7db]"
-                                }`}
+                                className={`flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-[14px] shadow-sm border transition md:text-[15px] cursor-pointer ${isSelected
+                                  ? "bg-[#effaff] border-[#0b7ea9] text-[#0b7ea9] font-bold"
+                                  : "bg-white border-slate-100 text-slate-700 hover:border-[#8cd7db]"
+                                  }`}
                               >
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition ${
-                                    isSelected ? "bg-[#0b7ea9] text-white" : "bg-[#eaf9fa] text-[#0b7ea9]"
-                                  }`}>
+                                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition ${isSelected ? "bg-[#0b7ea9] text-white" : "bg-[#eaf9fa] text-[#0b7ea9]"
+                                    }`}>
                                     <selectedCategory.icon />
                                   </span>
                                   <span className="truncate">{place.name}</span>
                                 </div>
-                                <span className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-full transition ${
-                                  isSelected ? "bg-[#0b7ea9]/15 text-[#0b7ea9]" : "bg-slate-100 text-slate-400"
-                                }`}>{distanceText}</span>
+                                <span className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-full transition ${isSelected ? "bg-[#0b7ea9]/15 text-[#0b7ea9]" : "bg-slate-100 text-slate-400"
+                                  }`}>{distanceText}</span>
                               </li>
                             );
                           })}
@@ -1076,12 +1071,12 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                         selectedPlace && coords
                           ? `https://maps.google.com/maps?hl=vi&saddr=${coords.lat},${coords.lng}&daddr=${selectedPlace.lat},${selectedPlace.lng}&z=15&output=embed`
                           : `https://maps.google.com/maps?hl=vi&q=${encodeURIComponent(
-                              selectedCategory
-                                ? `${selectedCategory.query} gần ${coords ? `${coords.lat},${coords.lng}` : `${room.address}, ${room.city}`}`
-                                : coords
-                                  ? `${coords.lat},${coords.lng}`
-                                  : `${room.address}, ${room.city}`
-                            )}&z=15&output=embed`
+                            selectedCategory
+                              ? `${selectedCategory.query} gần ${coords ? `${coords.lat},${coords.lng}` : `${room.address}, ${room.city}`}`
+                              : coords
+                                ? `${coords.lat},${coords.lng}`
+                                : `${room.address}, ${room.city}`
+                          )}&z=15&output=embed`
                       }
                       width="100%"
                       height="100%"
@@ -1100,7 +1095,7 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
             {/* Reviews Section */}
             <article className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] md:p-7 space-y-6">
               <h2 className="text-[20px] font-bold text-[#0b5f89] md:text-[24px]">Nhận xét & Đánh giá</h2>
-              
+
               {/* Write Review Form */}
               <form onSubmit={handleSubmitReview} className="space-y-4 rounded-2xl bg-slate-50 p-4 md:p-5 border border-slate-100">
                 <div className="flex items-center gap-3">
@@ -1209,12 +1204,68 @@ export function RoomDetailPage({ room, relatedRooms }: RoomDetailPageProps) {
                 >
                   Gọi ngay {room.contact.phone}
                 </a>
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center justify-center rounded-2xl border border-[#0b7ea9] px-4 py-3.5 text-base font-semibold text-[#0b7ea9] transition hover:bg-[#effaff]"
-                >
-                  Nhắn tin Zalo
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowZaloMenu(!showZaloMenu)}
+                    className="inline-flex w-full items-center justify-center rounded-2xl border border-[#0b7ea9] px-4 py-3.5 text-base font-semibold text-[#0b7ea9] transition hover:bg-[#effaff]"
+                  >
+                    Nhắn tin Zalo
+                    <svg
+                      className={`ml-2 h-4 w-4 transition-transform duration-200 ${showZaloMenu ? "rotate-180" : ""}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {showZaloMenu && (
+                    <>
+                      {/* Backdrop to close when clicking outside */}
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowZaloMenu(false)}
+                      />
+                      <div className="absolute right-0 left-0 mt-2 z-20 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <a
+                          href={`zalo://conversation?phone=${contactPhoneHref}`}
+                          onClick={() => setShowZaloMenu(false)}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                        >
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          </span>
+                          <div className="text-left">
+                            <p className="font-semibold text-slate-800">Mở Zalo App/PC</p>
+                            <p className="text-xs text-slate-400">Mở trong ứng dụng Zalo</p>
+                          </div>
+                        </a>
+                        <a
+                          href={`https://zalo.me/${contactPhoneHref}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setShowZaloMenu(false)}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 mt-1"
+                        >
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                            </svg>
+                          </span>
+                          <div className="text-left">
+                            <p className="font-semibold text-slate-800">Mở Zalo Web</p>
+                            <p className="text-xs text-slate-400">Trò chuyện trên trình duyệt</p>
+                          </div>
+                        </a>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="mt-5 grid gap-3 rounded-2xl bg-[#f7fbfc] p-4 text-sm text-slate-600">
