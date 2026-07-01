@@ -11,7 +11,7 @@ export function FeaturedPostsSection({ posts }: FeaturedPostsSectionProps) {
   }
 
   return (
-    <section className="bg-[#f3f5f7] py-16">
+    <section className="bg-white py-16">
       <div className="mx-auto w-full max-w-400 px-4 lg:px-6">
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-[26px] font-extrabold text-[#045a84] md:text-[32px]">Bài đăng nổi bật</h2>
