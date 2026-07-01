@@ -130,6 +130,14 @@ io.on("connection", (socket: CustomSocket) => {
     broadcastActiveRooms();
   });
 
+  socket.on("payment-notify", (data) => {
+    console.log("[Socket] Payment notification received:", data);
+    console.log(`[Socket] Broadcasting to ${adminSockets.size} admin(s)`);
+    for (const adminSocket of adminSockets) {
+      adminSocket.emit("admin-payment-alert", data);
+    }
+  });
+
   socket.on("admin-select-room", async (roomId) => {
     socket.join(roomId);
     console.log(`[Admin] Viewing room: ${roomId}`);

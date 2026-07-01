@@ -7,6 +7,7 @@ import type { RawNewestPostData } from "@/src/features/post/servers/get-home-dat
 import { connectDB } from "@/src/lib/mongoose";
 import Location from "@/src/models/Location";
 import { LocationFilter } from "@/src/features/category/components/location-filter";
+import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 type CategoryPageProps = {
   searchParams: Promise<{
     city?: string;
@@ -277,6 +278,21 @@ export default async function CategoryPage({
   const filteredPosts = posts;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
+  const getPageHref = (pageNumber: number) => {
+    const hrefParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (!value || key === "page") return;
+
+      if (Array.isArray(value)) {
+        value.forEach((item) => hrefParams.append(key, item));
+      } else {
+        hrefParams.set(key, value);
+      }
+    });
+    hrefParams.set("page", pageNumber.toString());
+    return `/category?${hrefParams.toString()}`;
+  };
+
   return (
     <main className="bg-[#f3f5f7] py-8">
       <section className="mx-auto w-full max-w-400 px-4 lg:px-6">
@@ -370,42 +386,48 @@ export default async function CategoryPage({
             </div>
           </aside>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredPosts.length ? (
-              filteredPosts.map((post, index) => (
-                <PostCard
-                  key={post.id ?? post._id ?? `category-post-${index}`}
-                  post={post}
-                />
-              ))
-            ) : (
-              <div className="col-span-full rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600">
-                Chưa có phòng phù hợp với khu vực đã chọn.
-              </div>
-            )}
+          <div className="flex flex-col gap-8">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+              {filteredPosts.length ? (
+                filteredPosts.map((post, index) => (
+                  <PostCard
+                    key={post.id ?? post._id ?? `category-post-${index}`}
+                    post={post}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600">
+                  Chưa có phòng phù hợp với khu vực đã chọn.
+                </div>
+              )}
+            </div>
+
+            {/* PHÂN TRANG (PAGINATION) OUTSIDE GRID */}
             {totalPages > 1 ? (
-              <div className="flex w-full items-center justify-center gap-3 pt-6">
+              <div className="flex items-center justify-center gap-2 pt-4">
+                {/* Nút trang trước */}
+                {page > 1 ? (
+                  <Link
+                    href={getPageHref(page - 1)}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
+                    title="Trang trước"
+                  >
+                    <LuChevronLeft size={18} />
+                  </Link>
+                ) : (
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed">
+                    <LuChevronLeft size={18} />
+                  </span>
+                )}
+
+                {/* Danh sách số trang */}
                 {Array.from({ length: totalPages }).map((_, index) => {
                   const pageNumber = index + 1;
-                  const hrefParams = new URLSearchParams();
-
-                  Object.entries(params).forEach(([key, value]) => {
-                    if (!value || key === "page") return;
-
-                    if (Array.isArray(value)) {
-                      value.forEach((item) => hrefParams.append(key, item));
-                    } else {
-                      hrefParams.set(key, value);
-                    }
-                  });
-
-                  hrefParams.set("page", pageNumber.toString());
-
                   return (
                     <Link
                       key={pageNumber}
-                      href={`/category?${hrefParams.toString()}`}
-                      className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
+                      href={getPageHref(pageNumber)}
+                      className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-semibold transition ${
                         pageNumber === page
                           ? "border-[#045a84] bg-[#045a84] text-white"
                           : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
@@ -415,6 +437,21 @@ export default async function CategoryPage({
                     </Link>
                   );
                 })}
+
+                {/* Nút trang sau */}
+                {page < totalPages ? (
+                  <Link
+                    href={getPageHref(page + 1)}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
+                    title="Trang sau"
+                  >
+                    <LuChevronRight size={18} />
+                  </Link>
+                ) : (
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed">
+                    <LuChevronRight size={18} />
+                  </span>
+                )}
               </div>
             ) : null}
           </div>
