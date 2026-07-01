@@ -30,6 +30,20 @@ export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSect
     return properties.filter((property) => property.category === activeCategory);
   }, [activeCategory, properties]);
 
+  const categoryParams: Record<string, string> = {
+    "Phòng trọ": "phong_tro",
+    "Căn hộ mini": "can_ho_chung_cu",
+    "Studio": "nha_o"
+  };
+
+  const seeAllHref = useMemo(() => {
+    const propertyType = categoryParams[activeCategory];
+    if (propertyType) {
+      return `/category?propertyType=${propertyType}`;
+    }
+    return "/category";
+  }, [activeCategory]);
+
   const syncSliderState = useCallback(() => {
     if (!emblaApi) {
       return;
@@ -70,7 +84,7 @@ export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSect
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-[30px] font-extrabold text-[#045a84] md:text-[36px]">Tòa nhà có phòng bán chạy</h2>
           <Link
-            href="/cho-thue-phong-tro-hn/quan-cau-giay/cho-thue-phong-tro"
+            href={seeAllHref}
             className="hidden items-center gap-2 text-[18px] font-semibold text-[#0a6d97] md:inline-flex"
           >
             Xem tất cả
