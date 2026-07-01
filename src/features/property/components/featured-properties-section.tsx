@@ -65,7 +65,7 @@ export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSect
   }, [emblaApi, filteredProperties.length]);
 
   return (
-    <section className="bg-[#f3f5f7] py-20">
+    <section className="bg-white py-20">
       <div className="mx-auto w-full max-w-400 px-4 lg:px-8">
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-[30px] font-extrabold text-[#045a84] md:text-[36px]">Tòa nhà có phòng bán chạy</h2>
@@ -87,11 +87,10 @@ export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSect
                 key={category}
                 type="button"
                 onClick={() => setActiveCategory(category)}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                  isActive
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${isActive
                     ? "border-[#0b7ea9] bg-[#0b7ea9] text-white"
                     : "border-slate-300 bg-white text-slate-600 hover:border-[#0b7ea9]/45 hover:text-[#0b7ea9]"
-                }`}
+                  }`}
               >
                 {category}
               </button>
@@ -104,11 +103,10 @@ export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSect
             type="button"
             onClick={() => emblaApi?.scrollPrev()}
             disabled={!canScrollPrev}
-            className={`absolute -left-14 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-white text-[#0b7fae] shadow-sm transition lg:inline-flex ${
-              canScrollPrev
+            className={`absolute -left-14 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-white text-[#0b7fae] shadow-sm transition lg:inline-flex ${canScrollPrev
                 ? "border-slate-300 hover:border-[#0b7ea9]/45 hover:text-[#0b7ea9]"
                 : "cursor-not-allowed border-slate-200 text-slate-300"
-            }`}
+              }`}
             aria-label="Xem trước"
           >
             ‹
@@ -120,7 +118,7 @@ export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSect
             </div>
           ) : (
             <div className="overflow-hidden" ref={emblaRef}>
-              <div className="-ml-3 flex touch-pan-y md:-ml-4">
+              <div className="-ml-3 flex touch-pan-y md:-ml-4 bg-white">
                 {filteredProperties.map((property) => (
                   <div key={property.id} className="min-w-0 flex-[0_0_100%] pl-3 md:flex-[0_0_50%] md:pl-4 xl:flex-[0_0_25%]">
                     <PropertyCard property={property} />
@@ -134,11 +132,10 @@ export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSect
             type="button"
             onClick={() => emblaApi?.scrollNext()}
             disabled={!canScrollNext}
-            className={`absolute -right-12 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-white text-[#0b7fae] shadow-sm transition lg:inline-flex ${
-              canScrollNext
+            className={`absolute -right-12 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-white text-[#0b7fae] shadow-sm transition lg:inline-flex ${canScrollNext
                 ? "border-slate-300 hover:border-[#0b7ea9]/45 hover:text-[#0b7ea9]"
                 : "cursor-not-allowed border-slate-200 text-slate-300"
-            }`}
+              }`}
             aria-label="Xem tiếp"
           >
             ›
@@ -155,9 +152,8 @@ export function FeaturedPropertiesSection({ properties }: FeaturedPropertiesSect
                   key={index}
                   type="button"
                   onClick={() => emblaApi?.scrollTo(index)}
-                  className={`h-1.5 rounded-full transition-all ${
-                    isActive ? "w-8 bg-[#25c3c8]" : "w-4 bg-slate-300 hover:bg-slate-400"
-                  }`}
+                  className={`h-1.5 rounded-full transition-all ${isActive ? "w-8 bg-[#25c3c8]" : "w-4 bg-slate-300 hover:bg-slate-400"
+                    }`}
                   aria-label={`Chuyển đến slide ${index + 1}`}
                 />
               );
