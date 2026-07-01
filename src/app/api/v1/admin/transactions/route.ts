@@ -32,8 +32,10 @@ export async function GET(req: Request) {
     // Query all orders and populate fields
     const orders = await Order.find()
       .populate("userId", "fullName")
-      .populate("post", "title")
+      .populate("post", "title slug")
       .sort({ createdAt: -1 });
+
+    console.log("API orders:", JSON.stringify(orders.map(o => ({ id: o._id, packageName: o.packageName, post: o.post })), null, 2));
 
     return NextResponse.json({
       success: true,

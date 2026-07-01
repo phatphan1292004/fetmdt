@@ -32,9 +32,34 @@ export async function GET(req: Request) {
 
     await connectDB();
 
-    const now = new Date();
+    const url = new URL(req.url);
+    const range = url.searchParams.get("range") || "6months";
 
-    // 1. Chỉ số chính
+    const now = new Date();
+    let startDate = new Date();
+
+    if (range === "7days") {
+      startDate.setDate(now.getDate() - 7);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (range === "1month") {
+      startDate.setDate(now.getDate() - 30);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (range === "3months") {
+      startDate.setDate(now.getDate() - 90);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (range === "6months") {
+      startDate.setMonth(now.getMonth() - 6);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (range === "all") {
+      startDate = new Date(0); // Epoch start
+    }
+
+    const matchFilter: any = { status: "completed" };
+    if (range !== "all") {
+      matchFilter.createdAt = { $gte: startDate };
+    }
+
+    // 1. Chỉ số chính (Tất cả thời gian)
     // Tổng doanh thu tích lũy
     const totalRevenueResult = await Order.aggregate([
       { $match: { status: "completed" } },
@@ -51,30 +76,92 @@ export async function GET(req: Request) {
     // Số giao dịch chờ duyệt
     const pendingTxCount = await Order.countDocuments({ status: "pending" });
 
-    // 2. Xu hướng doanh thu 6 tháng gần đây
+    // 2. Xu hướng doanh thu theo mốc thời gian
     const monthlyTrend = [];
-    const monthNames = ["Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"];
     
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const start = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
-      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+    if (range === "7days") {
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+        const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+        
+        const revResult = await Order.aggregate([
+          { $match: { status: "completed", createdAt: { $gte: start, $lte: end } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        const total = revResult[0]?.total || 0;
+        
+        monthlyTrend.push({
+          name: `${d.getDate()}/${d.getMonth() + 1}`,
+          revenue: total
+        });
+      }
+    } else if (range === "1month") {
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+        const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+        
+        const revResult = await Order.aggregate([
+          { $match: { status: "completed", createdAt: { $gte: start, $lte: end } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        const total = revResult[0]?.total || 0;
+        
+        monthlyTrend.push({
+          name: `${d.getDate()}/${d.getMonth() + 1}`,
+          revenue: total
+        });
+      }
+    } else if (range === "3months") {
+      for (let i = 11; i >= 0; i--) {
+        const start = new Date();
+        start.setDate(now.getDate() - (i + 1) * 7);
+        start.setHours(0, 0, 0, 0);
+        
+        const end = new Date();
+        end.setDate(now.getDate() - i * 7);
+        end.setHours(23, 59, 59, 999);
+        
+        const revResult = await Order.aggregate([
+          { $match: { status: "completed", createdAt: { $gte: start, $lte: end } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        const total = revResult[0]?.total || 0;
+        
+        monthlyTrend.push({
+          name: `${start.getDate()}/${start.getMonth() + 1}`,
+          revenue: total
+        });
+      }
+    } else {
+      // 6months hoặc all: hiển thị theo tháng (all thì lấy 12 tháng gần nhất)
+      const monthsToCount = range === "all" ? 12 : 6;
+      const monthNames = ["Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"];
+      
+      for (let i = monthsToCount - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const start = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
+        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
 
-      const revResult = await Order.aggregate([
-        { $match: { status: "completed", createdAt: { $gte: start, $lte: end } } },
-        { $group: { _id: null, total: { $sum: "$amount" } } }
-      ]);
-      const total = revResult[0]?.total || 0;
+        const revResult = await Order.aggregate([
+          { $match: { status: "completed", createdAt: { $gte: start, $lte: end } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        const total = revResult[0]?.total || 0;
 
-      monthlyTrend.push({
-        name: `${monthNames[d.getMonth()]} ${d.getFullYear().toString().slice(-2)}`,
-        revenue: total
-      });
+        monthlyTrend.push({
+          name: `${monthNames[d.getMonth()]} ${d.getFullYear().toString().slice(-2)}`,
+          revenue: total
+        });
+      }
     }
 
-    // 3. Phân bố theo Gói tin
+    // 3. Phân bố theo Gói tin trong mốc thời gian
     const packageDistResult = await Order.aggregate([
-      { $match: { status: "completed" } },
+      { $match: matchFilter },
       { $group: { _id: "$packageId", value: { $sum: "$amount" }, count: { $sum: 1 } } }
     ]);
 
@@ -100,7 +187,7 @@ export async function GET(req: Request) {
       }
     });
 
-    // 4. Giao dịch thành công lớn nhất/gần đây
+    // 4. Giao dịch thành công lớn nhất/gần đây (Tất cả thời gian)
     const recentTransactions = await Order.find({ status: "completed" })
       .populate("userId", "fullName email")
       .sort({ createdAt: -1 })
@@ -115,6 +202,23 @@ export async function GET(req: Request) {
       date: new Date(tx.createdAt).toLocaleDateString("vi-VN"),
     }));
 
+    // 5. Phân tích tỷ lệ khách hàng trả phí vs miễn phí
+    const totalUsersCount = await User.countDocuments({ role: { $ne: "admin" } }); // Loại trừ admin
+    const payingUsersList = await Order.distinct("userId", { status: "completed" });
+    
+    // Đếm số user trả phí thực sự tồn tại trong DB (tránh TH user bị xóa)
+    const payingUsersCount = await User.countDocuments({ 
+      _id: { $in: payingUsersList },
+      role: { $ne: "admin" }
+    });
+    
+    const freeUsersCount = Math.max(0, totalUsersCount - payingUsersCount);
+
+    const customerAnalysis = [
+      { name: "Khách hàng trả phí", value: payingUsersCount },
+      { name: "Khách hàng miễn phí", value: freeUsersCount }
+    ];
+
     return NextResponse.json({
       success: true,
       data: {
@@ -126,6 +230,7 @@ export async function GET(req: Request) {
         },
         monthlyTrend,
         packageDistribution,
+        customerAnalysis,
         recentTransactions: formattedTransactions
       }
     });

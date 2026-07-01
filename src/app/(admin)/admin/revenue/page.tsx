@@ -18,26 +18,33 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from "recharts";
 
 export default function RevenuePage() {
+  const [range, setRange] = useState("6months");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
   const [packageDistribution, setPackageDistribution] = useState<any[]>([]);
+  const [customerAnalysis, setCustomerAnalysis] = useState<any[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
   const fetchRevenueData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/v1/admin/revenue");
+      const res = await fetch(`/api/v1/admin/revenue?range=${range}`);
       const result = await res.json();
       if (result.success && result.data) {
         setStats(result.data.stats);
         setMonthlyTrend(result.data.monthlyTrend);
         setPackageDistribution(result.data.packageDistribution);
+        setCustomerAnalysis(result.data.customerAnalysis || []);
         setRecentTransactions(result.data.recentTransactions);
       } else {
         setError(result.message || "Không thể tải báo cáo doanh thu.");
@@ -51,7 +58,7 @@ export default function RevenuePage() {
 
   useEffect(() => {
     fetchRevenueData();
-  }, []);
+  }, [range]);
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
@@ -66,9 +73,11 @@ export default function RevenuePage() {
     }).format(value).replace(/\s/g, "").replace("₫", "đ");
   };
 
+  const COLORS = ["#3b82f6", "#10b981", "#6366f1", "#f59e0b"];
+
   if (loading) {
     return (
-      <div className="flex h-[400px] w-full items-center justify-center">
+      <div className="flex min-h-[70vh] w-full items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
       </div>
     );
@@ -163,37 +172,80 @@ export default function RevenuePage() {
         })}
       </div>
 
-      {/* Grid Biểu đồ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Biểu đồ xu hướng */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
-          <h2 className="text-lg font-bold text-slate-800 mb-6">Xu hướng doanh thu (6 tháng qua)</h2>
-          <div className="flex-1 min-h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={formatCurrency} />
-                <Tooltip
-                  cursor={{ stroke: "#3b82f6", strokeWidth: 1 }}
-                  contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
-                  formatter={(value: any) => [`${Number(value).toLocaleString("vi-VN")} đ`, "Doanh thu"]}
-                />
-                <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+      {/* Bộ lọc biểu đồ */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+        <div>
+          <h3 className="font-bold text-slate-800">Biểu đồ phân tích doanh thu</h3>
+          <p className="text-xs text-slate-400 mt-1">Dữ liệu doanh thu biểu diễn dưới dạng xu hướng và tỷ lệ phân bố theo mốc thời gian.</p>
         </div>
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+          {[
+            { id: "7days", label: "7 ngày" },
+            { id: "1month", label: "30 ngày" },
+            { id: "3months", label: "3 tháng" },
+            { id: "6months", label: "6 tháng" },
+            { id: "all", label: "Tất cả" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setRange(item.id)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                range === item.id
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
+      {/* Biểu đồ xu hướng (Full width) */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
+        <h2 className="text-lg font-bold text-slate-800 mb-6">
+          Xu hướng doanh thu ({
+            range === "7days" ? "7 ngày qua" :
+            range === "1month" ? "30 ngày qua" :
+            range === "3months" ? "3 tháng qua" :
+            range === "6months" ? "6 tháng qua" : "tất cả thời gian"
+          })
+        </h2>
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={monthlyTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={formatCurrency} />
+              <Tooltip
+                cursor={{ stroke: "#3b82f6", strokeWidth: 1 }}
+                contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                formatter={(value: any) => [`${Number(value).toLocaleString("vi-VN")} đ`, "Doanh thu"]}
+              />
+              <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Grid Biểu đồ con (2 cột trên desktop) */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Biểu đồ phân bố theo Gói */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
-          <h2 className="text-lg font-bold text-slate-800 mb-6">Doanh thu theo Gói VIP</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-6">
+            Doanh thu theo Gói VIP ({
+              range === "7days" ? "7 ngày qua" :
+              range === "1month" ? "30 ngày qua" :
+              range === "3months" ? "3 tháng qua" :
+              range === "6months" ? "6 tháng qua" : "tất cả thời gian"
+            })
+          </h2>
           <div className="flex-1 min-h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={packageDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -210,6 +262,36 @@ export default function RevenuePage() {
                 />
                 <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={45} />
               </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Biểu đồ tròn Phân tích Khách hàng */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
+          <h2 className="text-lg font-bold text-slate-800 mb-6">Tỷ lệ chuyển đổi khách hàng</h2>
+          <div className="flex-1 min-h-[300px] w-full flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={customerAnalysis}
+                  cx="50%"
+                  cy="45%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {customerAnalysis.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                  formatter={(value: any) => [`${value} tài khoản`, "Số lượng"]}
+                />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
