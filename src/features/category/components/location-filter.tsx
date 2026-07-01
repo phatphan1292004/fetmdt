@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import { slugify } from "@/src/utils/slugify";
 
 type LocationItem = {
   city: string;
@@ -35,7 +36,11 @@ function buildHref(
     query.delete(key);
 
     if (value) {
-      query.set(key, value);
+      if (key === "city" || key === "district") {
+        query.set(key, slugify(value));
+      } else {
+        query.set(key, value);
+      }
     }
   });
 

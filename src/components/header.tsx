@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { slugify } from "@/src/utils/slugify";
 import { CurrentUser, UserMenu } from "./UserMenu";
 import { NotificationBell } from "./NotificationBell";
 import Image from "next/image";
@@ -126,7 +127,7 @@ export function Header({ hotline, currentUser, locations }: HeaderProps) {
                           location.districts.map((district) => (
                             <Link
                               key={district}
-                              href={`/category?city=${encodeURIComponent(location.city)}&district=${encodeURIComponent(district)}`}
+                              href={`/category?city=${slugify(location.city)}&district=${slugify(district)}`}
                               className="rounded-xl px-3 py-2 text-[16px] font-medium text-slate-700 transition hover:bg-slate-50"
                             >
                               {district}
